@@ -1,60 +1,99 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
 
 namespace FogRemover.Components
 {
-    internal class RemoveFog : MonoBehaviour
+    public class RemoveFog : MonoBehaviour
     {
-        public Volume vol;
-        public Fog fog;
-        public void Awake()
+        private Volume vol;
+        private Fog fog;
+        private static GameObject fogObject;
+        private static AddFog addFogComponent;
+
+        /*void Update()
         {
-            FogRemover.mls.LogInfo("Removing fog...");
-        }
-        public void Update()
-        {
-            
             if (vol == null)
             {
-                foreach (Volume v in FindObjectsOfType<Volume>().ToList())
+                foreach (Volume v in FindObjectsOfType<Volume>())
                 {
-                    if (v.gameObject.name == "VolumeMain" && !FogRemover.disableAll.Value)
+                    if (v.gameObject.name == "VolumeMain")
                     {
                         vol = v;
-                    }
-                    if (FogRemover.disableAll.Value && v != null)
-                    {
-                        v.sharedProfile.TryGet(out fog);
-                        if (fog != null)
+                        if (vol.sharedProfile.TryGet(out fog))
                         {
                             fog.active = false;
                             fog.enabled.value = false;
                             fog.enabled.overrideState = false;
+                            FogRemover.mls.LogInfo("Old fog settings disabled.");
+                            break;
                         }
-                        vol = v;
                     }
                 }
-                if (fog == null && vol != null && !FogRemover.disableAll.Value)
-                {
-                    vol.sharedProfile.TryGet(out fog);
-                }
             }
-            if (fog != null && !FogRemover.disableAll.Value)
+        }*/
+
+        public void TerminateOldFog() => StartCoroutine(CheckAndRemoveFog());
+
+        private IEnumerator CheckAndRemoveFog()
+        {
+            while (true)
             {
-                if (fog.enabled.value)
+                foreach (Volume v in FindObjectsOfType<Volume>())
                 {
-                    fog.enabled.value = false;
-                    fog.enabled.overrideState = false;
-                    fog.active = false;
-                    FogRemover.mls.LogInfo("Fog removed");
+                    if (v.gameObject.name == "VolumeMain")
+                    {
+                        vol = v;
+                        if (vol.sharedProfile.TryGet(out fog))
+                        {
+                            fog.active = false;
+                            fog.enabled.value = false;
+                            fog.enabled.overrideState = false;
+                            FogRemover.mls.LogInfo("Old fog settings disabled.");
+
+                            // Trigger the CreateFog method in AddFog component
+                            fogObject = FogRemover.NewFog;
+                            if (fogObject != null)
+                            {
+                                addFogComponent = fogObject.GetComponent<AddFog>();
+                                if (addFogComponent != null)
+                                {
+                                    addFogComponent.CreateFog();
+                                    FogRemover.mls.LogInfo("Triggered CreateFog method in AddFog component.");
+                                }
+                                else
+                                {
+                                    FogRemover.mls.LogError("AddFog component is null. Could not trigger CreateFog");
+                                }
+                            }
+                            else
+                            {
+                                FogRemover.mls.LogError("Fog GameObject is null. Could not trigger CreateFog");
+                            }
+                            yield break; // Exit the coroutine
+                        }
+                    }
+                }
+                yield return new WaitForSeconds(1f); // Wait for 1 second before checking again
+                FogRemover.mls.LogInfo("Waiting for VolumeMain to be created...");
+            }
+        }
+
+        public void TerminateFogObjects() => StartCoroutine(CheckAndRemoveFogObjects());
+
+        private IEnumerator CheckAndRemoveFogObjects()
+        {
+            foreach (Volume v in FindObjectsOfType<Volume>())
+            {
+                if (v.gameObject.name == "FogRemoverHolder" || v.gameObject.name == "NewFogHolder")
+                {
+                    vol = v;
+                    Destroy(vol.gameObject);
+                    FogRemover.mls.LogInfo("Old fog objects destroyed.");
                 }
             }
+            yield break; // Exit the coroutine
         }
     }
 }
