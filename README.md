@@ -2,11 +2,13 @@ BetterFog
 
 To-Dos:
 - Test ship leaving automatically in case that fog is not destroyed.
-- Add wheel for fog presets
 - Get vertical positioning for each landing that will set fog base.
 - Tune fog settings
 - Change fog based on weather?
 
+Prerequisites:
+BepInEx
+LethalCompanyInputUtils
 
 -----------------------------------------
 Good Config Settings:

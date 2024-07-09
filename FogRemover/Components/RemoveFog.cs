@@ -8,9 +8,9 @@ namespace FogRemover.Components
     public class RemoveFog : MonoBehaviour
     {
         private Volume vol;
-        private Fog fog;
-        private static GameObject fogObject;
-        private static AddFog addFogComponent;
+        //private Fog fog;
+        //private static GameObject fogObject;
+        //private static AddFog addFogComponent;
 
         /*void Update()
         {
@@ -40,45 +40,63 @@ namespace FogRemover.Components
         {
             while (true)
             {
+                Volume vol = null;
                 foreach (Volume v in FindObjectsOfType<Volume>())
                 {
                     if (v.gameObject.name == "VolumeMain")
                     {
                         vol = v;
-                        if (vol.sharedProfile.TryGet(out fog))
-                        {
-                            fog.active = false;
-                            fog.enabled.value = false;
-                            fog.enabled.overrideState = false;
-                            FogRemover.mls.LogInfo("Old fog settings disabled.");
+                        break;
+                    }
+                }
 
-                            // Trigger the CreateFog method in AddFog component
-                            fogObject = FogRemover.NewFog;
-                            if (fogObject != null)
+                if (vol != null)
+                {
+                    FogRemover.mls.LogInfo("VolumeMain found.");
+                    if (vol.sharedProfile.TryGet(out Fog fog))
+                    {
+                        FogRemover.mls.LogInfo("Fog profile found. Disabling old fog settings.");
+                        fog.active = false;
+                        fog.enabled.value = false;
+                        fog.enabled.overrideState = false;
+                        FogRemover.mls.LogInfo("Old fog settings disabled.");
+
+                        // Trigger the CreateFog method in AddFog component
+                        GameObject fogObject = FogRemover.NewFog;
+                        if (fogObject != null)
+                        {
+                            var addFogComponent = fogObject.GetComponent<AddFog>();
+                            if (addFogComponent != null)
                             {
-                                addFogComponent = fogObject.GetComponent<AddFog>();
-                                if (addFogComponent != null)
-                                {
-                                    addFogComponent.CreateFog();
-                                    FogRemover.mls.LogInfo("Triggered CreateFog method in AddFog component.");
-                                }
-                                else
-                                {
-                                    FogRemover.mls.LogError("AddFog component is null. Could not trigger CreateFog");
-                                }
+                                addFogComponent.CreateFog();
+                                FogRemover.mls.LogInfo("Triggered CreateFog method in AddFog component.");
                             }
                             else
                             {
-                                FogRemover.mls.LogError("Fog GameObject is null. Could not trigger CreateFog");
+                                FogRemover.mls.LogError("AddFog component is null. Could not trigger CreateFog.");
                             }
-                            yield break; // Exit the coroutine
                         }
+                        else
+                        {
+                            FogRemover.mls.LogError("Fog GameObject is null. Could not trigger CreateFog.");
+                        }
+                        yield break; // Exit the coroutine
+                    }
+                    else
+                    {
+                        FogRemover.mls.LogError("Fog profile not found in VolumeMain.");
                     }
                 }
+                else
+                {
+                    FogRemover.mls.LogInfo("VolumeMain not found.");
+                }
+
                 yield return new WaitForSeconds(1f); // Wait for 1 second before checking again
                 FogRemover.mls.LogInfo("Waiting for VolumeMain to be created...");
             }
         }
+
 
         public void TerminateFogObjects() => StartCoroutine(CheckAndRemoveFogObjects());
 

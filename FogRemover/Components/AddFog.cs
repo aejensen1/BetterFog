@@ -2,6 +2,7 @@
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
 using System.Collections;
+using FogRemover.Assets;
 
 namespace FogRemover.Components
 {
@@ -10,9 +11,7 @@ namespace FogRemover.Components
         private Volume fogVolume;
         private VolumeProfile newFogProfile;
         private Fog fogComponent;
-        private float startMeanFreePath;
-        private float oscillationRange = 1f; // Adjust as needed
-        private float oscillationSpeed = 1f; // Adjust as needed
+        private FogConfigPreset fogPreset;
 
         public void CreateFog()
         {
@@ -31,65 +30,37 @@ namespace FogRemover.Components
             fogVolume.sharedProfile = newFogProfile;
 
             // Apply settings from config
+            fogPreset = FogRemover.currentPreset;
             ApplyFogSettings();
-
-            startMeanFreePath = FogRemover.meanFreePath.Value;
-
-            //FogRemover.mls.LogInfo("Triggering fog oscillation");
-            //StartCoroutine(OscillateMeanFreePath());
         }
 
+        // Apply supplied fog preset settings from config
         void ApplyFogSettings()
         {
-
             fogComponent.meanFreePath.overrideState = true;
-            fogComponent.meanFreePath.value = FogRemover.meanFreePath.Value;
-
-            fogComponent.baseHeight.overrideState = true;
-            //fogComponent.baseHeight.value = FogRemover.baseHeight;
-            //Vector3 cameraPosition = cameraClass.position;
-            fogComponent.baseHeight.value = -10000f;
-
-            fogComponent.maximumHeight.overrideState = true;
-            fogComponent.maximumHeight.value = FogRemover.maximumHeight;
+            fogComponent.meanFreePath.value = fogPreset.MeanFreePath;
 
             fogComponent.albedo.overrideState = true;
             fogComponent.albedo.value = new Color(
-                FogRemover.albedoR.Value,
-                FogRemover.albedoG.Value,
-                FogRemover.albedoB.Value,
-                FogRemover.albedoA.Value
+                fogPreset.AlbedoR,
+                fogPreset.AlbedoG,
+                fogPreset.AlbedoB,
+                fogPreset.AlbedoA
             );
 
             fogComponent.anisotropy.overrideState = true;
-            fogComponent.anisotropy.value = FogRemover.anisotropy.Value;
+            fogComponent.anisotropy.value = fogPreset.Anisotropy;
 
             fogComponent.globalLightProbeDimmer.overrideState = true;
-            fogComponent.globalLightProbeDimmer.value = FogRemover.globalLightProbeDimmer.Value;
+            fogComponent.globalLightProbeDimmer.value = fogPreset.GlobalLightProbeDimmer;
 
-            FogRemover.mls.LogInfo($"New fog settings applied: \n" +
+            FogRemover.mls.LogInfo($"New fog settings applied from preset " + fogPreset.PresetName + ": \n" +
                 $"Mean Free Path: {fogComponent.meanFreePath.value}\n" +
                 $"Base Height: {fogComponent.baseHeight.value}\n" +
                 $"Maximum Height: {fogComponent.maximumHeight.value}\n" +
                 $"Albedo: {fogComponent.albedo.value}\n" +
                 $"Anisotropy: {fogComponent.anisotropy.value}\n" +
                 $"Global Light Probe Dimmer: {fogComponent.globalLightProbeDimmer.value}");
-        }
-
-        IEnumerator OscillateMeanFreePath()
-        {
-            while (true)
-            {
-                float elapsedTime = 0f;
-
-                while (elapsedTime < Mathf.PI * 2)
-                {
-                    elapsedTime += Time.deltaTime * oscillationSpeed;
-                    fogComponent.meanFreePath.value = startMeanFreePath + Mathf.Sin(elapsedTime) * oscillationRange;
-                    FogRemover.mls.LogInfo("Fog Level Adjusted to: " + fogComponent.meanFreePath.value);
-                    yield return null;
-                }
-            }
         }
     }
 }
