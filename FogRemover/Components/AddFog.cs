@@ -3,6 +3,7 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
 using System.Collections;
 using FogRemover.Assets;
+using System.Collections.Generic;
 
 namespace FogRemover.Components
 {
@@ -12,6 +13,7 @@ namespace FogRemover.Components
         private VolumeProfile newFogProfile;
         private Fog fogComponent;
         private FogConfigPreset fogPreset;
+        private Vector3 fogPosition = new Vector3(94.4611f, 50.2054f, 10.95f);
 
         public void CreateFog()
         {
@@ -32,6 +34,9 @@ namespace FogRemover.Components
             // Apply settings from config
             fogPreset = FogRemover.currentPreset;
             ApplyFogSettings();
+
+            // Set the fog position to normal fog position
+            fogVolume.transform.position = fogPosition;
         }
 
         // Apply supplied fog preset settings from config
