@@ -20,7 +20,7 @@ Known Bugs:
 
 To-Dos:
 - Test ship leaving automatically in case that fog is not destroyed.
-- Get vertical positioning for each landing that will set fog base.
+- Get fog to be visible on all moons.
 - Tune fog settings
 - Change fog based on weather?
 
