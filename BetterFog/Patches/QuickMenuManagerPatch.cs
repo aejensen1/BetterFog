@@ -1,8 +1,7 @@
 ﻿using HarmonyLib;
 using UnityEngine;
-using FogRemover.Components;
 
-namespace FogRemover.Patches
+namespace BetterFog.Patches
 {
     [HarmonyPatch(typeof(QuickMenuManager))]
     public class QuickMenuManagerPatch
@@ -13,8 +12,8 @@ namespace FogRemover.Patches
         {
             if (GameNetworkManager.Instance != null && !HUDManager.Instance.retrievingSteamLeaderboard)
             {
-                FogRemover.Bruh.GetComponent<RemoveFog>().TerminateFogObjects();
-                Debug.Log("Destroying all fog objects - entered main menu");
+                //BetterFog.Bruh.GetComponent<RemoveFog>().TerminateFogObjects();
+                //Debug.Log("Destroying all fog objects - entered main menu");
             }
         }
     }

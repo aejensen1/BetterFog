@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine.InputSystem;
 
-namespace FogRemover.Input
+namespace BetterFog.Input
 {
     [HarmonyPatch]
     public static class KeybindDisplayNames

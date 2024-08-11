@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine.InputSystem;
 
-namespace FogRemover.Input
+namespace BetterFog.Input
 {
     internal class IngameKeybinds : LcInputActions
     {

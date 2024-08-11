@@ -1,30 +1,21 @@
 BetterFog
+==============
+
+As you likely already know, foggy weather is detrimental and even downright unplayable in essentially any other moon than Experimentation and Titan. BetterFog mod solves that issue by creating a preset list of fog options that can have custom densities, colors, and lighting settings. With this, there are virtually thousands of variations of custom fog presets possible.
 
 Prerequisites:
 BepInEx
 LethalCompanyInputUtils
 
 Known Bugs:
-- Fog only shows on the some moons. Please let me know if you may know why. It does not work on the following moons:
-    - Titan
-    - Rend
-    - Dine
-    - Artifice
-    - Experimentation
-    - March
-    - Vow
-    - Adamance
-- Does work on the following moons:
-    - Assurance
-    - Offense
+- None at the moment...
 
 To-Dos:
-- Test ship leaving automatically in case that fog is not destroyed.
-- Get fog to be visible on all moons.
 - Tune fog settings
 - Change fog based on weather?
+- Live modifications to fog in game for convenience
 
 Instructions:
-- Manage presets in the config file. Any number of presets can be added, as long as there is at least one. Settings can be tweaked for color, brightness, and thickness.
-- hotkey 'n' is used to switch between presets in-game.
+- Manage presets in the config file. Any number of presets can be added, as long as there is at least one. Settings can be tweaked for fog density and color.
+- hotkey 'n' is used to switch between presets in-game. LeftStickPress should be the button for controller, but this has not been tested yet.
 
