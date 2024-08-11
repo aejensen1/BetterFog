@@ -16,7 +16,7 @@ To-Dos:
 - Live modifications to fog in game for convenience
 
 Instructions:
-- If you are manually setting up the mod, place BetterFod.dll in "Program Files (x86)/Steam/steamapps/common/Lethal Company/BepInEx/plugins/BetterFod.dll"
+- If you are manually setting up the mod, place BetterFog.dll in "Program Files (x86)/Steam/steamapps/common/Lethal Company/BepInEx/plugins/BetterFog.dll"
 - Manage presets in the config file. Any number of presets can be added, as long as there is at least one. Settings can be tweaked for fog density and color.
 - hotkey 'n' is used to switch between presets in-game. LeftStickPress should be the button for controller, but this has not been tested yet.
 
