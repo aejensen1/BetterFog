@@ -7,8 +7,8 @@ BetterFog is a Mod Plugin that can be used on the game Lethal Company. If you ha
 
 Prerequisites
 ==============
-- BepInEx
-- LethalCompanyInputUtils
+- ![BepInEx](https://thunderstore.io/c/lethal-company/p/BepInEx/BepInExPack/)
+- ![LethalCompanyInputUtils](https://thunderstore.io/c/lethal-company/p/Rune580/LethalCompany_InputUtils/)
 
 Known Bugs
 ==============
@@ -34,6 +34,6 @@ Red Fog:
 Vanilla Fog:
 ![VanillaFog2](https://github.com/user-attachments/assets/a0977f89-9f8e-4024-ba97-562edd65cb6f)
 
-
-
-
+Credits
+==============
+Thanks to ![mrov](https://github.com/AndreyMrovol) for some code suggestions.
