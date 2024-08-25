@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using TMPro;  // Make sure you have this namespace for TextMeshPro
 using System.Collections.Generic;
 using System.Collections;
+using UnityEngine.EventSystems;
 
 namespace BetterFog.Assets
 {
@@ -17,18 +18,28 @@ namespace BetterFog.Assets
 
         private Slider fogDensitySlider; // Slider for fog density
         private TextMeshProUGUI densityVal; // Display for fog density value
+        private Button densityUp;
+        private Button densityDown;
 
         private Slider fogRedSlider; // Slider for fog density
         private TextMeshProUGUI redVal; // Display for fog density value
+        private Button redUp;
+        private Button redDown;
 
         private Slider fogGreenSlider; // Slider for fog density
         private TextMeshProUGUI greenVal; // Display for fog density value
+        private Button greenUp;
+        private Button greenDown;
 
         private Slider fogBlueSlider; // Slider for fog density
         private TextMeshProUGUI blueVal; // Display for fog density value
+        private Button blueUp;
+        private Button blueDown;
 
         private Slider fogAlphaSlider; // Slider for fog density
         private TextMeshProUGUI alphaVal; // Display for fog density value
+        private Button alphaUp;
+        private Button alphaDown;
 
         public Toggle noFogCheckbox;
 
@@ -68,6 +79,8 @@ namespace BetterFog.Assets
             }
         }
 
+        //--------------------------------- Start Initialization ---------------------------------
+
         private void Initialize()
         {
             BetterFog.mls.LogInfo("Initializing FogSettingsManager.");
@@ -80,6 +93,7 @@ namespace BetterFog.Assets
                 {
                     BetterFog.mls.LogInfo("AssetBundle loaded successfully.");
                     customFont = fogsettingsgui.LoadAsset<TMP_FontAsset>("3270Condensed-Regular SDF");  // Load the custom font
+                    BetterFog.mls.LogInfo("If you see an error indicating 'shader compiler platform 4 is not available', nothing is broken.");
 
                     if (customFont != null)
                     {
@@ -121,23 +135,28 @@ namespace BetterFog.Assets
                         // Find the slider and text components
                         fogDensitySlider = settingsCanvas.transform.Find("ThicknessSlider").GetComponent<Slider>();
                         densityVal = settingsCanvas.transform.Find("ThicknessNum").GetComponent<TextMeshProUGUI>();
-                        //BetterFog.mls.LogInfo("ThicknessSlider and ThicknessNum are the names of the GameObjects in the prefab");
+                        densityDown = settingsCanvas.transform.Find("ThicknessDown").GetComponent<Button>();
+                        densityUp = settingsCanvas.transform.Find("ThicknessUp").GetComponent<Button>();
 
                         fogRedSlider = settingsCanvas.transform.Find("RedSlider").GetComponent<Slider>();
                         redVal = settingsCanvas.transform.Find("RedHueNum").GetComponent<TextMeshProUGUI>();
-                        //BetterFog.mls.LogInfo("RedSlider and RedHueNum are the names of the GameObjects in the prefab");
+                        redDown = settingsCanvas.transform.Find("RedDown").GetComponent<Button>();
+                        redUp = settingsCanvas.transform.Find("RedUp").GetComponent<Button>();
 
                         fogGreenSlider = settingsCanvas.transform.Find("GreenSlider").GetComponent<Slider>();
                         greenVal = settingsCanvas.transform.Find("GreenHueNum").GetComponent<TextMeshProUGUI>();
-                        //BetterFog.mls.LogInfo("GreenSlider and GreenHueNum are the names of the GameObjects in the prefab");
+                        greenDown = settingsCanvas.transform.Find("GreenDown").GetComponent<Button>();
+                        greenUp = settingsCanvas.transform.Find("GreenUp").GetComponent<Button>();
 
                         fogBlueSlider = settingsCanvas.transform.Find("BlueSlider").GetComponent<Slider>();
                         blueVal = settingsCanvas.transform.Find("BlueHueNum").GetComponent<TextMeshProUGUI>();
-                        //BetterFog.mls.LogInfo("BlueSlider and BlueHueNum are the names of the GameObjects in the prefab");
+                        blueDown = settingsCanvas.transform.Find("BlueDown").GetComponent<Button>();
+                        blueUp = settingsCanvas.transform.Find("BlueUp").GetComponent<Button>();
 
                         fogAlphaSlider = settingsCanvas.transform.Find("AlphaSlider").GetComponent<Slider>();
                         alphaVal = settingsCanvas.transform.Find("AlphaNum").GetComponent<TextMeshProUGUI>();
-                        //BetterFog.mls.LogInfo("AlphaSlider and AlphaNum are the names of the GameObjects in the prefab");
+                        alphaDown = settingsCanvas.transform.Find("AlphaDown").GetComponent<Button>();
+                        alphaUp = settingsCanvas.transform.Find("AlphaUp").GetComponent<Button>();
 
                         noFogCheckbox = settingsCanvas.transform.Find("NoFogToggle").GetComponent<Toggle>();
 
@@ -160,6 +179,8 @@ namespace BetterFog.Assets
                             fogBlueSlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogBlueSlider, value));
                             fogAlphaSlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogAlphaSlider, value));
 
+                            InitializeButtonListeners();
+
                             // Add a listener to update the Anisotropy value when the checkbox is toggled
                             noFogCheckbox.onValueChanged.AddListener(isChecked => OnCheckboxValueChanged(isChecked));
                         }
@@ -179,6 +200,9 @@ namespace BetterFog.Assets
                 BetterFog.mls.LogError("AssetBundle file not found at path: " + bundlePath);
             }
         }
+
+        //--------------------------------- End Initialization ---------------------------------
+        //--------------------------------- Start Custom Font ---------------------------------
 
         private void ApplyCustomFont(GameObject canvas)
         {
@@ -213,6 +237,9 @@ namespace BetterFog.Assets
             }
         }
 
+        //--------------------------------- End Custom Font ---------------------------------
+        //--------------------------------- Start Slider Adjustment ---------------------------------
+
         private void OnSliderValueChanged(Slider slider, float value)
         {
             if (slider == fogDensitySlider && densityVal != null)
@@ -243,73 +270,6 @@ namespace BetterFog.Assets
             //BetterFog.currentPreset.NoFog = false;
             UpdateNoFogCheckbox();
             BetterFog.ApplyFogSettings();
-        }
-
-        private void OnCheckboxValueChanged(bool isChecked)
-        {
-            BetterFog.currentPreset.NoFog = isChecked;
-            BetterFog.ApplyFogSettings();
-        }
-
-        private void PopulateDropdown()
-        {
-            // Clear existing options
-            presetDropdown.ClearOptions();
-            BetterFog.mls.LogInfo("Cleared dropdown options");
-
-            // Create a list of preset names
-            List<string> options = new List<string>();
-            foreach (FogConfigPreset preset in BetterFog.FogConfigPresets)
-            {
-                options.Add(preset.PresetName); // Assuming each preset has a 'name' property
-                BetterFog.mls.LogInfo($"{preset.PresetName} Added to dropdown options");
-            }
-
-            // Add the options to the dropdown
-            presetDropdown.AddOptions(options);
-        }
-
-        private void SetCurrentPreset()
-        {
-            // Log the current preset details
-            BetterFog.mls.LogInfo($"Setting dropdown value to preset index: {BetterFog.currentPresetIndex}, name: {BetterFog.currentPreset.PresetName}");
-
-            // Set the dropdown to the current preset index
-            if (presetDropdown != null)
-            {
-                presetDropdown.value = BetterFog.currentPresetIndex;
-
-                // Remove any previous listeners to avoid duplicate calls
-                presetDropdown.onValueChanged.RemoveAllListeners();
-
-                // Add a listener to handle changes to the dropdown selection
-                presetDropdown.onValueChanged.AddListener(OnPresetChanged);
-                BetterFog.mls.LogInfo("Listener added to preset dropdown.");
-            }
-            else
-            {
-                BetterFog.mls.LogError("PresetDropdown is not assigned.");
-            }
-        }
-
-        public void UpdateSettingsWithCurrentPreset()
-        {
-            UpdateDropdownWithCurrentPreset();
-            UpdateSlidersWithCurrentPreset();
-            UpdateNoFogCheckbox();
-        }
-
-        private void UpdateDropdownWithCurrentPreset()
-        {
-            if (presetDropdown != null)
-            {
-                presetDropdown.value = BetterFog.currentPresetIndex;
-                BetterFog.mls.LogInfo($"Dropdown updated to preset: {BetterFog.currentPreset.PresetName}");
-            }
-            else
-            {
-                BetterFog.mls.LogError("PresetDropdown is not assigned.");
-            }
         }
 
         private void UpdateSlidersWithCurrentPreset()
@@ -346,12 +306,163 @@ namespace BetterFog.Assets
                 BetterFog.mls.LogError("Cannot update sliders: One or more components are missing or currentPreset is null.");
             }
         }
+
+        //--------------------------------- End Slider Adjustment ---------------------------------
+        //--------------------------------- Start Button Adjustment ---------------------------------
+
+        private void InitializeButtonListeners()
+        {
+            AddAdjustmentListener(densityDown, -2f, fogDensitySlider);
+            AddAdjustmentListener(densityUp, 2f, fogDensitySlider);
+            AddAdjustmentListener(redDown, -1f, fogRedSlider);
+            AddAdjustmentListener(redUp, 1f, fogRedSlider);
+            AddAdjustmentListener(greenDown, -1f, fogGreenSlider);
+            AddAdjustmentListener(greenUp, 1f, fogGreenSlider);
+            AddAdjustmentListener(blueDown, -1f, fogBlueSlider);
+            AddAdjustmentListener(blueUp, 1f, fogBlueSlider);
+            AddAdjustmentListener(alphaDown, -0.1f, fogAlphaSlider);
+            AddAdjustmentListener(alphaUp, 0.1f, fogAlphaSlider);
+        }
+
+        private void AddAdjustmentListener(Button button, float adjustmentStep, Slider slider)
+        {
+            EventTrigger trigger = button.gameObject.GetComponent<EventTrigger>();
+            if (trigger == null)
+                trigger = button.gameObject.AddComponent<EventTrigger>();
+
+            EventTrigger.Entry entryDown = new EventTrigger.Entry
+            {
+                eventID = EventTriggerType.PointerDown
+            };
+            entryDown.callback.AddListener((eventData) => StartAdjusting(slider, adjustmentStep));
+            trigger.triggers.Add(entryDown);
+
+            EventTrigger.Entry entryUp = new EventTrigger.Entry
+            {
+                eventID = EventTriggerType.PointerUp
+            };
+            entryUp.callback.AddListener((eventData) => StopAdjusting());
+            trigger.triggers.Add(entryUp);
+
+            EventTrigger.Entry exitEntry = new EventTrigger.Entry
+            {
+                eventID = EventTriggerType.PointerExit
+            };
+            exitEntry.callback.AddListener((eventData) => StopAdjusting());
+            trigger.triggers.Add(exitEntry);
+        }
+
+        private Coroutine adjustCoroutine;
+
+        private void StartAdjusting(Slider slider, float changeAmount)
+        {
+            if (adjustCoroutine != null)
+                StopCoroutine(adjustCoroutine);
+
+            adjustCoroutine = StartCoroutine(AdjustSliderValueWithDebounce(slider, changeAmount));
+        }
+
+        private IEnumerator AdjustSliderValueWithDebounce(Slider slider, float changeAmount)
+        {
+            float lastUpdateTime = Time.time;
+
+            while (true)
+            {
+                if (Time.time - lastUpdateTime >= 0.05f) // Debounce interval
+                {
+                    slider.value = Mathf.Clamp(slider.value + changeAmount, slider.minValue, slider.maxValue);
+                    lastUpdateTime = Time.time;
+                }
+
+                yield return null;
+            }
+        }
+
+        private void StopAdjusting()
+        {
+            if (adjustCoroutine != null)
+                StopCoroutine(adjustCoroutine);
+        }
+
+
+        //--------------------------------- End Button Adjustment ---------------------------------
+        //--------------------------------- Start Checkbox Adjustment ---------------------------------
+
+        private void OnCheckboxValueChanged(bool isChecked)
+        {
+            BetterFog.currentPreset.NoFog = isChecked;
+            BetterFog.ApplyFogSettings();
+        }
+
         private void UpdateNoFogCheckbox()
         {
             if (noFogCheckbox != null)
             {
-                BetterFog.mls.LogInfo("Current preset: " + BetterFog.currentPreset.PresetName + " NoFog: " + BetterFog.currentPreset.NoFog);
                 noFogCheckbox.isOn = BetterFog.currentPreset.NoFog;
+            }
+        }
+
+        //--------------------------------- End Checkbox Adjustment ---------------------------------
+        //--------------------------------- Start Dropdown Adjustment ---------------------------------
+
+        private void PopulateDropdown()
+        {
+            // Clear existing options
+            presetDropdown.ClearOptions();
+            //BetterFog.mls.LogInfo("Cleared dropdown options");
+
+            // Create a list of preset names
+            List<string> options = new List<string>();
+            foreach (FogConfigPreset preset in BetterFog.FogConfigPresets)
+            {
+                options.Add(preset.PresetName); // Assuming each preset has a 'name' property
+                //BetterFog.mls.LogInfo($"{preset.PresetName} Added to dropdown options");
+            }
+
+            // Add the options to the dropdown
+            presetDropdown.AddOptions(options);
+        }
+
+        private void SetCurrentPreset()
+        {
+            // Log the current preset details
+            //BetterFog.mls.LogInfo($"Setting dropdown value to preset index: {BetterFog.currentPresetIndex}, name: {BetterFog.currentPreset.PresetName}");
+
+            // Set the dropdown to the current preset index
+            if (presetDropdown != null)
+            {
+                presetDropdown.value = BetterFog.currentPresetIndex;
+
+                // Remove any previous listeners to avoid duplicate calls
+                presetDropdown.onValueChanged.RemoveAllListeners();
+
+                // Add a listener to handle changes to the dropdown selection
+                presetDropdown.onValueChanged.AddListener(OnPresetChanged);
+                //BetterFog.mls.LogInfo("Listener added to preset dropdown.");
+            }
+            else
+            {
+                //BetterFog.mls.LogError("PresetDropdown is not assigned.");
+            }
+        }
+
+        public void UpdateSettingsWithCurrentPreset()
+        {
+            UpdateDropdownWithCurrentPreset();
+            UpdateSlidersWithCurrentPreset();
+            UpdateNoFogCheckbox();
+        }
+
+        private void UpdateDropdownWithCurrentPreset()
+        {
+            if (presetDropdown != null)
+            {
+                presetDropdown.value = BetterFog.currentPresetIndex;
+                BetterFog.mls.LogInfo($"Dropdown updated to preset: {BetterFog.currentPreset.PresetName}");
+            }
+            else
+            {
+                BetterFog.mls.LogError("PresetDropdown is not assigned.");
             }
         }
 
@@ -375,9 +486,13 @@ namespace BetterFog.Assets
             BetterFog.ApplyFogSettings();
         }
 
+        //--------------------------------- End Dropdown Adjustment ---------------------------------
+        //--------------------------------- Start Settings Enable/Disable ---------------------------------
+
         public void EnableSettings()
         {
             isSettingsEnabled = true;
+
             if (settingsCanvas != null)
             {
                 settingsCanvas.SetActive(true);
@@ -386,7 +501,23 @@ namespace BetterFog.Assets
             }
             else
             {
-                BetterFog.mls.LogError("Canvas prefab not found.");
+                // Destroy the existing settingsCanvas
+                Destroy(settingsCanvas);
+                settingsCanvas = null; // Clear the reference
+
+                BetterFog.mls.LogWarning("Canvas prefab not found. Initializing new Canvas.");
+                UnloadAssetBundle();
+                Initialize(); // Method to handle the initialization of settingsCanvas
+            }
+        }
+
+        private void UnloadAssetBundle()
+        {
+            if (fogsettingsgui != null)
+            {
+                fogsettingsgui.Unload(true); // Unload all assets and the AssetBundle itself
+                fogsettingsgui = null; // Clear the reference
+                BetterFog.mls.LogInfo("AssetBundle unloaded.");
             }
         }
 
@@ -400,7 +531,13 @@ namespace BetterFog.Assets
             }
             else
             {
-                BetterFog.mls.LogError("Canvas prefab not found.");
+                // Destroy the existing settingsCanvas
+                Destroy(settingsCanvas);
+                settingsCanvas = null; // Clear the reference
+
+                BetterFog.mls.LogWarning("Canvas prefab not found. Initializing new Canvas.");
+                UnloadAssetBundle();
+                Initialize(); // Method to handle the initialization of settingsCanvas
             }
         }
 
