@@ -10,13 +10,13 @@ namespace BetterFog.Assets
         public float AlbedoG { get; set; }
         public float AlbedoB { get; set; }
         public float AlbedoA { get; set; }
-        public float Anisotropy { get; set; }
+        public bool NoFog { get; set; }
 
         public FogConfigPreset() { }
 
         public FogConfigPreset(
             string presetName, float meanFreePath, float albedoR, float albedoG,
-            float albedoB, float albedoA, float anisotropy)
+            float albedoB, float albedoA, bool noFog)
         {
             PresetName = presetName;
             MeanFreePath = meanFreePath;
@@ -24,12 +24,12 @@ namespace BetterFog.Assets
             AlbedoG = albedoG;
             AlbedoB = albedoB;
             AlbedoA = albedoA;
-            Anisotropy = anisotropy;
+            NoFog = noFog;
         }
 
         public override string ToString()
         {
-            return $"{PresetName}|{MeanFreePath}|{AlbedoR}|{AlbedoG}|{AlbedoB}|{AlbedoA}|{Anisotropy}";
+            return $"{PresetName}|{MeanFreePath}|{AlbedoR}|{AlbedoG}|{AlbedoB}|{AlbedoA}|{NoFog}";
         }
 
         public static FogConfigPreset FromString(string data)
@@ -45,7 +45,7 @@ namespace BetterFog.Assets
                 float.Parse(parts[3]),
                 float.Parse(parts[4]),
                 float.Parse(parts[5]),
-                float.Parse(parts[6])
+                bool.Parse(parts[6])
             );
         }
     }

@@ -78,17 +78,17 @@ namespace BetterFog
             // Arguments: Preset Name, MeanFreePath, AlbedoR, AlbedoG, AlbedoB, AlbedoA, Anisotropy
             FogConfigPresets = new List<FogConfigPreset>
             {
-                new FogConfigPreset("Default", 11000f, 0.441f, 0.459f, 0.500f, 1f, 0f),
-                new FogConfigPreset("Heavy Fog", 10f, 0f, 0f, 0f, 0f, 0f),
-                new FogConfigPreset("Light Fog", 9850f, 5f, 5f, 5f, 0.1f, 0f),
-                new FogConfigPreset("Red Fog", 9800f, 67f, 24f, 24f, 0.5f, 0f),
-                new FogConfigPreset("Orange Fog", 9800f, 228f, 128f, 27f, 0.1f, 0f),
-                new FogConfigPreset("Yellow Fog", 9800f, 183f, 187f, 0f, 0.1f, 0f),
-                new FogConfigPreset("Green Fog", 9800f, 17f, 83f, 38f, 0.1f, 0f),
-                new FogConfigPreset("Blue Fog", 9800f, 37f, 155f, 218f, 0.1f, 0f),
-                new FogConfigPreset("Purple Fog", 9800f, 121f, 40f, 170f, 0.8f, 0f),
-                new FogConfigPreset("Pink Fog", 9800f, 224f, 12f, 219f, 0.8f, 0f),
-                new FogConfigPreset("No Fog", 1000000f, 1f, 1f, 1f, 0f, 1f)
+                new FogConfigPreset("Default", 11000f, 0.441f, 0.459f, 0.500f, 1f, false),
+                new FogConfigPreset("Heavy Fog", 10f, 0f, 0f, 0f, 0f, false),
+                new FogConfigPreset("Light Fog", 9850f, 5f, 5f, 5f, 0.1f, false),
+                new FogConfigPreset("Red Fog", 9800f, 67f, 24f, 24f, 0.5f, false),
+                new FogConfigPreset("Orange Fog", 9800f, 228f, 128f, 27f, 0.1f, false),
+                new FogConfigPreset("Yellow Fog", 9800f, 183f, 187f, 0f, 0.1f, false),
+                new FogConfigPreset("Green Fog", 9800f, 17f, 83f, 38f, 0.1f, false),
+                new FogConfigPreset("Blue Fog", 9800f, 37f, 155f, 218f, 0.1f, false),
+                new FogConfigPreset("Purple Fog", 9800f, 121f, 40f, 170f, 0.8f, false),
+                new FogConfigPreset("Pink Fog", 9800f, 224f, 12f, 219f, 0.8f, false),
+                new FogConfigPreset("No Fog", 10000000f, 1f, 1f, 1f, 0f, true)
             };
             mls.LogInfo("FogConfigPresets initialized.");
 
@@ -96,9 +96,11 @@ namespace BetterFog
             string section1 = "Default Fog Preset";
             Config.Bind(section1, "Default Preset Name", defaultPresetName, "Name of the default fog preset (No value sets default to first in list).\n" +
                 "Order of settings: Preset Name, Mean Free Path, Albedo Red, Albedo Green, Albedo Blue, Albedo Alpha, Anisotropy\n" +
-                "Mean Free Path - Density of fog. The greater the number, the less dense.\n" +
+                "Mean Free Path - Density of fog. The greater the number, the less dense. 50000 is max (less fog) and 0 is min (more fog).\n" +
                 "Albedo Color - Color of fog. 255 is max and 0 is min.\n" + 
-                "Albedo Alpha - Transparency of colors. 1.0 is max for opaque and 0.0 is min for transparent.\n");
+                "Albedo Alpha - Transparency of colors. 1.0 is max for opaque and 0.0 is min for transparent.\n" +
+                "No Fog - Density is negligible, so no fog appears when set to true.\n");
+
 
             // Create config entries
             presetEntries = new ConfigEntry<string>[FogConfigPresets.Count];
@@ -206,14 +208,22 @@ namespace BetterFog
                     var parameters = fogObject.parameters;
 
                     // Example modifications (ensure these properties exist and are accessible)
-                    parameters.meanFreePath = currentPreset.MeanFreePath;
-                    parameters.albedo = new Color(
-                        currentPreset.AlbedoR,
-                        currentPreset.AlbedoG,
-                        currentPreset.AlbedoB,
-                        currentPreset.AlbedoA
-                    );
-                    parameters.anisotropy = currentPreset.Anisotropy;
+                    if (currentPreset.NoFog)
+                    {
+                        parameters.meanFreePath = 10000000f;
+                        parameters.albedo = new Color(1f, 1f, 1f, 0f);
+                    }
+                    else
+                    {
+                        parameters.meanFreePath = currentPreset.MeanFreePath;
+                        parameters.albedo = new Color(
+                            currentPreset.AlbedoR,
+                            currentPreset.AlbedoG,
+                            currentPreset.AlbedoB,
+                            currentPreset.AlbedoA
+                        );
+                    }
+                    //parameters.anisotropy = currentPreset.NoFog;
 
                     // Optionally, apply changes if the parameters object needs to be reassigned
                     fogObject.parameters = parameters;

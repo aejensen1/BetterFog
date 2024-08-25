@@ -30,6 +30,8 @@ namespace BetterFog.Assets
         private Slider fogAlphaSlider; // Slider for fog density
         private TextMeshProUGUI alphaVal; // Display for fog density value
 
+        public Toggle noFogCheckbox;
+
         private static FogSettingsManager instance;
         private static bool isInitializing = false;
 
@@ -137,7 +139,9 @@ namespace BetterFog.Assets
                         alphaVal = settingsCanvas.transform.Find("AlphaNum").GetComponent<TextMeshProUGUI>();
                         //BetterFog.mls.LogInfo("AlphaSlider and AlphaNum are the names of the GameObjects in the prefab");
 
-                        if (fogDensitySlider != null && densityVal != null)
+                        noFogCheckbox = settingsCanvas.transform.Find("NoFogToggle").GetComponent<Toggle>();
+
+                        if (fogDensitySlider != null && densityVal != null && noFogCheckbox != null)
                         {
                             // Initialize the text with the current slider value
                             densityVal.text = fogDensitySlider.value.ToString();
@@ -146,12 +150,18 @@ namespace BetterFog.Assets
                             blueVal.text = fogBlueSlider.value.ToString();
                             alphaVal.text = fogAlphaSlider.value.ToString();
 
+                            // Initialize the checkbox based on the current Anisotropy value
+                            noFogCheckbox.isOn = BetterFog.currentPreset.NoFog != false;
+
                             // Add a listener to update the text and apply the value when the slider changes
                             fogDensitySlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogDensitySlider, value));
                             fogRedSlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogRedSlider, value));
                             fogGreenSlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogGreenSlider, value));
                             fogBlueSlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogBlueSlider, value));
                             fogAlphaSlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogAlphaSlider, value));
+
+                            // Add a listener to update the Anisotropy value when the checkbox is toggled
+                            noFogCheckbox.onValueChanged.AddListener(isChecked => OnCheckboxValueChanged(isChecked));
                         }
                     }
                     else
@@ -203,7 +213,6 @@ namespace BetterFog.Assets
             }
         }
 
-
         private void OnSliderValueChanged(Slider slider, float value)
         {
             if (slider == fogDensitySlider && densityVal != null)
@@ -231,6 +240,14 @@ namespace BetterFog.Assets
                 alphaVal.text = value.ToString("0.00");
                 BetterFog.currentPreset.AlbedoA = value;
             }
+            //BetterFog.currentPreset.NoFog = false;
+            UpdateNoFogCheckbox();
+            BetterFog.ApplyFogSettings();
+        }
+
+        private void OnCheckboxValueChanged(bool isChecked)
+        {
+            BetterFog.currentPreset.NoFog = isChecked;
             BetterFog.ApplyFogSettings();
         }
 
@@ -279,6 +296,7 @@ namespace BetterFog.Assets
         {
             UpdateDropdownWithCurrentPreset();
             UpdateSlidersWithCurrentPreset();
+            UpdateNoFogCheckbox();
         }
 
         private void UpdateDropdownWithCurrentPreset()
@@ -328,6 +346,14 @@ namespace BetterFog.Assets
                 BetterFog.mls.LogError("Cannot update sliders: One or more components are missing or currentPreset is null.");
             }
         }
+        private void UpdateNoFogCheckbox()
+        {
+            if (noFogCheckbox != null)
+            {
+                BetterFog.mls.LogInfo("Current preset: " + BetterFog.currentPreset.PresetName + " NoFog: " + BetterFog.currentPreset.NoFog);
+                noFogCheckbox.isOn = BetterFog.currentPreset.NoFog;
+            }
+        }
 
         private void OnPresetChanged(int index)
         {
@@ -335,6 +361,7 @@ namespace BetterFog.Assets
             BetterFog.currentPresetIndex = index;
             BetterFog.currentPreset = BetterFog.FogConfigPresets[index];
             UpdateSlidersWithCurrentPreset();
+            UpdateNoFogCheckbox();
 
             // Apply the preset or perform other actions based on the selection
             ApplyPreset(BetterFog.currentPreset);
