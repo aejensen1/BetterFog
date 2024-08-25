@@ -12,12 +12,11 @@ Prerequisites
 
 Known Bugs
 ==============
-- Pressing n hotkey before in lobby may make GUI not function.
+- No Known Bugs
 
 To-Dos
 ==============
 - Tune fog settings on presets for best experience
-- Make fog settings reapply automatically when landing
 
 Instructions
 ==============
