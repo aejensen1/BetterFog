@@ -97,7 +97,7 @@ namespace BetterFog.Assets
 
                     if (customFont != null)
                     {
-                        BetterFog.mls.LogInfo(customFont.ToString() + " custom font loaded successfully.");
+                        //BetterFog.mls.LogInfo(customFont.ToString() + " custom font loaded successfully.");
                     }
                     else
                     {
@@ -109,7 +109,7 @@ namespace BetterFog.Assets
                     if (textShader != null)
                     {
                         customFont.material.shader = textShader;
-                        BetterFog.mls.LogInfo(customFont.material.shader.ToString() + " shader applied to custom font successfully.");
+                        //BetterFog.mls.LogInfo(customFont.material.shader.ToString() + " shader applied to custom font successfully.");
                     }
                     else
                     {
@@ -299,7 +299,7 @@ namespace BetterFog.Assets
                 alphaVal.text = fogAlphaSlider.value.ToString();
 
                 // Log updates for debugging
-                BetterFog.mls.LogInfo($"Updated sliders to current preset: {BetterFog.currentPreset.PresetName}");
+                //BetterFog.mls.LogInfo($"Updated sliders to current preset: {BetterFog.currentPreset.PresetName}");
             }
             else
             {
