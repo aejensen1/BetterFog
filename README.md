@@ -33,6 +33,9 @@ Red Fog:
 Vanilla Fog:
 ![VanillaFog2](https://github.com/user-attachments/assets/a0977f89-9f8e-4024-ba97-562edd65cb6f)
 
+GUI:
+![GUI](https://github.com/user-attachments/assets/d301e7af-fabd-4597-b489-52b8a32c238a)
+
 Credits
 ==============
 Thanks to [mrov](https://github.com/AndreyMrovol) for some code suggestions on finding fog objects.
