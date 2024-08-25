@@ -3,28 +3,28 @@ BetterFog
 
 ![FogIcon](https://github.com/user-attachments/assets/0cb0bf4c-0675-4d7e-92c6-fb2b5742067c)
 
-BetterFog is a Mod Plugin that can be used on the game Lethal Company. If you have played the game, you may know how foggy weather is detrimental and even downright unplayable in essentially any other moon than Experimentation and Titan. BetterFog mod solves that issue by creating a preset list of fog options that can have custom densities, colors, and lighting settings. With this, there are virtually thousands of variations of custom fog presets possible.
+BetterFog is a Mod Plugin that can be used on the game Lethal Company. If you have played the game, you may know how foggy weather is detrimental and even downright unplayable in essentially any other moon than Experimentation and Titan. BetterFog mod solves that issue by creating a preset list of fog options that can have custom densities, colors, and lighting settings. With this, there are virtually thousands of variations of custom fog presets possible. Plus, there is a graphical user interface (GUI) available in the pause menu that allows for live modification of presets in game.
 
 Prerequisites
 ==============
-- ![BepInEx](https://thunderstore.io/c/lethal-company/p/BepInEx/BepInExPack/)
-- ![LethalCompanyInputUtils](https://thunderstore.io/c/lethal-company/p/Rune580/LethalCompany_InputUtils/)
+- [BepInEx](https://thunderstore.io/c/lethal-company/p/BepInEx/BepInExPack/)
+- [LethalCompanyInputUtils](https://thunderstore.io/c/lethal-company/p/Rune580/LethalCompany_InputUtils/)
 
 Known Bugs
 ==============
-- None at the moment...
+- Pressing n hotkey before in lobby may make GUI not function.
 
 To-Dos
 ==============
-- Tune fog settings
-- Change fog based on weather?
-- Live modifications to fog in game for convenience
+- Tune fog settings on presets for best experience
+- Add no fog checkbox.
 
 Instructions
 ==============
 - If you are manually setting up the mod, place BetterFog.dll in "Program Files (x86)/Steam/steamapps/common/Lethal Company/BepInEx/plugins/BetterFog.dll"
 - Manage presets in the config file. Any number of presets can be added, as long as there is at least one. Settings can be tweaked for fog density and color.
-- hotkey 'n' is used to switch between presets in-game. LeftStickPress should be the button for controller, but this has not been tested yet.
+- Hotkey 'n' is used to switch between presets in-game. LeftStickPress should be the button for controller, but this has not been tested yet.
+- Open the pause menu to access GUI which allows for live modification of presets in lobbies. Note that these modified settings do not carry over if you restart the game; you must modify the config file presets to do this.
 
 Examples
 ==============
@@ -36,4 +36,4 @@ Vanilla Fog:
 
 Credits
 ==============
-Thanks to ![mrov](https://github.com/AndreyMrovol) for some code suggestions.
+Thanks to [mrov](https://github.com/AndreyMrovol) for some code suggestions on finding fog objects.
