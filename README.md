@@ -17,7 +17,7 @@ Known Bugs
 To-Dos
 ==============
 - Tune fog settings on presets for best experience
-- Add no fog checkbox.
+- Make fog settings reapply automatically when landing
 
 Instructions
 ==============
