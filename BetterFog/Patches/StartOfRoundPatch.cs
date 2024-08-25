@@ -4,11 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using HarmonyLib;
-using BepInEx;
-using BepInEx.Logging;
-using UnityEngine;
-using BepInEx.Configuration;
-using UnityEngine.Rendering.HighDefinition;
+using BetterFog.Assets;
 
 namespace BetterFog.Patches
 {
@@ -24,14 +20,6 @@ namespace BetterFog.Patches
             {
                 BetterFog.ApplyFogSettings();
             }
-        }
-
-        [HarmonyPatch("ShipHasLeft")]
-        [HarmonyPostfix]
-        public static void ShipHasLeft_MyPatch()
-        {
-            //BetterFog.Bruh.GetComponent<RemoveFog>().TerminateFogObjects();
-            //Debug.Log("Destroying all fog objects - ship has left moon");
         }
     }
 }

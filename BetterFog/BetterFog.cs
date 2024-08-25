@@ -34,9 +34,9 @@ namespace BetterFog
         public static ConfigEntry<float> albedoA;
         public static ConfigEntry<float> anisotropy;
 
-        public List<FogConfigPreset> FogConfigPresets;
+        public static List<FogConfigPreset> FogConfigPresets;
         private ConfigEntry<string>[] presetEntries;
-        public int currentPresetIndex;
+        public static int currentPresetIndex;
         public static FogConfigPreset currentPreset;
 
         // Singleton pattern
@@ -46,9 +46,16 @@ namespace BetterFog
             {
                 if (instance == null)
                 {
-                    var gameObject = new GameObject("BetterFog");
-                    DontDestroyOnLoad(gameObject);
-                    instance = gameObject.AddComponent<BetterFog>();
+                    // Find existing instances
+                    instance = FindObjectOfType<BetterFog>();
+
+                    if (instance == null)
+                    {
+                        // Create a new instance if none found
+                        var gameObject = new GameObject("BetterFog");
+                        DontDestroyOnLoad(gameObject);
+                        instance = gameObject.AddComponent<BetterFog>();
+                    }
                 }
                 return instance;
             }
@@ -64,6 +71,8 @@ namespace BetterFog
 
             instance = this;
             DontDestroyOnLoad(this.gameObject);
+
+            mls = base.Logger;
 
             // Initialize your FogConfigPresets list
             // Arguments: Preset Name, MeanFreePath, AlbedoR, AlbedoG, AlbedoB, AlbedoA, Anisotropy
@@ -81,6 +90,7 @@ namespace BetterFog
                 new FogConfigPreset("Pink Fog", 9800f, 224f, 12f, 219f, 0.8f, 0f),
                 new FogConfigPreset("No Fog", 1000000f, 1f, 1f, 1f, 0f, 1f)
             };
+            mls.LogInfo("FogConfigPresets initialized.");
 
             // Bind each preset to the config
             string section1 = "Default Fog Preset";
@@ -106,11 +116,11 @@ namespace BetterFog
             {
                 currentPreset = FogConfigPresets.Find(preset => preset.PresetName == defaultPresetName);
             }
+            // Initialize and create FogSettingsManager
+            //InitializeFogSettingsManager();
 
             // Register the keybind for next preset
             IngameKeybinds.Instance.NextPresetHotkey.performed += ctx => NextPreset();
-
-            mls = base.Logger;
 
             // Apply the Harmony patches
             try
@@ -134,7 +144,43 @@ namespace BetterFog
                 mls.LogError($"Failed to apply Harmony patches: {ex}");
                 throw; // Rethrow the exception to indicate initialization failure
             }
+
+            // Check if the FogSettingsManager instance is valid
+            if (FogSettingsManager.Instance != null)
+            {
+                mls.LogInfo(FogSettingsManager.Instance.ToString());
+            }
+            else
+            {
+                mls.LogError("FogSettingsManager instance is null.");
+            }
         }
+
+        private void InitializeFogSettingsManager()
+        {
+            try
+            {
+                if (FogSettingsManager.Instance == null)
+                {
+                    mls.LogInfo("FogSettingsManager does not exist. Creating new instance.");
+                    //var fogSettingsManagerObject = new GameObject("FogSettingsManager");
+                    //mls.LogInfo("FogSettingsManager created.");
+                    //DontDestroyOnLoad(fogSettingsManagerObject);
+                    //mls.LogInfo("FogSettingsManager set to DontDestroyOnLoad.");
+                    //fogSettingsManagerObject.AddComponent<FogSettingsManager>();
+                    //mls.LogInfo("FogSettingsManager initialized.");
+                }
+                else
+                {
+                    mls.LogWarning("FogSettingsManager already exists.");
+                }
+            }
+            catch (Exception ex)
+            {
+                mls.LogError($"Exception in InitializeFogSettingsManager: {ex.Message}\n{ex.StackTrace}");
+            }
+        }
+
 
         public static void ApplyFogSettings()
         {
@@ -153,9 +199,9 @@ namespace BetterFog
                 if (fogObject != null)
                 {
                     // Print details of the Fog object
-                    Debug.Log($"Found LocalVolumetricFog object: {fogObject.name}");
+                    //mls.LogInfo($"Found LocalVolumetricFog object: {fogObject.name}");
                     // You can also print other properties of the Fog object if needed
-                    //Debug.Log($"Fog Object Details: {fogObject.ToString()}");
+                    //mls.LogInfo($"Fog Object Details: {fogObject.ToString()}");
                     // Apply the current preset settings
                     var parameters = fogObject.parameters;
 
@@ -174,27 +220,35 @@ namespace BetterFog
                 }
                 else
                 {
-                    Debug.LogError("Found a null LocalVolumetricFog object.");
+                    //mls.LogError("Found a null LocalVolumetricFog object.");
                 }
             }
             // Log the applied settings
-            mls.LogInfo($"New fog settings applied from preset {currentPreset.PresetName}:\n" +
-                $"Mean Free Path: {currentPreset.MeanFreePath}\n" +
-                $"Albedo RGBA: ({currentPreset.AlbedoR}, {currentPreset.AlbedoG}, {currentPreset.AlbedoB}, {currentPreset.AlbedoA})\n" +
-                $"Anisotropy: {currentPreset.Anisotropy}\n");
+            //mls.LogInfo($"New fog settings applied from preset {currentPreset.PresetName}:\n" +
+            //    $"Mean Free Path: {currentPreset.MeanFreePath}\n" +
+            //    $"Albedo RGBA: ({currentPreset.AlbedoR}, {currentPreset.AlbedoG}, {currentPreset.AlbedoB}, {currentPreset.AlbedoA})\n" +
+            //    $"Anisotropy: {currentPreset.Anisotropy}\n");
         }
 
         void NextPreset()
         {
             mls.LogInfo("Next preset hotkey pressed.");
-            int currentPresetIndex = FogConfigPresets.IndexOf(currentPreset);
+            mls.LogInfo(FogSettingsManager.Instance.ToString());
+            currentPresetIndex = FogConfigPresets.IndexOf(currentPreset);
             if (currentPresetIndex == FogConfigPresets.Count - 1)
             {
                 currentPresetIndex = -1; // Reset to the first preset if the last preset is reached
             }
-            currentPreset = FogConfigPresets[currentPresetIndex + 1];
+            currentPresetIndex ++;
+            currentPreset = FogConfigPresets[currentPresetIndex];
+            mls.LogInfo("Current preset index: " + currentPresetIndex);
             mls.LogInfo($"Current preset: {currentPreset.PresetName}");
             ApplyFogSettings();
+
+            // Notify FogSettingsManager to update dropdown
+            FogSettingsManager.Instance.UpdateSettingsWithCurrentPreset();
         }
+
+
     }
 }
