@@ -18,7 +18,7 @@ namespace BetterFog
     {
         public const string modGUID = "ironthumb.BetterFog";
         public const string modName = "BetterFog";
-        public const string modVersion = "3.1.2";
+        public const string modVersion = "3.1.4";
 
         private readonly Harmony harmony = new Harmony(modGUID);
         public static ManualLogSource mls;
