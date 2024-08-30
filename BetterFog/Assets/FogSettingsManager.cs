@@ -5,6 +5,9 @@ using TMPro;  // Make sure you have this namespace for TextMeshPro
 using System.Collections.Generic;
 using System.Collections;
 using UnityEngine.EventSystems;
+using BepInEx;
+using System.IO;
+using System.Runtime.CompilerServices;
 
 namespace BetterFog.Assets
 {
@@ -84,111 +87,18 @@ namespace BetterFog.Assets
         private void Initialize()
         {
             BetterFog.mls.LogInfo("Initializing FogSettingsManager.");
-            string bundlePath = "BepInEx/plugins/Assets/FogAssetBundle/fogsettingsgui";
-            if (System.IO.File.Exists(bundlePath))
+
+            string[] assetPaths = Directory.GetFiles(Paths.PluginPath, "fogsettingsgui", SearchOption.AllDirectories);
+
+            if (assetPaths.Length > 0)
             {
+                string bundlePath = assetPaths[0];
                 fogsettingsgui = AssetBundle.LoadFromFile(bundlePath);
 
                 if (fogsettingsgui != null)
                 {
                     BetterFog.mls.LogInfo("AssetBundle loaded successfully.");
-                    customFont = fogsettingsgui.LoadAsset<TMP_FontAsset>("3270Condensed-Regular SDF");  // Load the custom font
-                    BetterFog.mls.LogInfo("If you see an error indicating 'shader compiler platform 4 is not available', nothing is broken.");
-
-                    if (customFont != null)
-                    {
-                        //BetterFog.mls.LogInfo(customFont.ToString() + " custom font loaded successfully.");
-                    }
-                    else
-                    {
-                        BetterFog.mls.LogError("Custom font asset not found in AssetBundle.");
-                    }
-
-                    // Apply the Distance Field shader to the custom font
-                    Shader textShader = Shader.Find("TextMeshPro/Distance Field");
-                    if (textShader != null)
-                    {
-                        customFont.material.shader = textShader;
-                        //BetterFog.mls.LogInfo(customFont.material.shader.ToString() + " shader applied to custom font successfully.");
-                    }
-                    else
-                    {
-                        BetterFog.mls.LogError("TextMeshPro/Distance Field shader not found!");
-                    }
-
-                    GameObject canvasPrefab = fogsettingsgui.LoadAsset<GameObject>("FogSettingsCanvas");
-
-                    if (canvasPrefab != null)
-                    {
-                        settingsCanvas = Instantiate(canvasPrefab);
-                        settingsCanvas.SetActive(false);
-                        BetterFog.mls.LogInfo("FogSettingsCanvas instantiated and hidden.");
-
-                        // Apply the custom font to TextMeshPro components
-                        ApplyCustomFont(settingsCanvas);
-
-                        presetDropdown = settingsCanvas.transform.Find("PresetDropdown").GetComponent<TMP_Dropdown>();
-                        PopulateDropdown();
-                        BetterFog.mls.LogInfo("Options are now populated.");
-                        SetCurrentPreset();
-
-                        // Find the slider and text components
-                        fogDensitySlider = settingsCanvas.transform.Find("ThicknessSlider").GetComponent<Slider>();
-                        densityVal = settingsCanvas.transform.Find("ThicknessNum").GetComponent<TextMeshProUGUI>();
-                        densityDown = settingsCanvas.transform.Find("ThicknessDown").GetComponent<Button>();
-                        densityUp = settingsCanvas.transform.Find("ThicknessUp").GetComponent<Button>();
-
-                        fogRedSlider = settingsCanvas.transform.Find("RedSlider").GetComponent<Slider>();
-                        redVal = settingsCanvas.transform.Find("RedHueNum").GetComponent<TextMeshProUGUI>();
-                        redDown = settingsCanvas.transform.Find("RedDown").GetComponent<Button>();
-                        redUp = settingsCanvas.transform.Find("RedUp").GetComponent<Button>();
-
-                        fogGreenSlider = settingsCanvas.transform.Find("GreenSlider").GetComponent<Slider>();
-                        greenVal = settingsCanvas.transform.Find("GreenHueNum").GetComponent<TextMeshProUGUI>();
-                        greenDown = settingsCanvas.transform.Find("GreenDown").GetComponent<Button>();
-                        greenUp = settingsCanvas.transform.Find("GreenUp").GetComponent<Button>();
-
-                        fogBlueSlider = settingsCanvas.transform.Find("BlueSlider").GetComponent<Slider>();
-                        blueVal = settingsCanvas.transform.Find("BlueHueNum").GetComponent<TextMeshProUGUI>();
-                        blueDown = settingsCanvas.transform.Find("BlueDown").GetComponent<Button>();
-                        blueUp = settingsCanvas.transform.Find("BlueUp").GetComponent<Button>();
-
-                        fogAlphaSlider = settingsCanvas.transform.Find("AlphaSlider").GetComponent<Slider>();
-                        alphaVal = settingsCanvas.transform.Find("AlphaNum").GetComponent<TextMeshProUGUI>();
-                        alphaDown = settingsCanvas.transform.Find("AlphaDown").GetComponent<Button>();
-                        alphaUp = settingsCanvas.transform.Find("AlphaUp").GetComponent<Button>();
-
-                        noFogCheckbox = settingsCanvas.transform.Find("NoFogToggle").GetComponent<Toggle>();
-
-                        if (fogDensitySlider != null && densityVal != null && noFogCheckbox != null)
-                        {
-                            // Initialize the text with the current slider value
-                            densityVal.text = fogDensitySlider.value.ToString();
-                            redVal.text = fogRedSlider.value.ToString();
-                            greenVal.text = fogGreenSlider.value.ToString();
-                            blueVal.text = fogBlueSlider.value.ToString();
-                            alphaVal.text = fogAlphaSlider.value.ToString();
-
-                            // Initialize the checkbox based on the current Anisotropy value
-                            noFogCheckbox.isOn = BetterFog.currentPreset.NoFog != false;
-
-                            // Add a listener to update the text and apply the value when the slider changes
-                            fogDensitySlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogDensitySlider, value));
-                            fogRedSlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogRedSlider, value));
-                            fogGreenSlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogGreenSlider, value));
-                            fogBlueSlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogBlueSlider, value));
-                            fogAlphaSlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogAlphaSlider, value));
-
-                            InitializeButtonListeners();
-
-                            // Add a listener to update the Anisotropy value when the checkbox is toggled
-                            noFogCheckbox.onValueChanged.AddListener(isChecked => OnCheckboxValueChanged(isChecked));
-                        }
-                    }
-                    else
-                    {
-                        BetterFog.mls.LogError("FogSettingsCanvas prefab not found in AssetBundle.");
-                    }
+                    LoadAssetsFromBundle();
                 }
                 else
                 {
@@ -197,9 +107,118 @@ namespace BetterFog.Assets
             }
             else
             {
-                BetterFog.mls.LogError("AssetBundle file not found at path: " + bundlePath);
+                BetterFog.mls.LogError("fogsettingsgui file not found in any subdirectory of BepInEx/plugins.");
             }
         }
+
+        private void LoadAssetsFromBundle()
+        {
+            if (fogsettingsgui != null)
+            {
+                BetterFog.mls.LogInfo("AssetBundle loaded successfully.");
+                customFont = fogsettingsgui.LoadAsset<TMP_FontAsset>("3270Condensed-Regular SDF");  // Load the custom font
+                BetterFog.mls.LogInfo("If you see an error indicating 'shader compiler platform 4 is not available', nothing is broken.");
+
+                if (customFont != null)
+                {
+                    //BetterFog.mls.LogInfo(customFont.ToString() + " custom font loaded successfully.");
+                }
+                else
+                {
+                    BetterFog.mls.LogError("Custom font asset not found in AssetBundle.");
+                }
+
+                // Apply the Distance Field shader to the custom font
+                Shader textShader = Shader.Find("TextMeshPro/Distance Field");
+                if (textShader != null)
+                {
+                    customFont.material.shader = textShader;
+                    //BetterFog.mls.LogInfo(customFont.material.shader.ToString() + " shader applied to custom font successfully.");
+                }
+                else
+                {
+                    BetterFog.mls.LogError("TextMeshPro/Distance Field shader not found!");
+                }
+
+                GameObject canvasPrefab = fogsettingsgui.LoadAsset<GameObject>("FogSettingsCanvas");
+
+                if (canvasPrefab != null)
+                {
+                    settingsCanvas = Instantiate(canvasPrefab);
+                    settingsCanvas.SetActive(false);
+                    BetterFog.mls.LogInfo("FogSettingsCanvas instantiated and hidden.");
+
+                    // Apply the custom font to TextMeshPro components
+                    ApplyCustomFont(settingsCanvas);
+
+                    presetDropdown = settingsCanvas.transform.Find("PresetDropdown").GetComponent<TMP_Dropdown>();
+                    PopulateDropdown();
+                    BetterFog.mls.LogInfo("Options are now populated.");
+                    SetCurrentPreset();
+
+                    // Find the slider and text components
+                    fogDensitySlider = settingsCanvas.transform.Find("ThicknessSlider").GetComponent<Slider>();
+                    densityVal = settingsCanvas.transform.Find("ThicknessNum").GetComponent<TextMeshProUGUI>();
+                    densityDown = settingsCanvas.transform.Find("ThicknessDown").GetComponent<Button>();
+                    densityUp = settingsCanvas.transform.Find("ThicknessUp").GetComponent<Button>();
+
+                    fogRedSlider = settingsCanvas.transform.Find("RedSlider").GetComponent<Slider>();
+                    redVal = settingsCanvas.transform.Find("RedHueNum").GetComponent<TextMeshProUGUI>();
+                    redDown = settingsCanvas.transform.Find("RedDown").GetComponent<Button>();
+                    redUp = settingsCanvas.transform.Find("RedUp").GetComponent<Button>();
+
+                    fogGreenSlider = settingsCanvas.transform.Find("GreenSlider").GetComponent<Slider>();
+                    greenVal = settingsCanvas.transform.Find("GreenHueNum").GetComponent<TextMeshProUGUI>();
+                    greenDown = settingsCanvas.transform.Find("GreenDown").GetComponent<Button>();
+                    greenUp = settingsCanvas.transform.Find("GreenUp").GetComponent<Button>();
+
+                    fogBlueSlider = settingsCanvas.transform.Find("BlueSlider").GetComponent<Slider>();
+                    blueVal = settingsCanvas.transform.Find("BlueHueNum").GetComponent<TextMeshProUGUI>();
+                    blueDown = settingsCanvas.transform.Find("BlueDown").GetComponent<Button>();
+                    blueUp = settingsCanvas.transform.Find("BlueUp").GetComponent<Button>();
+
+                    fogAlphaSlider = settingsCanvas.transform.Find("AlphaSlider").GetComponent<Slider>();
+                    alphaVal = settingsCanvas.transform.Find("AlphaNum").GetComponent<TextMeshProUGUI>();
+                    alphaDown = settingsCanvas.transform.Find("AlphaDown").GetComponent<Button>();
+                    alphaUp = settingsCanvas.transform.Find("AlphaUp").GetComponent<Button>();
+
+                    noFogCheckbox = settingsCanvas.transform.Find("NoFogToggle").GetComponent<Toggle>();
+
+                    if (fogDensitySlider != null && densityVal != null && noFogCheckbox != null)
+                    {
+                        // Initialize the text with the current slider value
+                        densityVal.text = fogDensitySlider.value.ToString();
+                        redVal.text = fogRedSlider.value.ToString();
+                        greenVal.text = fogGreenSlider.value.ToString();
+                        blueVal.text = fogBlueSlider.value.ToString();
+                        alphaVal.text = fogAlphaSlider.value.ToString();
+
+                        // Initialize the checkbox based on the current Anisotropy value
+                        noFogCheckbox.isOn = BetterFog.currentPreset.NoFog != false;
+
+                        // Add a listener to update the text and apply the value when the slider changes
+                        fogDensitySlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogDensitySlider, value));
+                        fogRedSlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogRedSlider, value));
+                        fogGreenSlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogGreenSlider, value));
+                        fogBlueSlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogBlueSlider, value));
+                        fogAlphaSlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogAlphaSlider, value));
+
+                        InitializeButtonListeners();
+
+                        // Add a listener to update the Anisotropy value when the checkbox is toggled
+                        noFogCheckbox.onValueChanged.AddListener(isChecked => OnCheckboxValueChanged(isChecked));
+                    }
+                }
+                else
+                {
+                    BetterFog.mls.LogError("FogSettingsCanvas prefab not found in AssetBundle.");
+                }
+            }
+            else
+            {
+                BetterFog.mls.LogError("Failed to load AssetBundle.");
+            }
+        }             
 
         //--------------------------------- End Initialization ---------------------------------
         //--------------------------------- Start Custom Font ---------------------------------
