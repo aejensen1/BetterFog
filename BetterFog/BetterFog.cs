@@ -18,7 +18,7 @@ namespace BetterFog
     {
         public const string modGUID = "ironthumb.BetterFog";
         public const string modName = "BetterFog";
-        public const string modVersion = "3.1.4";
+        public const string modVersion = "3.1.5";
 
         private readonly Harmony harmony = new Harmony(modGUID);
         public static ManualLogSource mls;
@@ -33,6 +33,8 @@ namespace BetterFog
         public static ConfigEntry<float> albedoB;
         public static ConfigEntry<float> albedoA;
         public static ConfigEntry<float> anisotropy;
+
+        private static ConfigEntry<string> nextPresetHotkeyConfig;
 
         public static List<FogConfigPreset> FogConfigPresets;
         private ConfigEntry<string>[] presetEntries;
@@ -75,7 +77,7 @@ namespace BetterFog
             mls = base.Logger;
 
             // Initialize your FogConfigPresets list
-            // Arguments: Preset Name, MeanFreePath, AlbedoR, AlbedoG, AlbedoB, AlbedoA, Anisotropy
+            // Arguments: Preset Name, MeanFreePath, AlbedoR, AlbedoG, AlbedoB, AlbedoA, NoFog
             FogConfigPresets = new List<FogConfigPreset>
             {
                 new FogConfigPreset("Default", 11000f, 0.441f, 0.459f, 0.500f, 1f, false),
@@ -95,12 +97,17 @@ namespace BetterFog
             // Bind each preset to the config
             string section1 = "Default Fog Preset";
             Config.Bind(section1, "Default Preset Name", defaultPresetName, "Name of the default fog preset (No value sets default to first in list).\n" +
-                "Order of settings: Preset Name, Mean Free Path, Albedo Red, Albedo Green, Albedo Blue, Albedo Alpha, Anisotropy\n" +
+                "Order of settings: Preset Name, Mean Free Path, Albedo Red, Albedo Green, Albedo Blue, Albedo Alpha, NoFog\n" +
                 "Mean Free Path - Density of fog. The greater the number, the less dense. 50000 is max (less fog) and 0 is min (more fog).\n" +
                 "Albedo Color - Color of fog. 255 is max and 0 is min.\n" + 
                 "Albedo Alpha - Transparency of colors. 1.0 is max for opaque and 0.0 is min for transparent.\n" +
                 "No Fog - Density is negligible, so no fog appears when set to true.\n");
 
+            string section2 = "Key Bindings";
+            nextPresetHotkeyConfig = Config.Bind(section2, "Next Preset Hotkey", "n", "Hotkey to switch to the next fog preset.");
+
+            // Initialize the key bindings with the hotkey value
+            IngameKeybinds.Instance.InitializeKeybindings(nextPresetHotkeyConfig.Value);
 
             // Create config entries
             presetEntries = new ConfigEntry<string>[FogConfigPresets.Count];
@@ -240,7 +247,7 @@ namespace BetterFog
             //    $"Anisotropy: {currentPreset.Anisotropy}\n");
         }
 
-        void NextPreset()
+        public static void NextPreset()
         {
             mls.LogInfo("Next preset hotkey pressed.");
             mls.LogInfo(FogSettingsManager.Instance.ToString());
