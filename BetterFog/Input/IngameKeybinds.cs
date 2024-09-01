@@ -1,10 +1,4 @@
-﻿using BepInEx.Bootstrap;
-using LethalCompanyInputUtils.Api;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using LethalCompanyInputUtils.Api;
 using UnityEngine.InputSystem;
 
 namespace BetterFog.Input
@@ -26,11 +20,18 @@ namespace BetterFog.Input
             // Optionally add a gamepad binding
             NextPresetHotkey.AddBinding("<Gamepad>/leftStickPress");
 
-            // Enable the action
-            NextPresetHotkey.Enable();
+            if(BetterFog.hotKeysEnabled.Value)
+            {
+                // Enable the action
+                NextPresetHotkey.Enable();
 
-            // Subscribe to the performed event
-            NextPresetHotkey.performed += ctx => BetterFog.NextPreset();
+                // Subscribe to the performed event
+                NextPresetHotkey.performed += ctx => BetterFog.NextPreset();
+            }
+            else {
+                // Disable the action
+                NextPresetHotkey.Disable();
+            }
         }
     }
 }

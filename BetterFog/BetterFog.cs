@@ -18,23 +18,17 @@ namespace BetterFog
     {
         public const string modGUID = "ironthumb.BetterFog";
         public const string modName = "BetterFog";
-        public const string modVersion = "3.1.5";
+        public const string modVersion = "3.1.6";
 
         private readonly Harmony harmony = new Harmony(modGUID);
         public static ManualLogSource mls;
         private static BetterFog instance;
-        private static FogConfigPreset fogPreset;
 
         // Config entries for each fog property
         private static string defaultPresetName = "Default";
-        public static ConfigEntry<float> meanFreePath;
-        public static ConfigEntry<float> albedoR;
-        public static ConfigEntry<float> albedoG;
-        public static ConfigEntry<float> albedoB;
-        public static ConfigEntry<float> albedoA;
-        public static ConfigEntry<float> anisotropy;
 
         private static ConfigEntry<string> nextPresetHotkeyConfig;
+        public static ConfigEntry<bool> hotKeysEnabled;
 
         public static List<FogConfigPreset> FogConfigPresets;
         private ConfigEntry<string>[] presetEntries;
@@ -105,6 +99,7 @@ namespace BetterFog
 
             string section2 = "Key Bindings";
             nextPresetHotkeyConfig = Config.Bind(section2, "Next Preset Hotkey", "n", "Hotkey to switch to the next fog preset.");
+            hotKeysEnabled = Config.Bind(section2, "Enable Hotkeys", true, "Enable or disable hotkeys for switching fog presets.");
 
             // Initialize the key bindings with the hotkey value
             IngameKeybinds.Instance.InitializeKeybindings(nextPresetHotkeyConfig.Value);
@@ -125,8 +120,6 @@ namespace BetterFog
             {
                 currentPreset = FogConfigPresets.Find(preset => preset.PresetName == defaultPresetName);
             }
-            // Initialize and create FogSettingsManager
-            //InitializeFogSettingsManager();
 
             // Register the keybind for next preset
             IngameKeybinds.Instance.NextPresetHotkey.performed += ctx => NextPreset();
@@ -154,6 +147,17 @@ namespace BetterFog
                 throw; // Rethrow the exception to indicate initialization failure
             }
 
+            try
+            {
+                harmony.PatchAll(typeof(IngamePlayerSettingsPatch).Assembly);
+                mls.LogInfo("IngamePlayerSettings patches applied successfully.");
+            }
+            catch (Exception ex)
+            {
+                mls.LogError($"Failed to apply Harmony patches: {ex}");
+                throw; // Rethrow the exception to indicate initialization failure
+            }
+
             // Check if the FogSettingsManager instance is valid
             if (FogSettingsManager.Instance != null)
             {
@@ -165,42 +169,16 @@ namespace BetterFog
             }
         }
 
-        private void InitializeFogSettingsManager()
-        {
-            try
-            {
-                if (FogSettingsManager.Instance == null)
-                {
-                    mls.LogInfo("FogSettingsManager does not exist. Creating new instance.");
-                    //var fogSettingsManagerObject = new GameObject("FogSettingsManager");
-                    //mls.LogInfo("FogSettingsManager created.");
-                    //DontDestroyOnLoad(fogSettingsManagerObject);
-                    //mls.LogInfo("FogSettingsManager set to DontDestroyOnLoad.");
-                    //fogSettingsManagerObject.AddComponent<FogSettingsManager>();
-                    //mls.LogInfo("FogSettingsManager initialized.");
-                }
-                else
-                {
-                    mls.LogWarning("FogSettingsManager already exists.");
-                }
-            }
-            catch (Exception ex)
-            {
-                mls.LogError($"Exception in InitializeFogSettingsManager: {ex.Message}\n{ex.StackTrace}");
-            }
-        }
-
-
         public static void ApplyFogSettings()
         {
             // Find all LocalVolumetricFog objects
             var fogObjects = Resources
                 .FindObjectsOfTypeAll<LocalVolumetricFog>()
                 .ToList();
-            // Add for name filter if desired:
-            //.Where(fog => fog.name == "Foggy")
-            //.ToList()
-            //.FirstOrDefault();
+                // Add for name filter if desired:
+                //.Where(fog => fog.name == "Foggy")
+                //.ToList()
+                //.FirstOrDefault();
 
             // Iterate through each fog object
             foreach (var fogObject in fogObjects)
@@ -265,7 +243,5 @@ namespace BetterFog
             // Notify FogSettingsManager to update dropdown
             FogSettingsManager.Instance.UpdateSettingsWithCurrentPreset();
         }
-
-
     }
 }

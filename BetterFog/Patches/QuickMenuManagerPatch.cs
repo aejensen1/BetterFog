@@ -1,5 +1,4 @@
 ﻿using HarmonyLib;
-using UnityEngine;
 using BetterFog.Assets;
 
 namespace BetterFog.Patches
@@ -12,16 +11,13 @@ namespace BetterFog.Patches
         public static void OpenQuickMenuPatch()
         {
             var fogSettingsManager = FogSettingsManager.Instance;
-            BetterFog.mls.LogInfo("QuickMenuManagerPatch.OpenQuickMenuPatch");
-            BetterFog.mls.LogInfo(fogSettingsManager.ToString());
-            BetterFog.mls.LogInfo(fogSettingsManager.IsSettingsEnabled());
             if (fogSettingsManager != null && !fogSettingsManager.IsSettingsEnabled())
             {
                 fogSettingsManager.EnableSettings();
             }
             else
             {
-                BetterFog.mls.LogWarning("Settings are already open.");
+                //BetterFog.mls.LogWarning("Settings are already open.");
             }
         }
 
@@ -30,16 +26,13 @@ namespace BetterFog.Patches
         public static void CloseQuickMenuPatch()
         {
             var fogSettingsManager = FogSettingsManager.Instance;
-            BetterFog.mls.LogInfo("QuickMenuManagerPatch.CloseQuickMenuPatch");
-            BetterFog.mls.LogInfo(fogSettingsManager.ToString());
-            BetterFog.mls.LogInfo(fogSettingsManager.IsSettingsEnabled());
             if (fogSettingsManager != null && fogSettingsManager.IsSettingsEnabled())
             {
                 fogSettingsManager.DisableSettings();
             }
             else
             {
-                BetterFog.mls.LogWarning("Settings are already closed.");
+                //BetterFog.mls.LogWarning("Settings are already closed.");
             }
         }
     }

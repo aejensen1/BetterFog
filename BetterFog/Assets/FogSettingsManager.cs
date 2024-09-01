@@ -1,5 +1,4 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;  // Make sure you have this namespace for TextMeshPro
 using System.Collections.Generic;
@@ -7,7 +6,6 @@ using System.Collections;
 using UnityEngine.EventSystems;
 using BepInEx;
 using System.IO;
-using System.Runtime.CompilerServices;
 
 namespace BetterFog.Assets
 {
