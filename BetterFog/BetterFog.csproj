@@ -99,6 +99,7 @@
     <Compile Include="Input\KeybindDisplayNames.cs" />
     <Compile Include="Patches\QuickMenuManagerPatch.cs" />
     <Compile Include="Patches\IngamePlayerSettingsPatch.cs" />
+    <Compile Include="Patches\EntranceTeleportPatch.cs" />
     <Compile Include="Patches\StartOfRoundPatch.cs" />
     <Compile Include="BetterFog.cs" />
   </ItemGroup>

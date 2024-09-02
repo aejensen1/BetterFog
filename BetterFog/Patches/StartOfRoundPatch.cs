@@ -7,12 +7,21 @@ namespace BetterFog.Patches
     {
         [HarmonyPatch("StartGame")]
         [HarmonyPostfix]
-        public static void StartGame_MyPatch()
+        public static void StartGamePatch()
         {
-            BetterFog.mls.LogInfo("Game has started - FOG");
             if (GameNetworkManager.Instance.gameHasStarted)
             {
-                BetterFog.ApplyFogSettings();
+                BetterFog.mls.LogInfo("Game has started. Applying fog settings to moon.");
+                // Start applying fog settings gradually
+                if (!BetterFog.applyingFogSettings)
+                {
+                    BetterFog.ApplyFogSettingsGradually(2f, 0.9f); // Add 2 seconds of fog update delay for when ship lands. May need to change if ship landing time changes.
+                }
+                if (!BetterFog.loggingCoroutineRunning)
+                {
+                    BetterFog.LogMeanFreePath();
+                }
+                
             }
         }
     }
