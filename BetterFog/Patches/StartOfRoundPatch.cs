@@ -17,10 +17,10 @@ namespace BetterFog.Patches
                 {
                     BetterFog.ApplyFogSettingsGradually(2f, 0.9f); // Add 2 seconds of fog update delay for when ship lands. May need to change if ship landing time changes.
                 }
-                if (!BetterFog.loggingCoroutineRunning)
-                {
-                    BetterFog.LogMeanFreePath();
-                }
+                //if (!BetterFog.loggingCoroutineRunning)
+                //{
+                //    BetterFog.LogMeanFreePath();
+                //}
                 
             }
         }

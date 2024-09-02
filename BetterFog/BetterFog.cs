@@ -19,7 +19,7 @@ namespace BetterFog
     {
         public const string modGUID = "ironthumb.BetterFog";
         public const string modName = "BetterFog";
-        public const string modVersion = "3.1.6";
+        public const string modVersion = "3.1.7";
 
         private readonly Harmony harmony = new Harmony(modGUID);
         public static ManualLogSource mls;
@@ -29,6 +29,7 @@ namespace BetterFog
         public static ConfigEntry<bool> hotKeysEnabled;
         private static ConfigEntry<bool> applyToFogExclusionZone;
         private static ConfigEntry<string> defaultPresetName;
+        private static ConfigEntry<bool> noFogEnabled;
 
         public static List<FogConfigPreset> FogConfigPresets;
         private ConfigEntry<string>[] presetEntries;
@@ -90,6 +91,7 @@ namespace BetterFog
             };
             mls.LogInfo("FogConfigPresets initialized.");
 
+            // Config bindings below
             // Bind each preset to the config
             string section1 = "Default Fog Preset";
             defaultPresetName =
@@ -106,11 +108,12 @@ namespace BetterFog
 
             string section3 = "Fog Settings";
             applyToFogExclusionZone = Config.Bind(section3, "Apply to Fog Exclusion Zone", false, "Apply fog settings to the Fog Exclusion Zone (eg. inside of ship).");
-
+            noFogEnabled = Config.Bind(section3, "No Fog Enabled Default", false, "Set value to true to enable No Fog by default.");
+            
             // Initialize the key bindings with the hotkey value
             IngameKeybinds.Instance.InitializeKeybindings(nextPresetHotkeyConfig.Value);
 
-            // Create config entries
+            // Create config entries for each preset
             presetEntries = new ConfigEntry<string>[FogConfigPresets.Count];
             for (int i = 0; i < FogConfigPresets.Count; i++)
             {
@@ -138,8 +141,10 @@ namespace BetterFog
                 { // If the preset is not found, log an error and use the first preset in the list
                     mls.LogError($"Failed to find the default preset: {ex}");
                     currentPreset = FogConfigPresets[0];
+                    currentPresetIndex = 0;
                 }
             }
+            currentPreset.NoFog = noFogEnabled.Value;
 
             // Register the keybind for next preset
             IngameKeybinds.Instance.NextPresetHotkey.performed += ctx => NextPreset();
@@ -197,7 +202,7 @@ namespace BetterFog
                     // Print details of the Fog object
                     //mls.LogInfo($"Found LocalVolumetricFog object: {fogObject.name}");
                     // You can also print other properties of the Fog object if needed
-                    mls.LogInfo($"Fog Object Details: {fogObject.ToString()}");
+                    //mls.LogInfo($"Fog Object Details: {fogObject.ToString()}");
                     // Apply the current preset settings
                     var parameters = fogObject.parameters;
 
@@ -279,6 +284,7 @@ namespace BetterFog
             FogSettingsManager.Instance.UpdateSettingsWithCurrentPreset();
         }
 
+        /*
         public static bool loggingCoroutineRunning = false;
         public static void LogMeanFreePath()
         {
@@ -314,7 +320,7 @@ namespace BetterFog
                 yield return new WaitForSeconds(2f);
                 mls.LogInfo("Waiting for game to start...");
             }
-        }
+        }*/
     }
 }
 

@@ -320,7 +320,7 @@ namespace BetterFog.Assets
             }
             else
             {
-                BetterFog.mls.LogError("Cannot update sliders: One or more components are missing or currentPreset is null.");
+                //BetterFog.mls.LogError("Cannot update sliders: One or more components are missing or currentPreset is null.");
             }
         }
 
@@ -448,7 +448,8 @@ namespace BetterFog.Assets
             // Set the dropdown to the current preset index
             if (presetDropdown != null)
             {
-                presetDropdown.value = BetterFog.currentPresetIndex;
+                //presetDropdown.value = BetterFog.currentPresetIndex;
+                UpdateSettingsWithCurrentPreset();
 
                 // Remove any previous listeners to avoid duplicate calls
                 presetDropdown.onValueChanged.RemoveAllListeners();
@@ -510,13 +511,7 @@ namespace BetterFog.Assets
         {
             isSettingsEnabled = true;
 
-            if (settingsCanvas != null)
-            {
-                settingsCanvas.SetActive(true);
-                SetCurrentPreset();
-                BetterFog.mls.LogInfo("Fog Settings enabled.");
-            }
-            else
+            if (settingsCanvas == null) // If the canvas is null, reinitialize
             {
                 // Destroy the existing settingsCanvas
                 Destroy(settingsCanvas);
@@ -526,6 +521,11 @@ namespace BetterFog.Assets
                 UnloadAssetBundle();
                 Initialize(); // Method to handle the initialization of settingsCanvas
             }
+
+            // Assume the canvas is ready
+            settingsCanvas.SetActive(true);
+            SetCurrentPreset();
+            BetterFog.mls.LogInfo("Fog Settings enabled.");
         }
 
         private void UnloadAssetBundle()
