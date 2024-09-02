@@ -12,12 +12,11 @@ Prerequisites
 
 Known Bugs
 ==============
-- Fog settings sometimes stop working when running into new fog. Current workaround is to refresh your current preset in menu or with hotkey.
+- Fog becomes extra thick in Rend when approaching light posts. Current workaround is refreshing the current fog preset.
 
 To-Dos
 ==============
 - Add more automated refreshes to make settings always appear applied.
-- Add granularity where fog does not affect everything (i.e. inside ship and facility).
 - Add scale option to weather.
 
 Instructions
