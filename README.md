@@ -17,7 +17,6 @@ Known Bugs
 To-Dos
 ==============
 - Add more automated refreshes to make settings always appear applied.
-- Add scale option to weather.
 
 Instructions
 ==============
