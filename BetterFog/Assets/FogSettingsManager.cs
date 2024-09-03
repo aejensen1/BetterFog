@@ -37,12 +37,8 @@ namespace BetterFog.Assets
         private Button blueUp;
         private Button blueDown;
 
-        private Slider fogAlphaSlider; // Slider for fog density
-        private TextMeshProUGUI alphaVal; // Display for fog density value
-        private Button alphaUp;
-        private Button alphaDown;
-
         public Toggle noFogCheckbox;
+        public Toggle weatherScaleCheckbox;
 
         private static FogSettingsManager instance;
         private static bool isInitializing = false;
@@ -175,12 +171,8 @@ namespace BetterFog.Assets
                     blueDown = settingsCanvas.transform.Find("BlueDown").GetComponent<Button>();
                     blueUp = settingsCanvas.transform.Find("BlueUp").GetComponent<Button>();
 
-                    fogAlphaSlider = settingsCanvas.transform.Find("AlphaSlider").GetComponent<Slider>();
-                    alphaVal = settingsCanvas.transform.Find("AlphaNum").GetComponent<TextMeshProUGUI>();
-                    alphaDown = settingsCanvas.transform.Find("AlphaDown").GetComponent<Button>();
-                    alphaUp = settingsCanvas.transform.Find("AlphaUp").GetComponent<Button>();
-
                     noFogCheckbox = settingsCanvas.transform.Find("NoFogToggle").GetComponent<Toggle>();
+                    weatherScaleCheckbox = settingsCanvas.transform.Find("WeatherScaleToggle").GetComponent<Toggle>();
 
                     if (fogDensitySlider != null && densityVal != null && noFogCheckbox != null)
                     {
@@ -189,7 +181,6 @@ namespace BetterFog.Assets
                         redVal.text = fogRedSlider.value.ToString();
                         greenVal.text = fogGreenSlider.value.ToString();
                         blueVal.text = fogBlueSlider.value.ToString();
-                        alphaVal.text = fogAlphaSlider.value.ToString();
 
                         // Initialize the checkbox based on the current Anisotropy value
                         noFogCheckbox.isOn = BetterFog.currentPreset.NoFog != false;
@@ -199,12 +190,12 @@ namespace BetterFog.Assets
                         fogRedSlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogRedSlider, value));
                         fogGreenSlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogGreenSlider, value));
                         fogBlueSlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogBlueSlider, value));
-                        fogAlphaSlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogAlphaSlider, value));
 
                         InitializeButtonListeners();
 
                         // Add a listener to update the Anisotropy value when the checkbox is toggled
-                        noFogCheckbox.onValueChanged.AddListener(isChecked => OnCheckboxValueChanged(isChecked));
+                        noFogCheckbox.onValueChanged.AddListener(isChecked => OnNoFogCheckboxValueChanged(isChecked));
+                        weatherScaleCheckbox.onValueChanged.AddListener(isChecked => OnWeatherScaleCheckboxValueChanged(isChecked));
                     }
                 }
                 else
@@ -266,23 +257,18 @@ namespace BetterFog.Assets
             }
             else if (slider == fogRedSlider && redVal != null)
             {
-                redVal.text = value.ToString("0");
+                redVal.text = value.ToString("0.00");
                 BetterFog.currentPreset.AlbedoR = value;
             }
             else if (slider == fogGreenSlider && greenVal != null)
             {
-                greenVal.text = value.ToString("0");
+                greenVal.text = value.ToString("0.00");
                 BetterFog.currentPreset.AlbedoG = value;
             }
             else if (slider == fogBlueSlider && blueVal != null)
             {
-                blueVal.text = value.ToString("0");
+                blueVal.text = value.ToString("0.00");
                 BetterFog.currentPreset.AlbedoB = value;
-            }
-            else if (slider == fogAlphaSlider && alphaVal != null)
-            {
-                alphaVal.text = value.ToString("0.00");
-                BetterFog.currentPreset.AlbedoA = value;
             }
             //BetterFog.currentPreset.NoFog = false;
             UpdateNoFogCheckbox();
@@ -296,7 +282,6 @@ namespace BetterFog.Assets
                 fogRedSlider != null && redVal != null &&
                 fogGreenSlider != null && greenVal != null &&
                 fogBlueSlider != null && blueVal != null &&
-                fogAlphaSlider != null && alphaVal != null &&
                 BetterFog.currentPreset != null)
             {
                 // Example update logic: assuming currentPreset has properties for these values
@@ -312,9 +297,6 @@ namespace BetterFog.Assets
                 fogBlueSlider.value = BetterFog.currentPreset.AlbedoB;
                 blueVal.text = fogBlueSlider.value.ToString();
 
-                fogAlphaSlider.value = BetterFog.currentPreset.AlbedoA;
-                alphaVal.text = fogAlphaSlider.value.ToString();
-
                 // Log updates for debugging
                 //BetterFog.mls.LogInfo($"Updated sliders to current preset: {BetterFog.currentPreset.PresetName}");
             }
@@ -329,16 +311,14 @@ namespace BetterFog.Assets
 
         private void InitializeButtonListeners()
         {
-            AddAdjustmentListener(densityDown, -2f, fogDensitySlider);
-            AddAdjustmentListener(densityUp, 2f, fogDensitySlider);
-            AddAdjustmentListener(redDown, -1f, fogRedSlider);
-            AddAdjustmentListener(redUp, 1f, fogRedSlider);
-            AddAdjustmentListener(greenDown, -1f, fogGreenSlider);
-            AddAdjustmentListener(greenUp, 1f, fogGreenSlider);
-            AddAdjustmentListener(blueDown, -1f, fogBlueSlider);
-            AddAdjustmentListener(blueUp, 1f, fogBlueSlider);
-            AddAdjustmentListener(alphaDown, -0.1f, fogAlphaSlider);
-            AddAdjustmentListener(alphaUp, 0.1f, fogAlphaSlider);
+            AddAdjustmentListener(densityDown, -1f, fogDensitySlider);
+            AddAdjustmentListener(densityUp, 1f, fogDensitySlider);
+            AddAdjustmentListener(redDown, -0.1f, fogRedSlider);
+            AddAdjustmentListener(redUp, 0.1f, fogRedSlider);
+            AddAdjustmentListener(greenDown, -0.1f, fogGreenSlider);
+            AddAdjustmentListener(greenUp, 0.1f, fogGreenSlider);
+            AddAdjustmentListener(blueDown, -0.1f, fogBlueSlider);
+            AddAdjustmentListener(blueUp, 0.1f, fogBlueSlider);
         }
 
         private void AddAdjustmentListener(Button button, float adjustmentStep, Slider slider)
@@ -405,7 +385,7 @@ namespace BetterFog.Assets
         //--------------------------------- End Button Adjustment ---------------------------------
         //--------------------------------- Start Checkbox Adjustment ---------------------------------
 
-        private void OnCheckboxValueChanged(bool isChecked)
+        private void OnNoFogCheckboxValueChanged(bool isChecked)
         {
             BetterFog.currentPreset.NoFog = isChecked;
             BetterFog.ApplyFogSettings();
@@ -416,6 +396,20 @@ namespace BetterFog.Assets
             if (noFogCheckbox != null)
             {
                 noFogCheckbox.isOn = BetterFog.currentPreset.NoFog;
+            }
+        }
+
+        private void OnWeatherScaleCheckboxValueChanged(bool isChecked)
+        {
+            BetterFog.isWeatherScaleEnabled = isChecked;
+            BetterFog.ApplyFogSettings();
+        }
+
+        private void UpdateWeatherScaleCheckbox()
+        {
+            if (weatherScaleCheckbox != null)
+            {
+                weatherScaleCheckbox.isOn = BetterFog.isWeatherScaleEnabled;
             }
         }
 
@@ -469,6 +463,7 @@ namespace BetterFog.Assets
             UpdateDropdownWithCurrentPreset();
             UpdateSlidersWithCurrentPreset();
             UpdateNoFogCheckbox();
+            UpdateWeatherScaleCheckbox();
         }
 
         private void UpdateDropdownWithCurrentPreset()

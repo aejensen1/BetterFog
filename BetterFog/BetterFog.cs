@@ -31,6 +31,12 @@ namespace BetterFog
         private static ConfigEntry<string> defaultPresetName;
         private static ConfigEntry<bool> noFogEnabled;
 
+        private static ConfigEntry<bool> weatherScaleEnabled;
+        public static bool isWeatherScaleEnabled;
+        public static string currentWeatherType = "None";
+        private static float currentWeatherScale = 1f;
+        public static List<WeatherScale> WeatherScales;
+
         public static List<FogConfigPreset> FogConfigPresets;
         private ConfigEntry<string>[] presetEntries;
         public static int currentPresetIndex;
@@ -77,29 +83,39 @@ namespace BetterFog
             // Arguments: Preset Name, MeanFreePath, AlbedoR, AlbedoG, AlbedoB, AlbedoA, NoFog
             FogConfigPresets = new List<FogConfigPreset>
             {
-                new FogConfigPreset("Default", 11000f, 0.441f, 0.459f, 0.500f, 1f, false),
-                new FogConfigPreset("Heavy Fog", 10f, 0f, 0f, 0f, 0f, false),
-                new FogConfigPreset("Light Fog", 9850f, 5f, 5f, 5f, 0.1f, false),
-                new FogConfigPreset("Red Fog", 9800f, 67f, 24f, 24f, 0.5f, false),
-                new FogConfigPreset("Orange Fog", 9800f, 228f, 128f, 27f, 0.1f, false),
-                new FogConfigPreset("Yellow Fog", 9800f, 183f, 187f, 0f, 0.1f, false),
-                new FogConfigPreset("Green Fog", 9800f, 17f, 83f, 38f, 0.1f, false),
-                new FogConfigPreset("Blue Fog", 9800f, 37f, 155f, 218f, 0.1f, false),
-                new FogConfigPreset("Purple Fog", 9800f, 121f, 40f, 170f, 0.8f, false),
-                new FogConfigPreset("Pink Fog", 9800f, 224f, 12f, 219f, 0.8f, false),
-                new FogConfigPreset("No Fog", 10000000f, 1f, 1f, 1f, 0f, true)
+                new FogConfigPreset("Default", 250f, 0.441f, 0.459f, 0.500f, false),
+                new FogConfigPreset("Heavy Fog", 50f, 0f, 0f, 0f, false),
+                new FogConfigPreset("Light Fog", 9850f, 5f, 5f, 5f, false),
+                new FogConfigPreset("Red Fog", 500f, 20f, 0f, 0f, false),
+                new FogConfigPreset("Orange Fog", 500f, 20f, 9.33f, 4.5f, false),
+                new FogConfigPreset("Yellow Fog", 1300f, 20f, 20f, 0f, false),
+                new FogConfigPreset("Green Fog", 1300f, 0f, 20f, 0f, false),
+                new FogConfigPreset("Blue Fog", 1300f, 37f, 155f, 218f, false),
+                new FogConfigPreset("Purple Fog", 500f, 11.5f, 7.2f, 20f, false),
+                new FogConfigPreset("Pink Fog", 500f, 20f, 4.75f, 20f, false),
+                new FogConfigPreset("No Fog", 10000000f, 1f, 1f, 1f, true)
             };
             mls.LogInfo("FogConfigPresets initialized.");
+
+            WeatherScales = new List<WeatherScale>
+            {
+                new WeatherScale("none", 1f),
+                new WeatherScale("rainy", 0.5f),
+                new WeatherScale("Stormy", 0.4f),
+                new WeatherScale("foggy", 0.3f),
+                new WeatherScale("eclipsed", 0.5f),
+                new WeatherScale("dust clouds", 0.6f),
+                new WeatherScale("flooded", 0.9f),
+            };
 
             // Config bindings below
             // Bind each preset to the config
             string section1 = "Default Fog Preset";
             defaultPresetName =
                 Config.Bind(section1, "Default Preset Name", "Default", "Name of the default fog preset (No value sets default to first in list).\n" +
-                "Order of settings: Preset Name, Mean Free Path, Albedo Red, Albedo Green, Albedo Blue, Albedo Alpha, NoFog\n" +
+                "Order of settings: Preset Name, Mean Free Path, Albedo Red, Albedo Green, Albedo Blue, NoFog\n" +
                 "Mean Free Path - Density of fog. The greater the number, the less dense. 50000 is max (less fog) and 0 is min (more fog).\n" +
                 "Albedo Color - Color of fog. 255 is max and 0 is min.\n" +
-                "Albedo Alpha - Transparency of colors. 1.0 is max for opaque and 0.0 is min for transparent.\n" +
                 "No Fog - Density is negligible, so no fog appears when set to true.\n");
 
             string section2 = "Key Bindings";
@@ -109,6 +125,7 @@ namespace BetterFog
             string section3 = "Fog Settings";
             applyToFogExclusionZone = Config.Bind(section3, "Apply to Fog Exclusion Zone", false, "Apply fog settings to the Fog Exclusion Zone (eg. inside of ship).");
             noFogEnabled = Config.Bind(section3, "No Fog Enabled Default", false, "Set value to true to enable No Fog by default.");
+            weatherScaleEnabled = Config.Bind(section3, "Weather Scale Enabled", true, "Enable weather scaling for fog presets.");
             
             // Initialize the key bindings with the hotkey value
             IngameKeybinds.Instance.InitializeKeybindings(nextPresetHotkeyConfig.Value);
@@ -120,6 +137,13 @@ namespace BetterFog
                 var preset = FogConfigPresets[i];
                 //presetEntries[i] = Config.Bind("Fog Presets", preset.PresetName, preset.ToString(), $"Preset {preset.PresetName}");
                 presetEntries[i] = Config.Bind("Fog Presets", "Preset " + i, preset.ToString(), $"Preset {preset.PresetName}");
+            }
+
+            // Create config entries for each weather scale
+            for (int i = 0; i < WeatherScales.Count; i++)
+            {
+                var weatherScale = WeatherScales[i];
+                Config.Bind("Weather Scales", weatherScale.WeatherName, weatherScale.Scale, $"{weatherScale.WeatherName} Weather Scale. Thickness value is multiplied by this value when {weatherScale.WeatherName}.");
             }
 
             if (defaultPresetName == null) // If no default preset is set, use the first preset in the list
@@ -214,12 +238,54 @@ namespace BetterFog
                     }
                     else
                     {
-                        parameters.meanFreePath = currentPreset.MeanFreePath;
+                        if (isWeatherScaleEnabled)
+                        {
+                            if (currentWeatherType.Equals("none"))
+                            {
+                                currentWeatherScale = WeatherScales[0].Scale;
+                            }
+                            else if (currentWeatherType.Equals("rainy"))
+                            {
+                                currentWeatherScale = WeatherScales[1].Scale;
+                            }
+                            else if (currentWeatherType.Equals("stormy"))
+                            {
+                                currentWeatherScale = WeatherScales[2].Scale;
+                            }
+                            else if (currentWeatherType.Equals("foggy"))
+                            {
+                                currentWeatherScale = WeatherScales[3].Scale;
+                            }
+                            else if (currentWeatherType.Equals("eclipsed"))
+                            {
+                                currentWeatherScale = WeatherScales[4].Scale;
+                            }
+                            else if (currentWeatherType.Equals("dust Clouds"))
+                            {
+                                currentWeatherScale = WeatherScales[5].Scale;
+                            }
+                            else if (currentWeatherType.Equals("flooded"))
+                            {
+                                currentWeatherScale = WeatherScales[6].Scale;
+                            }
+                            else
+                            {
+                                currentWeatherScale = WeatherScales[0].Scale;
+                                //mls.LogWarning($"{currentWeatherType} weather type not found. Using scale of {currentWeatherScale}.");
+                            }
+                            parameters.meanFreePath = currentPreset.MeanFreePath * currentWeatherScale;
+                            //mls.LogInfo($"{currentWeatherType} weather type detected. Scaled MeanFreePath by " + currentWeatherScale);
+                        }
+                        else
+                        {
+                            //mls.LogInfo("Weather scaling is disabled. Using a scale of 1.");
+                            parameters.meanFreePath = currentPreset.MeanFreePath;
+                        }
                         parameters.albedo = new Color(
                             currentPreset.AlbedoR,
                             currentPreset.AlbedoG,
                             currentPreset.AlbedoB,
-                            currentPreset.AlbedoA
+                            1f
                         );
                     }
                     //parameters.anisotropy = currentPreset.NoFog;
