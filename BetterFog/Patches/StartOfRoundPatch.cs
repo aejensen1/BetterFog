@@ -23,21 +23,6 @@ namespace BetterFog.Patches
             }
         }
 
-        /*
-        [HarmonyPatch("openingDoorsSequence")]
-        [HarmonyPostfix]
-        public static void openingDoorsSequencePatch()
-        {
-            BetterFog.mls.LogInfo("Game has started. Setting Weather Type.");
-            // Start applying fog settings gradually
-            BetterFog.currentWeatherType = weatherEffect.name;
-            WeatherEffect weatherEffect = TimeOfDay.Instance.effects[(int)currentLevel.currentWeather];
-            if (!BetterFog.applyingFogSettings)
-            {
-                BetterFog.ApplyFogSettingsGradually(2f, 0.9f); // Add 2 seconds of fog update delay for when ship lands. May need to change if ship landing time changes.
-            }
-        }*/
-
         [HarmonyPatch("ChangeLevel")]
         [HarmonyPostfix]
         public static void ChangeLevelPatch(StartOfRound __instance)
@@ -45,12 +30,6 @@ namespace BetterFog.Patches
             SelectableLevel currentLevel = __instance.currentLevel;
             WeatherEffect weatherEffect = TimeOfDay.Instance.effects[(int)currentLevel.currentWeather];
             BetterFog.currentWeatherType = weatherEffect.name;
-            // Start applying fog settings gradually
-            
-            //if (!BetterFog.applyingFogSettings)
-            //{
-            //    BetterFog.ApplyFogSettingsGradually(2f, 0.9f); // Add 2 seconds of fog update delay for when ship lands. May need to change if ship landing time changes.
-            //}
         }
     }
 }
