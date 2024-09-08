@@ -25,11 +25,24 @@ namespace BetterFog.Patches
 
         [HarmonyPatch("ChangeLevel")]
         [HarmonyPostfix]
-        public static void ChangeLevelPatch(StartOfRound __instance)
+        public static void ChangeLevelPatch(StartOfRound __instance, int levelID)
         {
+            // Access the current level
             SelectableLevel currentLevel = __instance.currentLevel;
-            WeatherEffect weatherEffect = TimeOfDay.Instance.effects[(int)currentLevel.currentWeather];
-            BetterFog.currentWeatherType = weatherEffect.name;
+
+            // Check if the currentWeather value is within the bounds of the effects array
+            if ((int)currentLevel.currentWeather >= 0 && (int)currentLevel.currentWeather < TimeOfDay.Instance.effects.Length)
+            {
+                WeatherEffect weatherEffect = TimeOfDay.Instance.effects[(int)currentLevel.currentWeather];
+
+                // Log the current weather type
+                BetterFog.currentWeatherType = weatherEffect.name;
+            }
+            else
+            {
+                Debug.LogError($"Invalid weather index: {currentLevel.currentWeather}");
+            }
         }
+
     }
 }

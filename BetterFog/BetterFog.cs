@@ -271,14 +271,14 @@ namespace BetterFog
                             else
                             {
                                 currentWeatherScale = WeatherScales[0].Scale;
-                                //mls.LogWarning($"{currentWeatherType} weather type not found. Using scale of {currentWeatherScale}.");
+                                mls.LogWarning($"{currentWeatherType} weather type not found. Using scale of {currentWeatherScale}.");
                             }
                             parameters.meanFreePath = currentPreset.MeanFreePath * currentWeatherScale;
-                            //mls.LogInfo($"{currentWeatherType} weather type detected. Scaled MeanFreePath by " + currentWeatherScale);
+                            mls.LogInfo($"{currentWeatherType} weather type detected. Scaled MeanFreePath by " + currentWeatherScale);
                         }
                         else
                         {
-                            //mls.LogInfo("Weather scaling is disabled. Using a scale of 1.");
+                            mls.LogInfo("Weather scaling is disabled. Using a scale of 1.");
                             parameters.meanFreePath = currentPreset.MeanFreePath;
                         }
                         parameters.albedo = new Color(
