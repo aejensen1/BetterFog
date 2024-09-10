@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
 namespace BetterFog.Assets
 {
@@ -11,25 +7,27 @@ namespace BetterFog.Assets
         public string WeatherName { get; set; }
         public float Scale { get; set; }
 
-        public WeatherScale() { }
-
-        public WeatherScale(string weatherName, float scale)
+        public WeatherScale(string weatherName, float weatherScale)
         {
             WeatherName = weatherName;
-            Scale = scale;
+            Scale = weatherScale;
         }
 
-        public override string ToString()
+        public List<WeatherScale> ParseWeatherScales(string configString)
         {
-            return $"{Scale}";
+            var weatherScales = new List<WeatherScale>();
+            var pairs = configString.Split(';');
+
+            foreach (var pair in pairs)
+            {
+                var keyValue = pair.Split('=');
+                if (keyValue.Length == 2 && float.TryParse(keyValue[1], out float scaleValue))
+                {
+                    weatherScales.Add(new WeatherScale(keyValue[0], scaleValue));
+                }
+            }
+            return weatherScales;
         }
 
-        public static WeatherScale FromString(string data)
-        {
-            return new WeatherScale(
-                data,
-                float.Parse(data)
-            );
-        }
     }
 }

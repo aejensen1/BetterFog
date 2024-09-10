@@ -195,7 +195,7 @@ namespace BetterFog.Assets
 
                         // Add a listener to update the Anisotropy value when the checkbox is toggled
                         noFogCheckbox.onValueChanged.AddListener(isChecked => OnNoFogCheckboxValueChanged(isChecked));
-                        weatherScaleCheckbox.onValueChanged.AddListener(isChecked => OnWeatherScaleCheckboxValueChanged(isChecked));
+                        weatherScaleCheckbox.onValueChanged.AddListener(isChecked => OnDensityScaleCheckboxValueChanged(isChecked));
                     }
                 }
                 else
@@ -399,17 +399,17 @@ namespace BetterFog.Assets
             }
         }
 
-        private void OnWeatherScaleCheckboxValueChanged(bool isChecked)
+        private void OnDensityScaleCheckboxValueChanged(bool isChecked)
         {
-            BetterFog.isWeatherScaleEnabled = isChecked;
+            BetterFog.isDensityScaleEnabled = isChecked;
             BetterFog.ApplyFogSettings();
         }
 
-        private void UpdateWeatherScaleCheckbox()
+        private void UpdateDensityScaleCheckbox()
         {
             if (weatherScaleCheckbox != null)
             {
-                weatherScaleCheckbox.isOn = BetterFog.isWeatherScaleEnabled;
+                weatherScaleCheckbox.isOn = BetterFog.isDensityScaleEnabled;
             }
         }
 
@@ -463,7 +463,7 @@ namespace BetterFog.Assets
             UpdateDropdownWithCurrentPreset();
             UpdateSlidersWithCurrentPreset();
             UpdateNoFogCheckbox();
-            UpdateWeatherScaleCheckbox();
+            UpdateDensityScaleCheckbox();
         }
 
         private void UpdateDropdownWithCurrentPreset()

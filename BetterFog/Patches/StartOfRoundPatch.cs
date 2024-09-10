@@ -18,7 +18,7 @@ namespace BetterFog.Patches
                 // Start applying fog settings gradually
                 if (!BetterFog.applyingFogSettings)
                 {
-                    BetterFog.ApplyFogSettingsGradually(2f, 0.9f); // Add 2 seconds of fog update delay for when ship lands. May need to change if ship landing time changes.
+                    BetterFog.ApplyFogSettingsGradually(8f, 0.9f); // Add 2 seconds of fog update delay for when ship lands. May need to change if ship landing time changes.
                 }             
             }
         }
@@ -36,12 +36,15 @@ namespace BetterFog.Patches
                 WeatherEffect weatherEffect = TimeOfDay.Instance.effects[(int)currentLevel.currentWeather];
 
                 // Log the current weather type
+                
                 BetterFog.currentWeatherType = weatherEffect.name;
             }
             else
             {
-                Debug.LogError($"Invalid weather index: {currentLevel.currentWeather}");
+                BetterFog.currentWeatherType = "none";
+                Debug.LogError($"Invalid weather index: {currentLevel.currentWeather}. Set to none");
             }
+            BetterFog.currentLevel = currentLevel.PlanetName;
         }
 
     }

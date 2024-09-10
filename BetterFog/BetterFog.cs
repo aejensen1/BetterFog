@@ -25,17 +25,24 @@ namespace BetterFog
         public static ManualLogSource mls;
         private static BetterFog instance;
 
+        public static bool hotkeysEnabled = true;
         private static ConfigEntry<string> nextPresetHotkeyConfig;
-        public static ConfigEntry<bool> hotKeysEnabled;
+        public static ConfigEntry<bool> nextHotKeyEnabled;
+        private static ConfigEntry<string> refreshPresetHotkeyConfig;
+        public static ConfigEntry<bool> refreshHotKeyEnabled;
         private static ConfigEntry<bool> applyToFogExclusionZone;
         private static ConfigEntry<string> defaultPresetName;
         private static ConfigEntry<bool> noFogEnabled;
 
         private static ConfigEntry<bool> weatherScaleEnabled;
-        public static bool isWeatherScaleEnabled;
+        public static bool isDensityScaleEnabled;
         public static string currentWeatherType = "None";
-        private static float currentWeatherScale = 1f;
+        private static float currentDensityScale = 1f;
         public static List<WeatherScale> WeatherScales;
+        private static ConfigEntry<string> weatherScalesConfig;
+        public static string currentLevel = "";
+        public static List<MoonScale> MoonScales;
+        private static ConfigEntry<string> moonScalesConfig;
 
         public static List<FogConfigPreset> FogConfigPresets;
         private ConfigEntry<string>[] presetEntries;
@@ -97,17 +104,6 @@ namespace BetterFog
             };
             mls.LogInfo("FogConfigPresets initialized.");
 
-            WeatherScales = new List<WeatherScale>
-            {
-                new WeatherScale("none", 1f),
-                new WeatherScale("rainy", 0.5f),
-                new WeatherScale("Stormy", 0.4f),
-                new WeatherScale("foggy", 0.3f),
-                new WeatherScale("eclipsed", 0.5f),
-                new WeatherScale("dust clouds", 0.6f),
-                new WeatherScale("flooded", 0.9f),
-            };
-
             // Config bindings below
             // Bind each preset to the config
             string section1 = "Default Fog Preset";
@@ -120,15 +116,17 @@ namespace BetterFog
 
             string section2 = "Key Bindings";
             nextPresetHotkeyConfig = Config.Bind(section2, "Next Preset Hotkey", "n", "Hotkey to switch to the next fog preset.");
-            hotKeysEnabled = Config.Bind(section2, "Enable Hotkeys", true, "Enable or disable hotkeys for switching fog presets.");
+            nextHotKeyEnabled = Config.Bind(section2, "Enable Next Hotkey", true, "Enable or disable hotkeys for switching fog presets.");
+            refreshPresetHotkeyConfig = Config.Bind(section2, "Refresh Hotkey", "r", "Hotkey to refresh fog settings.");
+            refreshHotKeyEnabled = Config.Bind(section2, "Enable Refresh Hotkey", true, "Enable or disable hotkey for refreshing fog settings.");
 
             string section3 = "Fog Settings";
             applyToFogExclusionZone = Config.Bind(section3, "Apply to Fog Exclusion Zone", false, "Apply fog settings to the Fog Exclusion Zone (eg. inside of ship).");
             noFogEnabled = Config.Bind(section3, "No Fog Enabled Default", false, "Set value to true to enable No Fog by default.");
-            weatherScaleEnabled = Config.Bind(section3, "Weather Scale Enabled", true, "Enable weather scaling for fog presets.");
+            weatherScaleEnabled = Config.Bind(section3, "Weather Scale Enabled Default", true, "Enable weather scaling for fog presets.");
             
             // Initialize the key bindings with the hotkey value
-            IngameKeybinds.Instance.InitializeKeybindings(nextPresetHotkeyConfig.Value);
+            IngameKeybinds.Instance.InitializeKeybindings(nextPresetHotkeyConfig.Value, refreshPresetHotkeyConfig.Value);
 
             // Create config entries for each preset
             presetEntries = new ConfigEntry<string>[FogConfigPresets.Count];
@@ -139,12 +137,18 @@ namespace BetterFog
                 presetEntries[i] = Config.Bind("Fog Presets", "Preset " + i, preset.ToString(), $"Preset {preset.PresetName}");
             }
 
-            // Create config entries for each weather scale
-            for (int i = 0; i < WeatherScales.Count; i++)
-            {
-                var weatherScale = WeatherScales[i];
-                Config.Bind("Weather Scales", weatherScale.WeatherName, weatherScale.Scale, $"{weatherScale.WeatherName} Weather Scale. Thickness value is multiplied by this value when {weatherScale.WeatherName}.");
-            }
+            moonScalesConfig = Config.Bind("Moon Scales", "MoonScales", "71 Gordion=1,41 Experimentation=0.95,220 Assurance=0.9,56 Vow=0.8,21 Offense=0.9," +
+                "61 March=0.75,20 Adamance=0.75,85 Rend=0.285,7 Dine=0.325,8 Titan=0.285,68 Artifice=0.9,5 Embrion=0.85,44 Liquidation=0.85",
+                "Moon scales in the format {Gordion=1,41 Experimentation=0.95,220 Assurance=0.9,...} Moon Scales are applied before weather fog density scales.");
+
+            MoonScales = ParseMoonScales(moonScalesConfig.Value);
+
+            weatherScalesConfig = Config.Bind("Weather Scales", "WeatherScales", "none=1,rainy=0.75,stormy=0.5,foggy=0.45,eclipsed=0.77,dust clouds=0.8,flooded=0.765",
+            "Weather scales in the format {none=1,rainy=0.69,stormy=0.65,...} Weather Scales are applied after moon fog density scales.");
+
+            WeatherScales = ParseWeatherScales(weatherScalesConfig.Value);
+
+            mls.LogInfo("Finished Parsing");
 
             if (defaultPresetName == null) // If no default preset is set, use the first preset in the list
             {
@@ -169,9 +173,7 @@ namespace BetterFog
                 }
             }
             currentPreset.NoFog = noFogEnabled.Value;
-
-            // Register the keybind for next preset
-            IngameKeybinds.Instance.NextPresetHotkey.performed += ctx => NextPreset();
+            isDensityScaleEnabled = weatherScaleEnabled.Value;
 
             // Apply the Harmony patches
             try
@@ -187,13 +189,15 @@ namespace BetterFog
 
                 harmony.PatchAll(typeof(EntranceTeleportPatch).Assembly);
                 mls.LogInfo("EntranceTeleport patches applied successfully.");
+
+                harmony.PatchAll(typeof(TerminalPatch).Assembly);
+                mls.LogInfo("Terminal patches applied successfully.");
             }
             catch (Exception ex)
             {
                 mls.LogError($"Failed to apply Harmony patches: {ex}");
                 throw; // Rethrow the exception to indicate initialization failure
             }
-
 
             // Check if the FogSettingsManager instance is valid
             if (FogSettingsManager.Instance != null)
@@ -203,7 +207,7 @@ namespace BetterFog
             else
             {
                 mls.LogError("FogSettingsManager instance is null.");
-            }        
+            }
         }
 
         public static void ApplyFogSettings()
@@ -238,43 +242,43 @@ namespace BetterFog
                     }
                     else
                     {
-                        if (isWeatherScaleEnabled)
+                        if (isDensityScaleEnabled)
                         {
-                            if (currentWeatherType.Equals("none"))
+                            // Handle Moon Scaling
+                            currentDensityScale = 1;
+                            foreach (MoonScale moonScale in MoonScales)
                             {
-                                currentWeatherScale = WeatherScales[0].Scale;
+                                //mls.LogInfo(weatherScale.WeatherName);
+                                if (currentLevel == moonScale.MoonName)
+                                {
+                                    currentDensityScale = moonScale.Scale;
+                                    mls.LogInfo($"{currentLevel} moon detected. Set density scale to " + currentDensityScale);
+                                    break;
+                                }
+                                if (moonScale.MoonName == MoonScales[MoonScales.Count - 1].MoonName)
+                                {
+                                    mls.LogWarning($"{currentLevel} moon not found in records. Using scale of {currentDensityScale}.");
+                                }
                             }
-                            else if (currentWeatherType.Equals("rainy"))
+
+                            // Handle Weather Scaling
+                            foreach (WeatherScale weatherScale in WeatherScales)
                             {
-                                currentWeatherScale = WeatherScales[1].Scale;
+                                //mls.LogInfo(weatherScale.WeatherName);
+                                if (currentWeatherType == weatherScale.WeatherName)
+                                {
+                                    currentDensityScale = currentDensityScale * weatherScale.Scale;
+                                    mls.LogInfo($"{currentWeatherType} weather type detected. Set density scale to " + currentDensityScale);
+                                    break;
+                                }
+                                if (weatherScale.WeatherName == WeatherScales[WeatherScales.Count - 1].WeatherName)
+                                {
+                                    mls.LogWarning($"{currentWeatherType} weather type not found in records. Using scale of {currentDensityScale}.");
+                                }
                             }
-                            else if (currentWeatherType.Equals("stormy"))
-                            {
-                                currentWeatherScale = WeatherScales[2].Scale;
-                            }
-                            else if (currentWeatherType.Equals("foggy"))
-                            {
-                                currentWeatherScale = WeatherScales[3].Scale;
-                            }
-                            else if (currentWeatherType.Equals("eclipsed"))
-                            {
-                                currentWeatherScale = WeatherScales[4].Scale;
-                            }
-                            else if (currentWeatherType.Equals("dust Clouds"))
-                            {
-                                currentWeatherScale = WeatherScales[5].Scale;
-                            }
-                            else if (currentWeatherType.Equals("flooded"))
-                            {
-                                currentWeatherScale = WeatherScales[6].Scale;
-                            }
-                            else
-                            {
-                                currentWeatherScale = WeatherScales[0].Scale;
-                                mls.LogWarning($"{currentWeatherType} weather type not found. Using scale of {currentWeatherScale}.");
-                            }
-                            parameters.meanFreePath = currentPreset.MeanFreePath * currentWeatherScale;
-                            mls.LogInfo($"{currentWeatherType} weather type detected. Scaled MeanFreePath by " + currentWeatherScale);
+
+                            // Set new density with scaling applied
+                            parameters.meanFreePath = currentPreset.MeanFreePath * currentDensityScale;
                         }
                         else
                         {
@@ -350,6 +354,39 @@ namespace BetterFog
             FogSettingsManager.Instance.UpdateSettingsWithCurrentPreset();
         }
 
+        // Function to parse the weather scales
+        private List<WeatherScale> ParseWeatherScales(string configString)
+        {
+            var weatherScales = new List<WeatherScale>();
+            var pairs = configString.Split(',');
+
+            foreach (var pair in pairs)
+            {
+                var keyValue = pair.Split('=');
+                if (keyValue.Length == 2 && float.TryParse(keyValue[1], out float scaleValue))
+                {
+                    weatherScales.Add(new WeatherScale(keyValue[0], scaleValue));
+                }
+            }
+            return weatherScales;
+        }
+
+        private List<MoonScale> ParseMoonScales(string configString)
+        {
+            var moonScales = new List<MoonScale>();
+            var pairs = configString.Split(',');
+
+            foreach (var pair in pairs)
+            {
+                var keyValue = pair.Split('=');
+                if (keyValue.Length == 2 && float.TryParse(keyValue[1], out float scaleValue))
+                {
+                    moonScales.Add(new MoonScale(keyValue[0], scaleValue));
+                }
+            }
+            return moonScales;
+        }
+
         /*
         public static bool loggingCoroutineRunning = false;
         public static void LogMeanFreePath()
@@ -388,5 +425,7 @@ namespace BetterFog
             }
         }*/
     }
+
+
 }
 

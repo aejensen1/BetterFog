@@ -27,22 +27,22 @@ namespace BetterFog.Assets
 
         public override string ToString()
         {
-            return $"{PresetName}|{MeanFreePath}|{AlbedoR}|{AlbedoG}|{AlbedoB}|{NoFog}";
+            return $"PresetName={PresetName},Density={MeanFreePath},Red Hue={AlbedoR},Green Hue={AlbedoG},Blue Hue={AlbedoB},No Fog={NoFog}";
         }
 
         public static FogConfigPreset FromString(string data)
         {
-            var parts = data.Split('|');
-            if (parts.Length != 8)
+            var parts = data.Split(',');
+            if (parts.Length != 6)
                 throw new ArgumentException("Invalid preset string format");
 
             return new FogConfigPreset(
-                parts[0],
-                float.Parse(parts[1]),
-                float.Parse(parts[2]),
-                float.Parse(parts[3]),
-                float.Parse(parts[4]),
-                bool.Parse(parts[5])
+                parts[0].Split('=')[1],
+                float.Parse(parts[1].Split('=')[1]),
+                float.Parse(parts[2].Split('=')[1]),
+                float.Parse(parts[3].Split('=')[1]),
+                float.Parse(parts[4].Split('=')[1]),
+                bool.Parse(parts[5].Split('=')[1])
             );
         }
     }
