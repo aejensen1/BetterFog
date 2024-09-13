@@ -80,6 +80,12 @@ namespace BetterFog.Assets
 
         private void Initialize()
         {
+            if (BetterFog.guiEnabled.Value == false)
+            {
+                BetterFog.mls.LogWarning("FogSettingsManager GUI is disabled by config file.");
+                return;
+            }
+
             BetterFog.mls.LogInfo("Initializing FogSettingsManager.");
 
             string[] assetPaths = Directory.GetFiles(Paths.PluginPath, "fogsettingsgui", SearchOption.AllDirectories);
@@ -504,6 +510,12 @@ namespace BetterFog.Assets
 
         public void EnableSettings()
         {
+            if (BetterFog.guiEnabled.Value == false)
+            {
+                BetterFog.mls.LogWarning("FogSettingsManager GUI is disabled by config file.");
+                return;
+            }
+
             isSettingsEnabled = true;
 
             if (settingsCanvas == null) // If the canvas is null, reinitialize
@@ -535,6 +547,12 @@ namespace BetterFog.Assets
 
         public void DisableSettings()
         {
+            if (BetterFog.guiEnabled.Value == false)
+            {
+                BetterFog.mls.LogWarning("FogSettingsManager GUI is disabled by config file.");
+                return;
+            }
+
             isSettingsEnabled = false;
             if (settingsCanvas != null)
             {

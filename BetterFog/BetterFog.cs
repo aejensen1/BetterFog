@@ -19,7 +19,7 @@ namespace BetterFog
     {
         public const string modGUID = "ironthumb.BetterFog";
         public const string modName = "BetterFog";
-        public const string modVersion = "3.1.7";
+        public const string modVersion = "3.2.3";
 
         private readonly Harmony harmony = new Harmony(modGUID);
         public static ManualLogSource mls;
@@ -30,9 +30,12 @@ namespace BetterFog
         public static ConfigEntry<bool> nextHotKeyEnabled;
         private static ConfigEntry<string> refreshPresetHotkeyConfig;
         public static ConfigEntry<bool> refreshHotKeyEnabled;
+        public static ConfigEntry<string> weatherScaleHotkeyConfig;
+        public static ConfigEntry<bool> weatherScaleHotKeyEnabled;
+
         private static ConfigEntry<bool> applyToFogExclusionZone;
-        private static ConfigEntry<string> defaultPresetName;
         private static ConfigEntry<bool> noFogEnabled;
+        public static ConfigEntry<bool> guiEnabled;
 
         private static ConfigEntry<bool> weatherScaleEnabled;
         public static bool isDensityScaleEnabled;
@@ -44,6 +47,7 @@ namespace BetterFog
         public static List<MoonScale> MoonScales;
         private static ConfigEntry<string> moonScalesConfig;
 
+        private static ConfigEntry<string> defaultPresetName;
         public static List<FogConfigPreset> FogConfigPresets;
         private ConfigEntry<string>[] presetEntries;
         public static int currentPresetIndex;
@@ -119,14 +123,17 @@ namespace BetterFog
             nextHotKeyEnabled = Config.Bind(section2, "Enable Next Hotkey", true, "Enable or disable hotkeys for switching fog presets.");
             refreshPresetHotkeyConfig = Config.Bind(section2, "Refresh Hotkey", "r", "Hotkey to refresh fog settings.");
             refreshHotKeyEnabled = Config.Bind(section2, "Enable Refresh Hotkey", true, "Enable or disable hotkey for refreshing fog settings.");
+            weatherScaleHotkeyConfig = Config.Bind(section2, "Weather Scale Hotkey", "c", "Hotkey to toggle weather scaling.");
+            weatherScaleHotKeyEnabled = Config.Bind(section2, "Enable Weather Sale Hotkey", false, "Enable or disable hotkey for Weather Scaling toggle.");
 
             string section3 = "Fog Settings";
             applyToFogExclusionZone = Config.Bind(section3, "Apply to Fog Exclusion Zone", false, "Apply fog settings to the Fog Exclusion Zone (eg. inside of ship).");
             noFogEnabled = Config.Bind(section3, "No Fog Enabled Default", false, "Set value to true to enable No Fog by default.");
             weatherScaleEnabled = Config.Bind(section3, "Weather Scale Enabled Default", true, "Enable weather scaling for fog presets.");
-            
+            guiEnabled = Config.Bind(section3, "GUI Enabled", true, "Enable or disable the GUI for the mod.");
+
             // Initialize the key bindings with the hotkey value
-            IngameKeybinds.Instance.InitializeKeybindings(nextPresetHotkeyConfig.Value, refreshPresetHotkeyConfig.Value);
+            IngameKeybinds.Instance.InitializeKeybindings(nextPresetHotkeyConfig.Value, refreshPresetHotkeyConfig.Value, weatherScaleHotkeyConfig.Value);
 
             // Create config entries for each preset
             presetEntries = new ConfigEntry<string>[FogConfigPresets.Count];
@@ -137,13 +144,14 @@ namespace BetterFog
                 presetEntries[i] = Config.Bind("Fog Presets", "Preset " + i, preset.ToString(), $"Preset {preset.PresetName}");
             }
 
-            moonScalesConfig = Config.Bind("Moon Scales", "MoonScales", "71 Gordion=1,41 Experimentation=0.95,220 Assurance=0.9,56 Vow=0.8,21 Offense=0.9," +
+            string section4 = "Weather Scales";
+            moonScalesConfig = Config.Bind(section4, "MoonScales", "71 Gordion=1,41 Experimentation=0.95,220 Assurance=0.9,56 Vow=0.8,21 Offense=0.9," +
                 "61 March=0.75,20 Adamance=0.75,85 Rend=0.285,7 Dine=0.325,8 Titan=0.285,68 Artifice=0.9,5 Embrion=0.85,44 Liquidation=0.85",
                 "Moon scales in the format {Gordion=1,41 Experimentation=0.95,220 Assurance=0.9,...} Moon Scales are applied before weather fog density scales.");
 
             MoonScales = ParseMoonScales(moonScalesConfig.Value);
 
-            weatherScalesConfig = Config.Bind("Weather Scales", "WeatherScales", "none=1,rainy=0.75,stormy=0.5,foggy=0.45,eclipsed=0.77,dust clouds=0.8,flooded=0.765",
+            weatherScalesConfig = Config.Bind(section4, "WeatherScales", "none=1,rainy=0.75,stormy=0.5,foggy=0.45,eclipsed=0.77,dust clouds=0.8,flooded=0.765",
             "Weather scales in the format {none=1,rainy=0.69,stormy=0.65,...} Weather Scales are applied after moon fog density scales.");
 
             WeatherScales = ParseWeatherScales(weatherScalesConfig.Value);

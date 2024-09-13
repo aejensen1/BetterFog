@@ -1,4 +1,5 @@
-﻿using LethalCompanyInputUtils.Api;
+﻿using BetterFog.Assets;
+using LethalCompanyInputUtils.Api;
 using UnityEngine.InputSystem;
 
 namespace BetterFog.Input
@@ -10,12 +11,14 @@ namespace BetterFog.Input
 
         public InputAction NextPresetHotkey { get; set; }
         public InputAction RefreshPresetHotKey { get; set; }
+        public InputAction WeatherScalePresetHotKey { get; set; }
 
-        internal void InitializeKeybindings(string nextHotkeyString, string refreshHotkeyString)
+        internal void InitializeKeybindings(string nextHotkeyString, string refreshHotkeyString, string weatherScaleHotkeyString)
         {
             // Set the hotkey dynamically
             NextPresetHotkey = new InputAction("Next Fog Preset", binding: $"<Keyboard>/{nextHotkeyString}");
             RefreshPresetHotKey = new InputAction("Refresh Fog Preset", binding: $"<Keyboard>/{refreshHotkeyString}");
+            WeatherScalePresetHotKey = new InputAction("Weather Scale Preset", binding: $"<Keyboard>/{weatherScaleHotkeyString}");
 
             // Optionally add a gamepad binding
             NextPresetHotkey.AddBinding("<Gamepad>/leftStickPress");
@@ -49,6 +52,29 @@ namespace BetterFog.Input
                 RefreshPresetHotKey.Disable();
             }
 
+            if (BetterFog.weatherScaleHotKeyEnabled.Value)
+            {
+                // Enable the action
+                WeatherScalePresetHotKey.Enable();
+                //BetterFog.mls.LogInfo("Weather scaling hotkey enabled.");
+
+                // Subscribe to the performed event
+                WeatherScalePresetHotKey.performed += ctx =>
+                {
+                    BetterFog.isDensityScaleEnabled = !BetterFog.isDensityScaleEnabled;
+                    //BetterFog.mls.LogInfo($"Density scaling is now {(BetterFog.isDensityScaleEnabled ? "enabled" : "disabled")}.");
+                    BetterFog.ApplyFogSettings();
+                    if (FogSettingsManager.Instance.IsSettingsEnabled())
+                    {
+                        FogSettingsManager.Instance.UpdateSettingsWithCurrentPreset();
+                    }
+                };
+            }
+            else
+            {
+                // Disable the action
+                WeatherScalePresetHotKey.Disable();
+            }
         }
 
         public static void DisableHotkeys()
@@ -56,6 +82,7 @@ namespace BetterFog.Input
             BetterFog.hotkeysEnabled = false;
             Instance.NextPresetHotkey.Disable();
             Instance.RefreshPresetHotKey.Disable();
+            Instance.WeatherScalePresetHotKey.Disable();
         }
 
         public static void EnableHotkeys()
@@ -63,6 +90,7 @@ namespace BetterFog.Input
             BetterFog.hotkeysEnabled = true;
             Instance.NextPresetHotkey.Enable();
             Instance.RefreshPresetHotKey.Enable();
+            Instance.WeatherScalePresetHotKey.Enable();
         }
     }
 }
