@@ -12,11 +12,11 @@ Prerequisites
 
 Known Bugs
 ==============
-- Fog becomes extra thick in Rend when approaching light posts. Current workaround is refreshing the current fog preset.
+- No known bugs
 
 To-Dos
 ==============
-- Add more automated refreshes to make settings always appear applied.
+- Suprises underway!
 
 Instructions
 ==============
