@@ -200,6 +200,12 @@ namespace BetterFog
 
                 harmony.PatchAll(typeof(TerminalPatch).Assembly);
                 mls.LogInfo("Terminal patches applied successfully.");
+
+                harmony.PatchAll(typeof(AudioReverbTriggerPatch).Assembly);
+                mls.LogInfo("AudioReverb patches applied successfully.");
+
+                //harmony.PatchAll(typeof(FogPatch).Assembly);
+                //mls.LogInfo("Fog patches applied successfully.");
             }
             catch (Exception ex)
             {
