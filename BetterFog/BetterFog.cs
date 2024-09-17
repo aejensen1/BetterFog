@@ -34,7 +34,7 @@ namespace BetterFog
         public static ConfigEntry<bool> weatherScaleHotKeyEnabled;
 
         private static ConfigEntry<bool> applyToFogExclusionZone;
-        private static ConfigEntry<bool> noFogEnabled;
+        //private static ConfigEntry<bool> noFogEnabled;
         public static ConfigEntry<bool> guiEnabled;
 
         private static ConfigEntry<bool> weatherScaleEnabled;
@@ -52,6 +52,12 @@ namespace BetterFog
         private ConfigEntry<string>[] presetEntries;
         public static int currentPresetIndex;
         public static FogConfigPreset currentPreset;
+
+        private static ConfigEntry<string> defaultMode;
+        public static List<BetterFogMode> FogModes;
+        //private ConfigEntry<string>[] presetEntries;
+        public static int currentModeIndex;
+        public static BetterFogMode currentMode;
 
         public static bool applyingFogSettings = false;
 
@@ -94,29 +100,37 @@ namespace BetterFog
             // Arguments: Preset Name, MeanFreePath, AlbedoR, AlbedoG, AlbedoB, AlbedoA, NoFog
             FogConfigPresets = new List<FogConfigPreset>
             {
-                new FogConfigPreset("Default", 250f, 0.441f, 0.459f, 0.500f, false),
-                new FogConfigPreset("Heavy Fog", 50f, 0f, 0f, 0f, false),
-                new FogConfigPreset("Light Fog", 9850f, 5f, 5f, 5f, false),
-                new FogConfigPreset("Red Fog", 500f, 20f, 0f, 0f, false),
-                new FogConfigPreset("Orange Fog", 500f, 20f, 9.33f, 4.5f, false),
-                new FogConfigPreset("Yellow Fog", 1300f, 20f, 20f, 0f, false),
-                new FogConfigPreset("Green Fog", 1300f, 0f, 20f, 0f, false),
-                new FogConfigPreset("Blue Fog", 1300f, 37f, 155f, 218f, false),
-                new FogConfigPreset("Purple Fog", 500f, 11.5f, 7.2f, 20f, false),
-                new FogConfigPreset("Pink Fog", 500f, 20f, 4.75f, 20f, false),
-                new FogConfigPreset("No Fog", 10000000f, 1f, 1f, 1f, true)
+                new FogConfigPreset("Default", 250f, 0.441f, 0.459f, 0.500f),
+                new FogConfigPreset("Heavy Fog", 50f, 0f, 0f, 0f),
+                new FogConfigPreset("Light Fog", 9850f, 5f, 5f, 5f),
+                new FogConfigPreset("Mist", 10000000f, 1f, 1f, 1f),
+                new FogConfigPreset("Red Fog", 500f, 20f, 0f, 0f),
+                new FogConfigPreset("Orange Fog", 500f, 20f, 9.33f, 4.5f),
+                new FogConfigPreset("Yellow Fog", 1300f, 20f, 20f, 0f),
+                new FogConfigPreset("Green Fog", 1300f, 0f, 20f, 0f),
+                new FogConfigPreset("Blue Fog", 1300f, 37f, 155f, 218f),
+                new FogConfigPreset("Purple Fog", 500f, 11.5f, 7.2f, 20f),
+                new FogConfigPreset("Pink Fog", 500f, 20f, 4.75f, 20f),
             };
             mls.LogInfo("FogConfigPresets initialized.");
 
+            FogModes = new List<BetterFogMode>
+            {
+                new BetterFogMode("Default"),
+                new BetterFogMode("No Fog")
+            };
+            mls.LogInfo("FogModes initialized");
+
             // Config bindings below
             // Bind each preset to the config
-            string section1 = "Default Fog Preset";
+            string section1 = "Default Fog Settings";
             defaultPresetName =
                 Config.Bind(section1, "Default Preset Name", "Default", "Name of the default fog preset (No value sets default to first in list).\n" +
                 "Order of settings: Preset Name, Mean Free Path, Albedo Red, Albedo Green, Albedo Blue, NoFog\n" +
                 "Mean Free Path - Density of fog. The greater the number, the less dense. 50000 is max (less fog) and 0 is min (more fog).\n" +
                 "Albedo Color - Color of fog. 255 is max and 0 is min.\n" +
                 "No Fog - Density is negligible, so no fog appears when set to true.\n");
+            defaultMode = Config.Bind(section1, "Default Fog Mode", "Default", "Name of the default fog mode.");
 
             string section2 = "Key Bindings";
             nextPresetHotkeyConfig = Config.Bind(section2, "Next Preset Hotkey", "n", "Hotkey to switch to the next fog preset.");
@@ -128,7 +142,7 @@ namespace BetterFog
 
             string section3 = "Fog Settings";
             applyToFogExclusionZone = Config.Bind(section3, "Apply to Fog Exclusion Zone", false, "Apply fog settings to the Fog Exclusion Zone (eg. inside of ship).");
-            noFogEnabled = Config.Bind(section3, "No Fog Enabled Default", false, "Set value to true to enable No Fog by default.");
+            //noFogEnabled = Config.Bind(section3, "No Fog Enabled Default", false, "Set value to true to enable No Fog by default.");
             weatherScaleEnabled = Config.Bind(section3, "Weather Scale Enabled Default", true, "Enable weather scaling for fog presets.");
             guiEnabled = Config.Bind(section3, "GUI Enabled", true, "Enable or disable the GUI for the mod.");
 
@@ -180,13 +194,37 @@ namespace BetterFog
                     currentPresetIndex = 0;
                 }
             }
-            currentPreset.NoFog = noFogEnabled.Value;
+
+            // Do the same for default mode initialization
+            if (defaultMode == null) // If no default preset is set, use the first preset in the list
+            {
+                currentMode = FogModes[0];
+                currentModeIndex = 0;
+                //mls.LogInfo($"Default preset not found. Using the first preset in the list: {currentPreset.PresetName}");
+            }
+            else // Otherwise, find the preset with the default name
+            {
+                try
+                {
+                    // Attempt to find the preset with the default name
+                    currentMode = FogModes.Find(mode => mode.Name == defaultMode.Value);
+                    currentPresetIndex = FogModes.IndexOf(currentMode);
+                    mls.LogInfo($"Default preset found: {currentMode.Name}");
+                }
+                catch (Exception ex)
+                { // If the preset is not found, log an error and use the first preset in the list
+                    mls.LogError($"Failed to find the default mode: {ex}");
+                    currentMode = FogModes[0];
+                    currentModeIndex = 0;
+                }
+            }
+            //currentPreset.NoFog = noFogEnabled.Value;
             isDensityScaleEnabled = weatherScaleEnabled.Value;
 
             // Apply the Harmony patches
             try
             {
-                harmony.PatchAll(typeof(StartOfRoundPatch).Assembly);
+                /*harmony.PatchAll(typeof(StartOfRoundPatch).Assembly);
                 mls.LogInfo("StartOfRound patches applied successfully.");
 
                 harmony.PatchAll(typeof(QuickMenuManagerPatch).Assembly);
@@ -202,7 +240,70 @@ namespace BetterFog
                 mls.LogInfo("Terminal patches applied successfully.");
 
                 harmony.PatchAll(typeof(AudioReverbTriggerPatch).Assembly);
+                mls.LogInfo("AudioReverb patches applied successfully.");*/
+
+                harmony.Patch(
+                original: AccessTools.Method(typeof(StartOfRound), "StartGame"),
+                postfix: new HarmonyMethod(typeof(StartOfRoundPatch), "StartGamePatch")
+                );
+
+                harmony.Patch(
+                original: AccessTools.Method(typeof(StartOfRound), "ChangeLevel"),
+                postfix: new HarmonyMethod(typeof(StartOfRoundPatch), "ChangeLevelPatch")
+                );
+
+                mls.LogInfo("StartOfRound patches applied successfully.");
+
+                harmony.Patch(
+                original: AccessTools.Method(typeof(QuickMenuManager), "OpenQuickMenu"),
+                postfix: new HarmonyMethod(typeof(QuickMenuManagerPatch), "OpenQuickMenuPatch")
+                );
+
+                harmony.Patch(
+                original: AccessTools.Method(typeof(QuickMenuManager), "CloseQuickMenu"),
+                postfix: new HarmonyMethod(typeof(QuickMenuManagerPatch), "CloseQuickMenuPatch")
+                );
+
+                mls.LogInfo("QuickMenuManager patches applied successfully.");
+
+                harmony.Patch(
+                original: AccessTools.Method(typeof(IngamePlayerSettings), "RefreshAndDisplayCurrentMicrophone"),
+                postfix: new HarmonyMethod(typeof(IngamePlayerSettingsPatch), "RefreshAndDisplayCurrentMicrophonePatch")
+                );
+
+                harmony.Patch(
+                original: AccessTools.Method(typeof(IngamePlayerSettings), "DiscardChangedSettings"),
+                postfix: new HarmonyMethod(typeof(IngamePlayerSettingsPatch), "DiscardChangedSettingsPatch")
+                );
+
+                mls.LogInfo("IngamePlayerSettings patches applied successfully.");
+
+                harmony.Patch(
+                original: AccessTools.Method(typeof(EntranceTeleport), "TeleportPlayer"),
+                postfix: new HarmonyMethod(typeof(EntranceTeleportPatch), "TeleportPlayerPatch")
+                );
+
+                mls.LogInfo("EntranceTeleport patches applied successfully.");
+
+                harmony.Patch(
+                original: AccessTools.Method(typeof(Terminal), "BeginUsingTerminal"),
+                postfix: new HarmonyMethod(typeof(TerminalPatch), "BeginUsingTerminalPatch")
+                );
+
+                harmony.Patch(
+                original: AccessTools.Method(typeof(Terminal), "QuitTerminal"),
+                postfix: new HarmonyMethod(typeof(TerminalPatch), "QuitTerminalPatch")
+                );
+
+                mls.LogInfo("Terminal patches applied successfully.");
+
+                harmony.Patch(
+                original: AccessTools.Method(typeof(AudioReverbTrigger), "changeVolume"),
+                prefix: new HarmonyMethod(typeof(AudioReverbTriggerPatch), "changeVolumePrefix")
+                );
+
                 mls.LogInfo("AudioReverb patches applied successfully.");
+
 
                 //harmony.PatchAll(typeof(FogPatch).Assembly);
                 //mls.LogInfo("Fog patches applied successfully.");
@@ -249,10 +350,11 @@ namespace BetterFog
                     var parameters = fogObject.parameters;
 
                     // Example modifications (ensure these properties exist and are accessible)
-                    if (currentPreset.NoFog)
+                    if (currentMode.Name == "No Fog")
                     {
-                        parameters.meanFreePath = 10000000f;
-                        parameters.albedo = new Color(1f, 1f, 1f, 0f);
+                        //parameters.meanFreePath = 10000000f;
+                        //parameters.albedo = new Color(1f, 1f, 1f, 0f);
+                        // Do nothing if No Fog mode is enabled
                     }
                     else
                     {
@@ -365,7 +467,7 @@ namespace BetterFog
             ApplyFogSettings();
 
             // Notify FogSettingsManager to update dropdown
-            FogSettingsManager.Instance.UpdateSettingsWithCurrentPreset();
+            FogSettingsManager.Instance.UpdateSettings();
         }
 
         // Function to parse the weather scales
@@ -400,6 +502,27 @@ namespace BetterFog
             }
             return moonScales;
         }
+
+        //--------------------------------- Start No Fog Management ---------------------------------
+
+        public void EnableFogPatch()
+        {
+            harmony.Patch(
+            original: AccessTools.Method(typeof(Fog), "UpdateShaderVariablesGlobalCBFogParameters"),
+            prefix: new HarmonyMethod(typeof(FogPatch), "Prefix")
+        );
+            mls.LogInfo("Fog patches enabled successfully.");
+        }
+
+        public void DisableFogPatch()
+        {
+            var method = AccessTools.Method(typeof(Fog), "UpdateShaderVariablesGlobalCBFogParameters");
+            harmony.Unpatch(method, HarmonyPatchType.All, modGUID);
+            mls.LogInfo("Fog patches disabled successfully.");
+        }
+
+        //--------------------------------- End No Fog Management ---------------------------------
+        //--------------------------------- Start Test Code ---------------------------------
 
         /*
         public static bool loggingCoroutineRunning = false;
@@ -438,8 +561,9 @@ namespace BetterFog
                 mls.LogInfo("Waiting for game to start...");
             }
         }*/
+
+        //--------------------------------- End Test Code ---------------------------------
     }
-
-
+    //--------------------------------- End Class ---------------------------------
 }
-
+//--------------------------------- End File ---------------------------------

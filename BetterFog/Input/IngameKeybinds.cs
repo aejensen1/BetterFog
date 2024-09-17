@@ -66,7 +66,7 @@ namespace BetterFog.Input
                     BetterFog.ApplyFogSettings();
                     if (FogSettingsManager.Instance.IsSettingsEnabled())
                     {
-                        FogSettingsManager.Instance.UpdateSettingsWithCurrentPreset();
+                        FogSettingsManager.Instance.UpdateSettings();
                     }
                 };
             }

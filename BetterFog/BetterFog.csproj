@@ -98,6 +98,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\FogConfigPreset.cs" />
+    <Compile Include="Assets\BetterFogMode.cs" />
     <Compile Include="Assets\FogSettingsManager.cs" />
     <Compile Include="Assets\MoonScale.cs" />
     <Compile Include="Assets\WeatherScale.cs" />

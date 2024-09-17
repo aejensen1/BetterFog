@@ -1,11 +1,11 @@
-﻿/*using System.Reflection;
+﻿using System.Reflection;
 using UnityEngine;
 using UnityEngine.Rendering.HighDefinition;
 using HarmonyLib;
 using System;
 using UnityEngine.Rendering;
 
-[HarmonyPatch(typeof(Fog))]
+/*[HarmonyPatch(typeof(Fog))]
 public class FogPatch
 {
     [HarmonyPrefix]
@@ -69,7 +69,7 @@ public class FogPatch
 
         return false;
     }
-}
+}*/
 
 
 [HarmonyPatch(typeof(Fog))]
@@ -79,34 +79,34 @@ public class FogPatch
     static bool Prefix(HDCamera hdCamera, Fog __instance)
     {
         // Reflectively access the ShaderVariablesGlobal
-        MethodInfo getShaderVariablesGlobalMethod = typeof(Fog).GetMethod("GetShaderVariablesGlobal", BindingFlags.NonPublic | BindingFlags.Instance);
-        if (getShaderVariablesGlobalMethod == null)
-        {
-            Debug.LogError("GetShaderVariablesGlobal method not found");
-            return true; // Let the original method run if we fail
-        }
+        //MethodInfo getShaderVariablesGlobalMethod = typeof(Fog).GetMethod("GetShaderVariablesGlobal", BindingFlags.NonPublic | BindingFlags.Instance);
+        //if (getShaderVariablesGlobalMethod == null)
+        //{
+        //    Debug.LogError("GetShaderVariablesGlobal method not found");
+        //    return fa; // Let the original method run if we fail
+        //}
 
-        ShaderVariablesGlobal cb = (ShaderVariablesGlobal)getShaderVariablesGlobalMethod.Invoke(__instance, null);
+        //ShaderVariablesGlobal cb = (ShaderVariablesGlobal)getShaderVariablesGlobalMethod.Invoke(__instance, null);
 
         // Modify ShaderVariablesGlobal fields using reflection
-        var fogEnabledField = typeof(ShaderVariablesGlobal).GetField("_FogEnabled", BindingFlags.NonPublic | BindingFlags.Instance);
-        if (fogEnabledField != null)
-        {
-            fogEnabledField.SetValue(cb, 1);
-        }
+        //var fogEnabledField = typeof(ShaderVariablesGlobal).GetField("_FogEnabled", BindingFlags.NonPublic | BindingFlags.Instance);
+        //if (fogEnabledField != null)
+        //{
+        //    fogEnabledField.SetValue(cb, 1);
+        //}
 
         // Continue modifying other fields similarly...
 
         // Optionally, you might need to reflectively call a method to apply the modified ShaderVariablesGlobal back
-        MethodInfo applyShaderVariablesGlobalMethod = typeof(Fog).GetMethod("ApplyShaderVariablesGlobal", BindingFlags.NonPublic | BindingFlags.Instance);
+        /*MethodInfo applyShaderVariablesGlobalMethod = typeof(Fog).GetMethod("ApplyShaderVariablesGlobal", BindingFlags.NonPublic | BindingFlags.Instance);
         if (applyShaderVariablesGlobalMethod != null)
         {
-            applyShaderVariablesGlobalMethod.Invoke(__instance, new object[] { cb });
-        }
+            //applyShaderVariablesGlobalMethod.Invoke(__instance, new object[] { cb });
+        }*/
 
         return false; // Skip the original method
     }
 }
-*/
+
 
 
