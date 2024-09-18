@@ -11,6 +11,7 @@ using BetterFog.Input;
 using UnityEngine.Rendering.HighDefinition;
 using System.Linq;
 using System.Collections;
+using GameNetcodeStuff;
 
 namespace BetterFog
 {
@@ -108,7 +109,7 @@ namespace BetterFog
                 new FogConfigPreset("Orange Fog", 500f, 20f, 9.33f, 4.5f),
                 new FogConfigPreset("Yellow Fog", 1300f, 20f, 20f, 0f),
                 new FogConfigPreset("Green Fog", 1300f, 0f, 20f, 0f),
-                new FogConfigPreset("Blue Fog", 1300f, 37f, 155f, 218f),
+                new FogConfigPreset("Blue Fog", 1300f, 0f, 0f, 20f),
                 new FogConfigPreset("Purple Fog", 500f, 11.5f, 7.2f, 20f),
                 new FogConfigPreset("Pink Fog", 500f, 20f, 4.75f, 20f),
             };
@@ -158,7 +159,7 @@ namespace BetterFog
                 presetEntries[i] = Config.Bind("Fog Presets", "Preset " + i, preset.ToString(), $"Preset {preset.PresetName}");
             }
 
-            string section4 = "Weather Scales";
+            string section4 = "Weather and Moon Density Scales";
             moonScalesConfig = Config.Bind(section4, "MoonScales", "71 Gordion=1,41 Experimentation=0.95,220 Assurance=0.9,56 Vow=0.8,21 Offense=0.9," +
                 "61 March=0.75,20 Adamance=0.75,85 Rend=0.285,7 Dine=0.325,8 Titan=0.285,68 Artifice=0.9,5 Embrion=0.85,44 Liquidation=0.85",
                 "Moon scales in the format {Gordion=1,41 Experimentation=0.95,220 Assurance=0.9,...} Moon Scales are applied before weather fog density scales.");
@@ -304,6 +305,18 @@ namespace BetterFog
 
                 mls.LogInfo("AudioReverb patches applied successfully.");
 
+                harmony.Patch(
+                original: AccessTools.Method(typeof(PlayerControllerB), "TeleportPlayer"),
+                postfix: new HarmonyMethod(typeof(PlayerControllerBPatch), "TeleportPlayerPatch")
+                );
+
+                harmony.Patch(
+                original: AccessTools.Method(typeof(PlayerControllerB), "SpectateNextPlayer"),
+                postfix: new HarmonyMethod(typeof(PlayerControllerBPatch), "SpectateNextPlayerPatch")
+                );
+
+                mls.LogInfo("PlayerControllerB patches applied successfully.");
+
 
                 //harmony.PatchAll(typeof(FogPatch).Assembly);
                 //mls.LogInfo("Fog patches applied successfully.");
@@ -350,69 +363,59 @@ namespace BetterFog
                     var parameters = fogObject.parameters;
 
                     // Example modifications (ensure these properties exist and are accessible)
-                    if (currentMode.Name == "No Fog")
+                    if (isDensityScaleEnabled)
                     {
-                        //parameters.meanFreePath = 10000000f;
-                        //parameters.albedo = new Color(1f, 1f, 1f, 0f);
-                        // Do nothing if No Fog mode is enabled
+                        // Handle Moon Scaling
+                        currentDensityScale = 1;
+                        foreach (MoonScale moonScale in MoonScales)
+                        {
+                            //mls.LogInfo(weatherScale.WeatherName);
+                            if (currentLevel == moonScale.MoonName)
+                            {
+                                currentDensityScale = moonScale.Scale;
+                                mls.LogInfo($"{currentLevel} moon detected. Set density scale to " + currentDensityScale);
+                                break;
+                            }
+                            if (moonScale.MoonName == MoonScales[MoonScales.Count - 1].MoonName)
+                            {
+                                mls.LogWarning($"{currentLevel} moon not found in records. Using scale of {currentDensityScale}.");
+                            }
+                        }
+
+                        // Handle Weather Scaling
+                        foreach (WeatherScale weatherScale in WeatherScales)
+                        {
+                            //mls.LogInfo(weatherScale.WeatherName);
+                            if (currentWeatherType == weatherScale.WeatherName)
+                            {
+                                currentDensityScale = currentDensityScale * weatherScale.Scale;
+                                mls.LogInfo($"{currentWeatherType} weather type detected. Set density scale to " + currentDensityScale);
+                                break;
+                            }
+                            if (weatherScale.WeatherName == WeatherScales[WeatherScales.Count - 1].WeatherName)
+                            {
+                                mls.LogWarning($"{currentWeatherType} weather type not found in records. Using scale of {currentDensityScale}.");
+                            }
+                        }
+
+                        // Set new density with scaling applied
+                        parameters.meanFreePath = currentPreset.MeanFreePath * currentDensityScale;
                     }
                     else
                     {
-                        if (isDensityScaleEnabled)
-                        {
-                            // Handle Moon Scaling
-                            currentDensityScale = 1;
-                            foreach (MoonScale moonScale in MoonScales)
-                            {
-                                //mls.LogInfo(weatherScale.WeatherName);
-                                if (currentLevel == moonScale.MoonName)
-                                {
-                                    currentDensityScale = moonScale.Scale;
-                                    mls.LogInfo($"{currentLevel} moon detected. Set density scale to " + currentDensityScale);
-                                    break;
-                                }
-                                if (moonScale.MoonName == MoonScales[MoonScales.Count - 1].MoonName)
-                                {
-                                    mls.LogWarning($"{currentLevel} moon not found in records. Using scale of {currentDensityScale}.");
-                                }
-                            }
-
-                            // Handle Weather Scaling
-                            foreach (WeatherScale weatherScale in WeatherScales)
-                            {
-                                //mls.LogInfo(weatherScale.WeatherName);
-                                if (currentWeatherType == weatherScale.WeatherName)
-                                {
-                                    currentDensityScale = currentDensityScale * weatherScale.Scale;
-                                    mls.LogInfo($"{currentWeatherType} weather type detected. Set density scale to " + currentDensityScale);
-                                    break;
-                                }
-                                if (weatherScale.WeatherName == WeatherScales[WeatherScales.Count - 1].WeatherName)
-                                {
-                                    mls.LogWarning($"{currentWeatherType} weather type not found in records. Using scale of {currentDensityScale}.");
-                                }
-                            }
-
-                            // Set new density with scaling applied
-                            parameters.meanFreePath = currentPreset.MeanFreePath * currentDensityScale;
-                        }
-                        else
-                        {
-                            mls.LogInfo("Weather scaling is disabled. Using a scale of 1.");
-                            parameters.meanFreePath = currentPreset.MeanFreePath;
-                        }
-                        parameters.albedo = new Color(
-                            currentPreset.AlbedoR,
-                            currentPreset.AlbedoG,
-                            currentPreset.AlbedoB,
-                            1f
-                        );
+                        mls.LogInfo("Weather scaling is disabled. Using a scale of 1.");
+                        parameters.meanFreePath = currentPreset.MeanFreePath;
                     }
-                    //parameters.anisotropy = currentPreset.NoFog;
+                    parameters.albedo = new Color(
+                        currentPreset.AlbedoR,
+                        currentPreset.AlbedoG,
+                        currentPreset.AlbedoB,
+                        1f
+                    );
 
                     // Optionally, apply changes if the parameters object needs to be reassigned
                     fogObject.parameters = parameters;
-                }
+                }             
                 else
                 {
                     //mls.LogError("Found a null LocalVolumetricFog object.");

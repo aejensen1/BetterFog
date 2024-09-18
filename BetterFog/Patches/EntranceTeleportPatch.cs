@@ -12,7 +12,6 @@ namespace BetterFog.Patches
             if (GameNetworkManager.Instance.gameHasStarted)
             {
                 BetterFog.mls.LogInfo("Exited dungeon. Applying fog settings to moon.");
-                // Start applying fog settings gradually
                 BetterFog.ApplyFogSettings();
             }
         }

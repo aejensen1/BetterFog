@@ -109,6 +109,7 @@
     <Compile Include="Patches\EntranceTeleportPatch.cs" />
     <Compile Include="Patches\FogPatch.cs" />
     <Compile Include="Patches\AudioReverbPatch.cs" />
+    <Compile Include="Patches\PlayerControllerBPatch.cs" />
     <Compile Include="Patches\TerminalPatch.cs" />
     <Compile Include="Patches\StartOfRoundPatch.cs" />
     <Compile Include="BetterFog.cs" />
