@@ -163,11 +163,11 @@ namespace BetterFog.Assets
                     SetCurrentOption(presetDropdown);
 
                     modeDropdown = settingsCanvas.transform.Find("ModeDropdown").GetComponent<TMP_Dropdown>();
-                    BetterFog.mls.LogInfo(modeDropdown.ToString() + "Found");
+                    //BetterFog.mls.LogInfo(modeDropdown.ToString() + "Found");
                     PopulateDropdown(modeDropdown);
                     BetterFog.mls.LogInfo("Fog mode dropdown is now populated.");
                     SetCurrentOption(modeDropdown);
-                    BetterFog.mls.LogInfo("SetCurrentOption complete.");
+                    //BetterFog.mls.LogInfo("SetCurrentOption complete.");
 
                     // Find the slider and text components
                     fogDensitySlider = settingsCanvas.transform.Find("ThicknessSlider").GetComponent<Slider>();

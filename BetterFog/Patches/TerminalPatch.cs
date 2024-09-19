@@ -1,6 +1,5 @@
 ﻿using BetterFog.Input;
 using HarmonyLib;
-using UnityEngine;
 
 namespace BetterFog.Patches
 {

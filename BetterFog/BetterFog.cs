@@ -20,7 +20,7 @@ namespace BetterFog
     {
         public const string modGUID = "ironthumb.BetterFog";
         public const string modName = "BetterFog";
-        public const string modVersion = "3.2.4";
+        public const string modVersion = "3.2.5";
 
         private readonly Harmony harmony = new Harmony(modGUID);
         public static ManualLogSource mls;
@@ -225,101 +225,31 @@ namespace BetterFog
             // Apply the Harmony patches
             try
             {
-                /*harmony.PatchAll(typeof(StartOfRoundPatch).Assembly);
+                harmony.Patch(original: AccessTools.Method(typeof(StartOfRound), "StartGame"), postfix: new HarmonyMethod(typeof(StartOfRoundPatch), "StartGamePatch"));
+                harmony.Patch(original: AccessTools.Method(typeof(StartOfRound), "ChangeLevel"), postfix: new HarmonyMethod(typeof(StartOfRoundPatch), "ChangeLevelPatch"));
                 mls.LogInfo("StartOfRound patches applied successfully.");
 
-                harmony.PatchAll(typeof(QuickMenuManagerPatch).Assembly);
+                harmony.Patch(original: AccessTools.Method(typeof(QuickMenuManager), "OpenQuickMenu"), postfix: new HarmonyMethod(typeof(QuickMenuManagerPatch), "OpenQuickMenuPatch"));
+                harmony.Patch(original: AccessTools.Method(typeof(QuickMenuManager), "CloseQuickMenu"), postfix: new HarmonyMethod(typeof(QuickMenuManagerPatch), "CloseQuickMenuPatch"));
                 mls.LogInfo("QuickMenuManager patches applied successfully.");
 
-                harmony.PatchAll(typeof(IngamePlayerSettingsPatch).Assembly);
+                harmony.Patch(original: AccessTools.Method(typeof(IngamePlayerSettings), "RefreshAndDisplayCurrentMicrophone"), postfix: new HarmonyMethod(typeof(IngamePlayerSettingsPatch), "RefreshAndDisplayCurrentMicrophonePatch"));
+                harmony.Patch(original: AccessTools.Method(typeof(IngamePlayerSettings), "DiscardChangedSettings"), postfix: new HarmonyMethod(typeof(IngamePlayerSettingsPatch), "DiscardChangedSettingsPatch"));
                 mls.LogInfo("IngamePlayerSettings patches applied successfully.");
 
-                harmony.PatchAll(typeof(EntranceTeleportPatch).Assembly);
+                harmony.Patch(original: AccessTools.Method(typeof(EntranceTeleport), "TeleportPlayer"), postfix: new HarmonyMethod(typeof(EntranceTeleportPatch), "TeleportPlayerPatch"));
                 mls.LogInfo("EntranceTeleport patches applied successfully.");
 
-                harmony.PatchAll(typeof(TerminalPatch).Assembly);
+                harmony.Patch(original: AccessTools.Method(typeof(Terminal), "BeginUsingTerminal"), postfix: new HarmonyMethod(typeof(TerminalPatch), "BeginUsingTerminalPatch"));
+                harmony.Patch(original: AccessTools.Method(typeof(Terminal), "QuitTerminal"), postfix: new HarmonyMethod(typeof(TerminalPatch), "QuitTerminalPatch"));
                 mls.LogInfo("Terminal patches applied successfully.");
 
-                harmony.PatchAll(typeof(AudioReverbTriggerPatch).Assembly);
-                mls.LogInfo("AudioReverb patches applied successfully.");*/
-
-                harmony.Patch(
-                original: AccessTools.Method(typeof(StartOfRound), "StartGame"),
-                postfix: new HarmonyMethod(typeof(StartOfRoundPatch), "StartGamePatch")
-                );
-
-                harmony.Patch(
-                original: AccessTools.Method(typeof(StartOfRound), "ChangeLevel"),
-                postfix: new HarmonyMethod(typeof(StartOfRoundPatch), "ChangeLevelPatch")
-                );
-
-                mls.LogInfo("StartOfRound patches applied successfully.");
-
-                harmony.Patch(
-                original: AccessTools.Method(typeof(QuickMenuManager), "OpenQuickMenu"),
-                postfix: new HarmonyMethod(typeof(QuickMenuManagerPatch), "OpenQuickMenuPatch")
-                );
-
-                harmony.Patch(
-                original: AccessTools.Method(typeof(QuickMenuManager), "CloseQuickMenu"),
-                postfix: new HarmonyMethod(typeof(QuickMenuManagerPatch), "CloseQuickMenuPatch")
-                );
-
-                mls.LogInfo("QuickMenuManager patches applied successfully.");
-
-                harmony.Patch(
-                original: AccessTools.Method(typeof(IngamePlayerSettings), "RefreshAndDisplayCurrentMicrophone"),
-                postfix: new HarmonyMethod(typeof(IngamePlayerSettingsPatch), "RefreshAndDisplayCurrentMicrophonePatch")
-                );
-
-                harmony.Patch(
-                original: AccessTools.Method(typeof(IngamePlayerSettings), "DiscardChangedSettings"),
-                postfix: new HarmonyMethod(typeof(IngamePlayerSettingsPatch), "DiscardChangedSettingsPatch")
-                );
-
-                mls.LogInfo("IngamePlayerSettings patches applied successfully.");
-
-                harmony.Patch(
-                original: AccessTools.Method(typeof(EntranceTeleport), "TeleportPlayer"),
-                postfix: new HarmonyMethod(typeof(EntranceTeleportPatch), "TeleportPlayerPatch")
-                );
-
-                mls.LogInfo("EntranceTeleport patches applied successfully.");
-
-                harmony.Patch(
-                original: AccessTools.Method(typeof(Terminal), "BeginUsingTerminal"),
-                postfix: new HarmonyMethod(typeof(TerminalPatch), "BeginUsingTerminalPatch")
-                );
-
-                harmony.Patch(
-                original: AccessTools.Method(typeof(Terminal), "QuitTerminal"),
-                postfix: new HarmonyMethod(typeof(TerminalPatch), "QuitTerminalPatch")
-                );
-
-                mls.LogInfo("Terminal patches applied successfully.");
-
-                harmony.Patch(
-                original: AccessTools.Method(typeof(AudioReverbTrigger), "changeVolume"),
-                prefix: new HarmonyMethod(typeof(AudioReverbTriggerPatch), "changeVolumePrefix")
-                );
-
+                harmony.Patch(original: AccessTools.Method(typeof(AudioReverbTrigger), "changeVolume"), prefix: new HarmonyMethod(typeof(AudioReverbTriggerPatch), "changeVolumePrefix"));
                 mls.LogInfo("AudioReverb patches applied successfully.");
 
-                harmony.Patch(
-                original: AccessTools.Method(typeof(PlayerControllerB), "TeleportPlayer"),
-                postfix: new HarmonyMethod(typeof(PlayerControllerBPatch), "TeleportPlayerPatch")
-                );
-
-                harmony.Patch(
-                original: AccessTools.Method(typeof(PlayerControllerB), "SpectateNextPlayer"),
-                postfix: new HarmonyMethod(typeof(PlayerControllerBPatch), "SpectateNextPlayerPatch")
-                );
-
+                harmony.Patch(original: AccessTools.Method(typeof(PlayerControllerB), "TeleportPlayer"), postfix: new HarmonyMethod(typeof(PlayerControllerBPatch), "TeleportPlayerPatch"));
+                harmony.Patch(original: AccessTools.Method(typeof(PlayerControllerB), "SpectateNextPlayer"), postfix: new HarmonyMethod(typeof(PlayerControllerBPatch), "SpectateNextPlayerPatch"));
                 mls.LogInfo("PlayerControllerB patches applied successfully.");
-
-
-                //harmony.PatchAll(typeof(FogPatch).Assembly);
-                //mls.LogInfo("Fog patches applied successfully.");
             }
             catch (Exception ex)
             {
@@ -523,49 +453,7 @@ namespace BetterFog
             harmony.Unpatch(method, HarmonyPatchType.All, modGUID);
             mls.LogInfo("Fog patches disabled successfully.");
         }
-
         //--------------------------------- End No Fog Management ---------------------------------
-        //--------------------------------- Start Test Code ---------------------------------
-
-        /*
-        public static bool loggingCoroutineRunning = false;
-        public static void LogMeanFreePath()
-        {
-            loggingCoroutineRunning = true;
-            mls.LogInfo("Starting MeanFreePath logging coroutine.");
-            Instance.StartCoroutine(LogMeanFreePathCoroutine());
-        }
-
-        //For logging the MeanFreePath value every second
-        private static IEnumerator LogMeanFreePathCoroutine()
-        {
-            mls.LogInfo("MeanFreePath logging coroutine started.");
-            while (true)
-            {
-                var fogObjects = Resources
-                .FindObjectsOfTypeAll<LocalVolumetricFog>()
-                .ToList();
-
-                // Iterate through each fog object
-                foreach (var fogObject in fogObjects)
-                {
-                    if (fogObject != null && !(fogObject.name == "FogExclusionZone" && applyToFogExclusionZone.Value == false))
-                    {
-                        var parameters = fogObject.parameters;
-                        // Log the current MeanFreePath value
-                        mls.LogInfo($"{fogObject.name} MeanFreePath: {parameters.meanFreePath}");
-
-                        // Wait for 1 second before the next log
-
-                    }
-                }
-
-                yield return new WaitForSeconds(2f);
-                mls.LogInfo("Waiting for game to start...");
-            }
-        }*/
-
-        //--------------------------------- End Test Code ---------------------------------
     }
     //--------------------------------- End Class ---------------------------------
 }
