@@ -192,6 +192,7 @@ namespace BetterFog.Assets
 
                     //noFogCheckbox = settingsCanvas.transform.Find("NoFogToggle").GetComponent<Toggle>();
                     weatherScaleCheckbox = settingsCanvas.transform.Find("WeatherScaleToggle").GetComponent<Toggle>();
+                    weatherScaleCheckbox.isOn = BetterFog.isDensityScaleEnabled;
 
                     if (fogDensitySlider != null && densityVal != null)
                     {

@@ -144,7 +144,7 @@ namespace BetterFog
             string section3 = "Fog Settings";
             applyToFogExclusionZone = Config.Bind(section3, "Apply to Fog Exclusion Zone", false, "Apply fog settings to the Fog Exclusion Zone (eg. inside of ship).");
             //noFogEnabled = Config.Bind(section3, "No Fog Enabled Default", false, "Set value to true to enable No Fog by default.");
-            weatherScaleEnabled = Config.Bind(section3, "Weather Scale Enabled Default", true, "Enable weather scaling for fog presets.");
+            weatherScaleEnabled = Config.Bind(section3, "Weather Scale Enabled Default", true, "Enable density scaling for moons and weather by default when booting game.");
             guiEnabled = Config.Bind(section3, "GUI Enabled", true, "Enable or disable the GUI for the mod.");
 
             // Initialize the key bindings with the hotkey value
