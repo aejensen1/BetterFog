@@ -7,6 +7,13 @@ BetterFog is a Mod Plugin that can be used on the game Lethal Company. If you ha
 
 The No Fog feature truly removes all fog. Unlike most other mods, this one removes clouds and broken pipe fog too when enabled!
 
+Instructions
+==============
+- If you are manually setting up the mod, place BetterFog.dll in "Program Files (x86)/Steam/steamapps/common/Lethal Company/BepInEx/plugins/BetterFog.dll". The fogsettingsgui file should also be included under "Program Files (x86)/Steam/steamapps/common/Lethal Company/BepInEx/plugins/Assets/FogAssetBundnle/fogsettingsgui".
+- Manage presets in the config file. Any number of presets can be added, as long as there is at least one. Settings can be tweaked for fog density and color.
+- Hotkey 'n' is used to switch between presets in-game. LeftStickPress should be the button for controller, but this has not been tested yet. Keybinds are adjustable in the config file!
+- Open the pause menu to access GUI which allows for live modification of presets in lobbies. Note that these modified settings do not carry over if you restart the game; you must modify the config file presets to do this.
+
 What is "Weather Scale"?
 ==============
 
@@ -41,13 +48,6 @@ Known Bugs
 To-Dos
 ==============
 - Future modes coming once most bugs are worked out.
-
-Instructions
-==============
-- If you are manually setting up the mod, place BetterFog.dll in "Program Files (x86)/Steam/steamapps/common/Lethal Company/BepInEx/plugins/BetterFog.dll". The fogsettingsgui file should also be included under "Program Files (x86)/Steam/steamapps/common/Lethal Company/BepInEx/plugins/Assets/FogAssetBundnle/fogsettingsgui".
-- Manage presets in the config file. Any number of presets can be added, as long as there is at least one. Settings can be tweaked for fog density and color.
-- Hotkey 'n' is used to switch between presets in-game. LeftStickPress should be the button for controller, but this has not been tested yet. Keybinds are adjustable in the config file!
-- Open the pause menu to access GUI which allows for live modification of presets in lobbies. Note that these modified settings do not carry over if you restart the game; you must modify the config file presets to do this.
 
 Examples
 ==============
