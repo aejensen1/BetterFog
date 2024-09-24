@@ -12,6 +12,8 @@ using UnityEngine.Rendering.HighDefinition;
 using System.Linq;
 using System.Collections;
 using GameNetcodeStuff;
+using Unity.Netcode;
+using static IngamePlayerSettings;
 
 namespace BetterFog
 {
@@ -20,7 +22,7 @@ namespace BetterFog
     {
         public const string modGUID = "ironthumb.BetterFog";
         public const string modName = "BetterFog";
-        public const string modVersion = "3.2.5";
+        public const string modVersion = "3.2.7";
 
         private readonly Harmony harmony = new Harmony(modGUID);
         public static ManualLogSource mls;
@@ -225,7 +227,7 @@ namespace BetterFog
             // Apply the Harmony patches
             try
             {
-                harmony.Patch(original: AccessTools.Method(typeof(StartOfRound), "StartGame"), postfix: new HarmonyMethod(typeof(StartOfRoundPatch), "StartGamePatch"));
+                //harmony.Patch(original: AccessTools.Method(typeof(StartOfRound), "StartGame"), postfix: new HarmonyMethod(typeof(StartOfRoundPatch), "StartGamePatch"));
                 harmony.Patch(original: AccessTools.Method(typeof(StartOfRound), "ChangeLevel"), postfix: new HarmonyMethod(typeof(StartOfRoundPatch), "ChangeLevelPatch"));
                 mls.LogInfo("StartOfRound patches applied successfully.");
 
@@ -250,6 +252,12 @@ namespace BetterFog
                 harmony.Patch(original: AccessTools.Method(typeof(PlayerControllerB), "TeleportPlayer"), postfix: new HarmonyMethod(typeof(PlayerControllerBPatch), "TeleportPlayerPatch"));
                 harmony.Patch(original: AccessTools.Method(typeof(PlayerControllerB), "SpectateNextPlayer"), postfix: new HarmonyMethod(typeof(PlayerControllerBPatch), "SpectateNextPlayerPatch"));
                 mls.LogInfo("PlayerControllerB patches applied successfully.");
+
+                harmony.Patch(original: AccessTools.Method(typeof(NetworkSceneManager), "OnSceneLoaded"), postfix: new HarmonyMethod(typeof(NetworkSceneManagerPatch), "OnSceneLoadedPatch"));
+                mls.LogInfo("NetworkSceneManager patches applied successfully.");
+
+                harmony.Patch(original: AccessTools.Method(typeof(MenuManager), "PlayCancelSFX"), postfix: new HarmonyMethod(typeof(MenuManagerPatch), "PlayCancelSFXPatch"));
+                mls.LogInfo("MenuManager patches applied successfully.");
             }
             catch (Exception ex)
             {
@@ -358,31 +366,65 @@ namespace BetterFog
             //    $"Anisotropy: {currentPreset.Anisotropy}\n");
         }
 
-        public static void ApplyFogSettingsGradually(float duration, float interval) // Duration in seconds, interval in seconds
+        public static void ApplyFogSettingsOnGameStart() // Duration in seconds, interval in seconds
         {
             applyingFogSettings = true;
-            // Start the coroutine to apply fog settings gradually
-            Instance.StartCoroutine(ApplyFogSettingsCoroutine(duration, interval));
-        }
 
-        private static IEnumerator ApplyFogSettingsCoroutine(float duration, float interval)
-        {
-            float elapsedTime = 0f;
-
-            while (elapsedTime < duration)
+            // Check if the game has already started before starting the coroutine
+            if (GameNetworkManager.Instance != null && GameNetworkManager.Instance.gameHasStarted)
             {
-                // Apply fog settings at this step
-                ApplyFogSettings();
-
-                // Wait for the next interval
-                yield return new WaitForSeconds(interval);
-                elapsedTime += interval;
+                mls.LogInfo("Game has already started. Applying fog settings immediately.");
+                Instance.StartCoroutine(ApplyFogSettingsRepeated(8)); // Apply settings 8 times
+                applyingFogSettings = false;
+                return;
             }
 
-            // Final application of settings at the end of the duration
-            ApplyFogSettings();
+            // Start the coroutine to wait for game start and then apply fog settings
+            Instance.StartCoroutine(WaitForGameStartAndApplyFog());
+        }
+
+        private static IEnumerator WaitForGameStartAndApplyFog()
+        {
+            int waitTime = 0;
+
+            // Wait until the game starts or timeout after 100 seconds
+            while (GameNetworkManager.Instance != null && !GameNetworkManager.Instance.gameHasStarted && waitTime < 60)
+            {
+                mls.LogInfo($"Waiting for game to start... ({waitTime}s)");
+
+                // Wait for 1 second
+                yield return new WaitForSecondsRealtime(1);
+                waitTime++;
+            }
+
+            if (GameNetworkManager.Instance != null && GameNetworkManager.Instance.gameHasStarted)
+            {
+                mls.LogWarning("Game has started. Applying fog settings.");
+                Instance.StartCoroutine(ApplyFogSettingsRepeated(8)); // Apply settings 8 times
+            }
+            else
+            {
+                mls.LogInfo("Timeout reached, game has not started yet. Fog settings not applied.");
+            }
+
             applyingFogSettings = false;
         }
+
+        private static IEnumerator ApplyFogSettingsRepeated(int repeatCount)
+        {
+            for (int i = 0; i < repeatCount; i++)
+            {
+                mls.LogInfo($"Applying fog settings... ({i + 1}/{repeatCount})");
+
+                ApplyFogSettings(); // Apply fog settings
+
+                // Wait for 1 second between applications
+                yield return new WaitForSecondsRealtime(1);
+            }
+        }
+
+
+
 
         public static void NextPreset()
         {
@@ -454,6 +496,35 @@ namespace BetterFog
             mls.LogInfo("Fog patches disabled successfully.");
         }
         //--------------------------------- End No Fog Management ---------------------------------
+
+        public void WaitToApplySettings(float seconds)
+        {
+            StartCoroutine(DelayAndApplySettings(seconds));
+        }
+
+        IEnumerator DelayAndApplySettings(float seconds)
+        {
+            // Log that the delay has started
+            mls.LogInfo($"Waiting for {seconds} seconds...");
+
+            // Wait for the specified number of seconds
+            yield return new WaitForSeconds(seconds);
+
+            // Log after the wait is complete
+            mls.LogInfo($"Waited {seconds} seconds.");
+
+            // Check if the game has started and apply fog settings accordingly
+            if (GameNetworkManager.Instance.gameHasStarted)
+            {
+                mls.LogInfo("Game has started. Applying fog settings to moon.");
+                ApplyFogSettings();
+            }
+            else
+            {
+                mls.LogInfo("Game has not started yet. Refusing to apply fog settings.");
+            }
+        }
+
     }
     //--------------------------------- End Class ---------------------------------
 }

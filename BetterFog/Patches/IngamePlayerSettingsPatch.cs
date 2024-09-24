@@ -4,7 +4,7 @@ using HarmonyLib;
 namespace BetterFog.Patches
 {
     [HarmonyPatch(typeof(IngamePlayerSettings))]
-    public class IngamePlayerSettingsPatch
+    public class IngamePlayerSettingsPatch //For when the player opens the settings menu in th epause menu in game
     {
         [HarmonyPatch("RefreshAndDisplayCurrentMicrophone")]
         [HarmonyPostfix]

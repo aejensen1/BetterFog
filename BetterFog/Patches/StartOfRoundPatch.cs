@@ -5,7 +5,7 @@ namespace BetterFog.Patches
     [HarmonyPatch(typeof(StartOfRound))]
     public class StartOfRoundPatch
     {
-        [HarmonyPatch("StartGame")]
+        /*[HarmonyPatch("StartGame")]
         [HarmonyPostfix]
         public static void StartGamePatch()
         {
@@ -17,10 +17,10 @@ namespace BetterFog.Patches
                 // Start applying fog settings gradually
                 if (!BetterFog.applyingFogSettings)
                 {
-                    BetterFog.ApplyFogSettingsGradually(16f, 0.99f); // Add 2 seconds of fog update delay for when ship lands. May need to change if ship landing time changes.
+                    //BetterFog.ApplyFogSettingsGradually(16f, 0.99f); // Add 2 seconds of fog update delay for when ship lands. May need to change if ship landing time changes.
                 }             
             }
-        }
+        }*/
 
         [HarmonyPatch("ChangeLevel")]
         [HarmonyPostfix]

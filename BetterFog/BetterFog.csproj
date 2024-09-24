@@ -104,12 +104,14 @@
     <Compile Include="Assets\WeatherScale.cs" />
     <Compile Include="Input\IngameKeybinds.cs" />
     <Compile Include="Input\KeybindDisplayNames.cs" />
+    <Compile Include="Patches\MenuManagerPatch.cs" />
     <Compile Include="Patches\QuickMenuManagerPatch.cs" />
     <Compile Include="Patches\IngamePlayerSettingsPatch.cs" />
     <Compile Include="Patches\EntranceTeleportPatch.cs" />
     <Compile Include="Patches\FogPatch.cs" />
     <Compile Include="Patches\AudioReverbPatch.cs" />
     <Compile Include="Patches\PlayerControllerBPatch.cs" />
+    <Compile Include="Patches\NetworkSceneManagerPatch.cs" />
     <Compile Include="Patches\TerminalPatch.cs" />
     <Compile Include="Patches\StartOfRoundPatch.cs" />
     <Compile Include="BetterFog.cs" />

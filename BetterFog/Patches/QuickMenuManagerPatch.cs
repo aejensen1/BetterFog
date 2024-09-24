@@ -4,7 +4,7 @@ using BetterFog.Assets;
 namespace BetterFog.Patches
 {
     [HarmonyPatch(typeof(QuickMenuManager))]
-    public class QuickMenuManagerPatch
+    public class QuickMenuManagerPatch // For when the player opens the quick menu in game (ESC)
     {
         [HarmonyPatch("OpenQuickMenu")]
         [HarmonyPostfix]
