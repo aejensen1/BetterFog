@@ -1,7 +1,9 @@
 BetterFog
 ==============
 
-![FogIcon](https://github.com/user-attachments/assets/0cb0bf4c-0675-4d7e-92c6-fb2b5742067c)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/0cb0bf4c-0675-4d7e-92c6-fb2b5742067c" alt="FogIcon"/>
+</p>
 
 BetterFog is a Mod Plugin that can be used on the game Lethal Company. If you have played the game, you may know how foggy weather is detrimental and even downright unplayable in essentially any other moon than Experimentation and Titan. BetterFog mod solves that issue by creating a preset list of fog options that can have custom densities, colors, and lighting settings. With this, there are virtually thousands of variations of custom fog presets possible. Plus, there is a graphical user interface (GUI) available in the pause menu that allows for live modification of presets in game. Client-side.
 
@@ -49,16 +51,20 @@ To-Dos
 ==============
 - Future modes coming once most bugs are worked out.
 
-Examples
+Screenshots
 ==============
-Red Fog:
-![RedFog2](https://github.com/user-attachments/assets/f33c9469-c990-4ece-bb7e-6afec565f6f0)
+| ![SettingsGUI](https://github.com/user-attachments/assets/f9df6c2e-1194-4332-b5f6-720833e2fad6) | ![DefaultFog](https://github.com/user-attachments/assets/6ddc9d3e-c16e-4a0d-868e-4025786e49bf) | ![HeavyFog](https://github.com/user-attachments/assets/f9273464-d866-47d8-b3d2-2b1733d23994) |
+|:--:|:--:|:--:|
+| **Settings GUI** | **Default Fog** | **Heavy Fog** |
 
-Vanilla Fog:
-![VanillaFog2](https://github.com/user-attachments/assets/a0977f89-9f8e-4024-ba97-562edd65cb6f)
+| ![NoFog](https://github.com/user-attachments/assets/e400170a-85a7-4b59-8107-a056b8e70bc5) | ![RedFog](https://github.com/user-attachments/assets/e392e535-06e7-47e7-9917-b638ed620271) | ![OrangeFog](https://github.com/user-attachments/assets/7f39a444-2267-453a-957b-89817b42110a) |
+|:--:|:--:|:--:|
+| **No Fog** | **Red Fog** | **Orange Fog** |
 
-GUI:
-![GUI](https://github.com/user-attachments/assets/d301e7af-fabd-4597-b489-52b8a32c238a)
+| ![PinkFog](https://github.com/user-attachments/assets/27c0e56a-5fd6-4986-aa7d-470331aa5225) | ![BlueFog](https://github.com/user-attachments/assets/5ddfd892-753e-4cce-959d-a847dface9e6) |
+|:--:|:--:|
+| **Pink Fog** | **Blue Fog** |
+
 
 Credits
 ==============
