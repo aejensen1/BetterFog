@@ -49,7 +49,7 @@ Known Bugs
 
 To-Dos
 ==============
-- Future modes coming once most bugs are worked out.
+- Identified a bug where when leaving the cabin in Rend, the game overrides BetterFog settings and reverts to Vanilla fog. I am currently trying to determine the cause of this issue.
 
 Screenshots
 ==============
