@@ -33,28 +33,11 @@ namespace BetterFog.Patches
         // Custom coroutine to replace the original changeVolume
         private static IEnumerator CustomChangeVolumeCoroutine(AudioSource aud, float changeVolumeTo, LocalVolumetricFog localFog, float fogEnabledAmount, bool toggleLocalFog, PlayerControllerB playerScript)
         {
-            if (localFog != null)
+            //BetterFog.mls.LogInfo("Skipping fog density changes for audio reverb");
+            for (int j = 0; j < 40; j++)
             {
-                float fogTarget = fogEnabledAmount;
-                if (!toggleLocalFog)
-                {
-                    //fogTarget = 200f; // Custom fog target... COMMENTED OUT ON PURPOSE TO REMOVE FOG DENSITY CHANGES
-                }
-
-                for (int j = 0; j < 40; j++)
-                {
-                    aud.volume = Mathf.Lerp(aud.volume, changeVolumeTo, (float)j / 40f);
-                    //localFog.parameters.meanFreePath = Mathf.Lerp(localFog.parameters.meanFreePath, fogTarget, (float)j / 40f);... COMMENTED OUT ON PURPOSE TO REMOVE FOG DENSITY CHANGES
-                    yield return new WaitForSeconds(0.004f);
-                }
-            }
-            else
-            {
-                for (int j = 0; j < 40; j++)
-                {
-                    aud.volume = Mathf.Lerp(aud.volume, changeVolumeTo, (float)j / 40f);
-                    yield return new WaitForSeconds(0.004f);
-                }
+                aud.volume = Mathf.Lerp(aud.volume, changeVolumeTo, (float)j / 40f);
+                yield return new WaitForSeconds(0.004f);
             }
 
             // Remove the coroutine references after completion

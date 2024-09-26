@@ -14,6 +14,7 @@ using System.Collections;
 using GameNetcodeStuff;
 using Unity.Netcode;
 using static IngamePlayerSettings;
+using UnityEngine.PlayerLoop;
 
 namespace BetterFog
 {
@@ -30,7 +31,9 @@ namespace BetterFog
 
         public static bool hotkeysEnabled = true;
         private static ConfigEntry<string> nextPresetHotkeyConfig;
-        public static ConfigEntry<bool> nextHotKeyEnabled;
+        public static ConfigEntry<bool> nextPresetHotKeyEnabled;
+        private static ConfigEntry<string> nextModeHotkeyConfig;
+        public static ConfigEntry<bool> nextModeHotKeyEnabled;
         private static ConfigEntry<string> refreshPresetHotkeyConfig;
         public static ConfigEntry<bool> refreshHotKeyEnabled;
         public static ConfigEntry<string> weatherScaleHotkeyConfig;
@@ -100,7 +103,7 @@ namespace BetterFog
             mls = base.Logger;
 
             // Initialize your FogConfigPresets list
-            // Arguments: Preset Name, MeanFreePath, AlbedoR, AlbedoG, AlbedoB, AlbedoA, NoFog
+            // Arguments: Preset Name, MeanFreePath, AlbedoR, AlbedoG, AlbedoB, AlbedoA
             FogConfigPresets = new List<FogConfigPreset>
             {
                 new FogConfigPreset("Default", 250f, 0.441f, 0.459f, 0.500f),
@@ -129,19 +132,19 @@ namespace BetterFog
             string section1 = "Default Fog Settings";
             defaultPresetName =
                 Config.Bind(section1, "Default Preset Name", "Default", "Name of the default fog preset (No value sets default to first in list).\n" +
-                "Order of settings: Preset Name, Mean Free Path, Albedo Red, Albedo Green, Albedo Blue, NoFog\n" +
-                "Mean Free Path - Density of fog. The greater the number, the less dense. 50000 is max (less fog) and 0 is min (more fog).\n" +
-                "Albedo Color - Color of fog. 255 is max and 0 is min.\n" +
-                "No Fog - Density is negligible, so no fog appears when set to true.\n");
-            defaultMode = Config.Bind(section1, "Default Fog Mode", "Default", "Name of the default fog mode.");
+                "Order of settings: Preset Name, Mean Free Path, Albedo Red, Albedo Green, Albedo Blue\n" +
+                "Mean Free Path - Density of fog. The greater the number, the less dense. 0 is the minimum (opaque fog).\n");
+            defaultMode = Config.Bind(section1, "Default Fog Mode", "Default", "Name of the default fog mode. Options: Default, No Fog");
 
             string section2 = "Key Bindings";
             nextPresetHotkeyConfig = Config.Bind(section2, "Next Preset Hotkey", "n", "Hotkey to switch to the next fog preset.");
-            nextHotKeyEnabled = Config.Bind(section2, "Enable Next Hotkey", true, "Enable or disable hotkeys for switching fog presets.");
+            nextPresetHotKeyEnabled = Config.Bind(section2, "Enable Next Hotkey", true, "Enable or disable hotkeys for switching fog presets.");
+            nextModeHotkeyConfig = Config.Bind(section2, "Next Mode Hotkey", "m", "Hotkey to switch to the next fog mode.");
+            nextModeHotKeyEnabled = Config.Bind(section2, "Enable Next Mode Hotkey", false, "Enable or disable hotkey for switching fog modes.");
             refreshPresetHotkeyConfig = Config.Bind(section2, "Refresh Hotkey", "r", "Hotkey to refresh fog settings.");
             refreshHotKeyEnabled = Config.Bind(section2, "Enable Refresh Hotkey", true, "Enable or disable hotkey for refreshing fog settings.");
             weatherScaleHotkeyConfig = Config.Bind(section2, "Weather Scale Hotkey", "c", "Hotkey to toggle weather scaling.");
-            weatherScaleHotKeyEnabled = Config.Bind(section2, "Enable Weather Sale Hotkey", false, "Enable or disable hotkey for Weather Scaling toggle.");
+            weatherScaleHotKeyEnabled = Config.Bind(section2, "Enable Weather Scale Hotkey", false, "Enable or disable hotkey for Weather Scaling toggle.");
 
             string section3 = "Fog Settings";
             applyToFogExclusionZone = Config.Bind(section3, "Apply to Fog Exclusion Zone", false, "Apply fog settings to the Fog Exclusion Zone (eg. inside of ship).");
@@ -150,15 +153,50 @@ namespace BetterFog
             guiEnabled = Config.Bind(section3, "GUI Enabled", true, "Enable or disable the GUI for the mod.");
 
             // Initialize the key bindings with the hotkey value
-            IngameKeybinds.Instance.InitializeKeybindings(nextPresetHotkeyConfig.Value, refreshPresetHotkeyConfig.Value, weatherScaleHotkeyConfig.Value);
+            IngameKeybinds.Instance.InitializeKeybindings(nextPresetHotkeyConfig.Value, nextModeHotkeyConfig.Value, refreshPresetHotkeyConfig.Value, weatherScaleHotkeyConfig.Value);
 
             // Create config entries for each preset
             presetEntries = new ConfigEntry<string>[FogConfigPresets.Count];
+
             for (int i = 0; i < FogConfigPresets.Count; i++)
             {
                 var preset = FogConfigPresets[i];
-                //presetEntries[i] = Config.Bind("Fog Presets", preset.PresetName, preset.ToString(), $"Preset {preset.PresetName}");
                 presetEntries[i] = Config.Bind("Fog Presets", "Preset " + i, preset.ToString(), $"Preset {preset.PresetName}");
+
+                // Split the entry by commas to get each key-value pair
+                string[] presetData = presetEntries[i].Value.Split(',');
+
+                // Iterate through the key-value pairs and parse them
+                foreach (string data in presetData)
+                {
+                    string[] keyValue = data.Split('=');
+
+                    if (keyValue.Length != 2)
+                        continue; // Ignore invalid entries
+
+                    string key = keyValue[0].Trim();
+                    string value = keyValue[1].Trim();
+
+                    // Assign values based on the key
+                    switch (key)
+                    {
+                        case "PresetName":
+                            FogConfigPresets[i].PresetName = value;
+                            break;
+                        case "Density":
+                            FogConfigPresets[i].MeanFreePath = float.Parse(value);
+                            break;
+                        case "Red Hue":
+                            FogConfigPresets[i].AlbedoR = float.Parse(value);
+                            break;
+                        case "Green Hue":
+                            FogConfigPresets[i].AlbedoG = float.Parse(value);
+                            break;
+                        case "Blue Hue":
+                            FogConfigPresets[i].AlbedoB = float.Parse(value);
+                            break;
+                    }
+                }
             }
 
             string section4 = "Weather and Moon Density Scales";
@@ -173,22 +211,28 @@ namespace BetterFog
 
             WeatherScales = ParseWeatherScales(weatherScalesConfig.Value);
 
-            mls.LogInfo("Finished Parsing");
+            mls.LogInfo("Finished parsing config entries");
+
+            //--------------------------------- End Config Parsing ---------------------------------
 
             if (defaultPresetName == null) // If no default preset is set, use the first preset in the list
             {
                 currentPreset = FogConfigPresets[0];
                 currentPresetIndex = 0;
-                //mls.LogInfo($"Default preset not found. Using the first preset in the list: {currentPreset.PresetName}");
+                mls.LogInfo($"Default preset not found. Using the first preset in the list: {currentPreset.PresetName}");
             }
             else // Otherwise, find the preset with the default name
             {
                 try
                 {
                     // Attempt to find the preset with the default name
+                    //foreach(var preset in FogConfigPresets)
+                    //{
+                    //    mls.LogInfo(preset.ToString());
+                    //}
                     currentPreset = FogConfigPresets.Find(preset => preset.PresetName == defaultPresetName.Value);
                     currentPresetIndex = FogConfigPresets.IndexOf(currentPreset);
-                    //mls.LogInfo($"Default preset found: {currentPreset.PresetName}");
+                    mls.LogInfo($"Default preset found: {currentPreset.PresetName}");
                 }
                 catch (Exception ex)
                 { // If the preset is not found, log an error and use the first preset in the list
@@ -211,8 +255,10 @@ namespace BetterFog
                 {
                     // Attempt to find the preset with the default name
                     currentMode = FogModes.Find(mode => mode.Name == defaultMode.Value);
-                    currentPresetIndex = FogModes.IndexOf(currentMode);
-                    mls.LogInfo($"Default preset found: {currentMode.Name}");
+                    currentModeIndex = FogModes.IndexOf(currentMode);
+                    mls.LogInfo($"Default mode found: {currentMode.Name}");
+
+                    UpdateMode();
                 }
                 catch (Exception ex)
                 { // If the preset is not found, log an error and use the first preset in the list
@@ -221,7 +267,6 @@ namespace BetterFog
                     currentModeIndex = 0;
                 }
             }
-            //currentPreset.NoFog = noFogEnabled.Value;
             isDensityScaleEnabled = weatherScaleEnabled.Value;
 
             // Apply the Harmony patches
@@ -362,8 +407,7 @@ namespace BetterFog
             // Log the applied settings
             //mls.LogInfo($"New fog settings applied from preset {currentPreset.PresetName}:\n" +
             //    $"Mean Free Path: {currentPreset.MeanFreePath}\n" +
-            //    $"Albedo RGBA: ({currentPreset.AlbedoR}, {currentPreset.AlbedoG}, {currentPreset.AlbedoB}, {currentPreset.AlbedoA})\n" +
-            //    $"Anisotropy: {currentPreset.Anisotropy}\n");
+            //    $"Albedo RGBA: ({currentPreset.AlbedoR}, {currentPreset.AlbedoG}, {currentPreset.AlbedoB}, {currentPreset.AlbedoA})\n");
         }
 
         public static void ApplyFogSettingsOnGameStart() // Duration in seconds, interval in seconds
@@ -423,9 +467,6 @@ namespace BetterFog
             }
         }
 
-
-
-
         public static void NextPreset()
         {
             mls.LogInfo("Next preset hotkey pressed.");
@@ -443,6 +484,38 @@ namespace BetterFog
 
             // Notify FogSettingsManager to update dropdown
             FogSettingsManager.Instance.UpdateSettings();
+        }
+
+        public static void NextMode()
+        {
+            mls.LogInfo("Next mode hotkey pressed.");
+            currentModeIndex = FogModes.IndexOf(currentMode);
+            if (currentModeIndex == FogModes.Count - 1)
+            {
+                currentModeIndex = -1; // Reset to the first preset if the last preset is reached
+            }
+            currentModeIndex++;
+            currentMode = FogModes[currentModeIndex];
+            mls.LogInfo("Current mode index: " + currentModeIndex);
+            mls.LogInfo($"Current preset: {currentMode.Name}");
+            Instance.UpdateMode();
+
+            // Notify FogSettingsManager to update dropdown
+            FogSettingsManager.Instance.UpdateSettings();
+        }
+
+        private void UpdateMode()
+        {
+            if (currentMode.Name == "No Fog")
+            {
+                mls.LogInfo("No Fog mode selected.");
+                EnableFogPatch();
+            }
+            else
+            {
+                mls.LogInfo("Default mode selected.");
+                DisableFogPatch();
+            }
         }
 
         // Function to parse the weather scales

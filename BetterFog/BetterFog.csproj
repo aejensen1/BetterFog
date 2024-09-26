@@ -109,7 +109,7 @@
     <Compile Include="Patches\IngamePlayerSettingsPatch.cs" />
     <Compile Include="Patches\EntranceTeleportPatch.cs" />
     <Compile Include="Patches\FogPatch.cs" />
-    <Compile Include="Patches\AudioReverbPatch.cs" />
+    <Compile Include="Patches\AudioReverbTriggerPatch.cs" />
     <Compile Include="Patches\PlayerControllerBPatch.cs" />
     <Compile Include="Patches\NetworkSceneManagerPatch.cs" />
     <Compile Include="Patches\TerminalPatch.cs" />

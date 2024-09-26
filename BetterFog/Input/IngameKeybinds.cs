@@ -10,13 +10,15 @@ namespace BetterFog.Input
         internal static InputActionAsset GetAsset() => Instance.Asset;
 
         public InputAction NextPresetHotkey { get; set; }
+        public InputAction NextModeHotkey { get; set; }
         public InputAction RefreshPresetHotKey { get; set; }
         public InputAction WeatherScalePresetHotKey { get; set; }
 
-        internal void InitializeKeybindings(string nextHotkeyString, string refreshHotkeyString, string weatherScaleHotkeyString)
+        internal void InitializeKeybindings(string nextPresetHotkeyString, string nextModeHotkeyString, string refreshHotkeyString, string weatherScaleHotkeyString)
         {
             // Set the hotkey dynamically
-            NextPresetHotkey = new InputAction("Next Fog Preset", binding: $"<Keyboard>/{nextHotkeyString}");
+            NextPresetHotkey = new InputAction("Next Fog Preset", binding: $"<Keyboard>/{nextPresetHotkeyString}");
+            NextModeHotkey = new InputAction("Next Fog Preset", binding: $"<Keyboard>/{nextModeHotkeyString}");
             RefreshPresetHotKey = new InputAction("Refresh Fog Preset", binding: $"<Keyboard>/{refreshHotkeyString}");
             WeatherScalePresetHotKey = new InputAction("Weather Scale Preset", binding: $"<Keyboard>/{weatherScaleHotkeyString}");
 
@@ -24,7 +26,7 @@ namespace BetterFog.Input
             NextPresetHotkey.AddBinding("<Gamepad>/leftStickPress");
             RefreshPresetHotKey.AddBinding("<Gamepad>/rightStickPress");
 
-            if (BetterFog.nextHotKeyEnabled.Value)
+            if (BetterFog.nextPresetHotKeyEnabled.Value)
             {
                 // Enable the action
                 NextPresetHotkey.Enable();
@@ -36,6 +38,20 @@ namespace BetterFog.Input
             {
                 // Disable the action
                 NextPresetHotkey.Disable();
+            }
+
+            if (BetterFog.nextModeHotKeyEnabled.Value)
+            {
+                // Enable the action
+                NextModeHotkey.Enable();
+
+                // Subscribe to the performed event
+                NextModeHotkey.performed += ctx => BetterFog.NextMode();
+            }
+            else
+            {
+                // Disable the action
+                NextModeHotkey.Disable();
             }
 
             if (BetterFog.refreshHotKeyEnabled.Value)

@@ -190,7 +190,6 @@ namespace BetterFog.Assets
                     blueDown = settingsCanvas.transform.Find("BlueDown").GetComponent<Button>();
                     blueUp = settingsCanvas.transform.Find("BlueUp").GetComponent<Button>();
 
-                    //noFogCheckbox = settingsCanvas.transform.Find("NoFogToggle").GetComponent<Toggle>();
                     weatherScaleCheckbox = settingsCanvas.transform.Find("WeatherScaleToggle").GetComponent<Toggle>();
                     weatherScaleCheckbox.isOn = BetterFog.isDensityScaleEnabled;
 
@@ -202,9 +201,6 @@ namespace BetterFog.Assets
                         greenVal.text = fogGreenSlider.value.ToString();
                         blueVal.text = fogBlueSlider.value.ToString();
 
-                        // Initialize the checkbox based on the current Anisotropy value
-                        //noFogCheckbox.isOn = BetterFog.currentPreset.NoFog != false;
-
                         // Add a listener to update the text and apply the value when the slider changes
                         fogDensitySlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogDensitySlider, value));
                         fogRedSlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogRedSlider, value));
@@ -213,8 +209,7 @@ namespace BetterFog.Assets
 
                         InitializeButtonListeners();
 
-                        // Add a listener to update the Anisotropy value when the checkbox is toggled
-                        //noFogCheckbox.onValueChanged.AddListener(isChecked => OnNoFogCheckboxValueChanged(isChecked));
+                        // Add a listener to update the Weather Scale value when the checkbox is toggled
                         weatherScaleCheckbox.onValueChanged.AddListener(isChecked => OnDensityScaleCheckboxValueChanged(isChecked));
                     }
                 }
@@ -291,8 +286,6 @@ namespace BetterFog.Assets
                 blueVal.text = value.ToString("0.00");
                 BetterFog.currentPreset.AlbedoB = value;
             }
-            //BetterFog.currentPreset.NoFog = false;
-            //UpdateNoFogCheckbox();
             BetterFog.ApplyFogSettings();
         }
 
@@ -405,20 +398,6 @@ namespace BetterFog.Assets
         //--------------------------------- End Button Adjustment ---------------------------------
         //--------------------------------- Start Checkbox Adjustment ---------------------------------
 
-        /*private void OnNoFogCheckboxValueChanged(bool isChecked)
-        {
-            BetterFog.currentPreset.NoFog = isChecked;
-            BetterFog.ApplyFogSettings();
-        }
-
-        private void UpdateNoFogCheckbox()
-        {
-            if (noFogCheckbox != null)
-            {
-                noFogCheckbox.isOn = BetterFog.currentPreset.NoFog;
-            }
-        }*/
-
         private void OnDensityScaleCheckboxValueChanged(bool isChecked)
         {
             BetterFog.mls.LogInfo($"Density Scale Checkbox value changed: {isChecked}");
@@ -522,7 +501,6 @@ namespace BetterFog.Assets
             UpdateDropdownWithCurrentOption(presetDropdown);
             UpdateDropdownWithCurrentOption(modeDropdown);
             UpdateSlidersWithCurrentPreset();
-            //UpdateNoFogCheckbox();
             UpdateDensityScaleCheckbox();
         }
 
@@ -533,12 +511,14 @@ namespace BetterFog.Assets
                 if (dropdown == presetDropdown)
                 {
                     dropdown.value = BetterFog.currentPresetIndex;
-                    BetterFog.mls.LogInfo($"Preset dropdown updated to: {BetterFog.currentPreset.PresetName}");
+                    //BetterFog.mls.LogInfo($"Preset dropdown updated to: {BetterFog.currentPreset.PresetName}");
+                    BetterFog.mls.LogInfo($"Preset dropdown updated to: {BetterFog.FogConfigPresets[dropdown.value].PresetName}");
                 }
                 else if (dropdown == modeDropdown)
                 {
                     dropdown.value = BetterFog.currentModeIndex;
-                    BetterFog.mls.LogInfo($"Mode dropdown updated to: {BetterFog.currentMode.Name}");
+                    //BetterFog.mls.LogInfo($"Mode dropdown updated to: {BetterFog.currentMode.Name}");
+                    BetterFog.mls.LogInfo($"Mode dropdown updated to: {BetterFog.FogModes[dropdown.value].Name}");
                 }
             }
             else
@@ -553,7 +533,6 @@ namespace BetterFog.Assets
             BetterFog.currentPresetIndex = index;
             BetterFog.currentPreset = BetterFog.FogConfigPresets[index];
             UpdateSlidersWithCurrentPreset();
-            //UpdateNoFogCheckbox();
 
             // Apply the preset or perform other actions based on the selection
             ApplyPreset(BetterFog.currentPreset);

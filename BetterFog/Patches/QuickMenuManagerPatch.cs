@@ -14,6 +14,7 @@ namespace BetterFog.Patches
             if (fogSettingsManager != null && !fogSettingsManager.IsSettingsEnabled())
             {
                 fogSettingsManager.EnableSettings();
+                fogSettingsManager.UpdateSettings();
             }
             else
             {
