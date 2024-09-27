@@ -16,7 +16,7 @@ namespace BetterFog.Patches
         [HarmonyPrefix]
         public static bool changeVolumePrefix(ref IEnumerator __result, AudioSource aud, float changeVolumeTo, AudioReverbTrigger __instance)
         {
-            BetterFog.mls.LogMessage("AudioReverbTrigger changeVolume");   
+            //BetterFog.mls.LogInfo("AudioReverbTrigger changeVolume");   
             // Access fields from the AudioReverbTrigger instance
             var localFog = __instance.localFog;
             var fogEnabledAmount = __instance.fogEnabledAmount;

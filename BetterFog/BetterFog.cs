@@ -13,8 +13,6 @@ using System.Linq;
 using System.Collections;
 using GameNetcodeStuff;
 using Unity.Netcode;
-using static IngamePlayerSettings;
-using UnityEngine.PlayerLoop;
 
 namespace BetterFog
 {
@@ -303,6 +301,14 @@ namespace BetterFog
 
                 harmony.Patch(original: AccessTools.Method(typeof(MenuManager), "PlayCancelSFX"), postfix: new HarmonyMethod(typeof(MenuManagerPatch), "PlayCancelSFXPatch"));
                 mls.LogInfo("MenuManager patches applied successfully.");
+
+                harmony.Patch(original: AccessTools.Method(typeof(TimeOfDay), "SetWeatherBasedOnVariables"), prefix: new HarmonyMethod(typeof(TimeOfDayPatch), "SetWeatherBasedOnVariablesPatch"));
+                mls.LogInfo("TimeOfDay patches applied successfully.");
+
+                harmony.Patch(original: AccessTools.Method(typeof(ToggleFogTrigger), "Update"), prefix: new HarmonyMethod(typeof(ToggleFogTriggerPatch), "UpdatePatch"));
+                harmony.Patch(original: AccessTools.Method(typeof(ToggleFogTrigger), "OnTriggerEnter"), prefix: new HarmonyMethod(typeof(ToggleFogTriggerPatch), "OnTriggerEnterPatch"));
+                harmony.Patch(original: AccessTools.Method(typeof(ToggleFogTrigger), "OnTriggerExit"), prefix: new HarmonyMethod(typeof(ToggleFogTriggerPatch), "OnTriggerExitPatch"));
+                mls.LogInfo("ToggleFogUpdate patches applied successfully.");
             }
             catch (Exception ex)
             {
