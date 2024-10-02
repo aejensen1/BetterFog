@@ -7,14 +7,27 @@ BetterFog
 
 BetterFog is a Mod Plugin that can be used on the game Lethal Company. If you have played the game, you may know how foggy weather is detrimental and even downright unplayable in essentially any other moon than Experimentation and Titan. BetterFog mod solves that issue by creating a preset list of fog options that can have custom densities, colors, and lighting settings. With this, there are virtually thousands of variations of custom fog presets possible. Plus, there is a graphical user interface (GUI) available in the pause menu that allows for live modification of presets in game. Client-side.
 
-The No Fog feature truly removes all fog. Unlike most other mods, this one removes clouds and broken pipe fog too when enabled!
+Why Use This Mod?
+==============
+- Extremely feature rich configurable settings with changeable hotkeys
+- Not binary with No Fog and All Fog - You can set the density and colors to any level!
+- Thousands of potential fog presets. Set your game to fit your mood.
+- Fog density can adapt to different moons/weathers, or just specified moons/weathers by blacklisting the others.
+- Reduces eye strain. Are you in a dark room? Squinting to see through super thick fog two inches away from the screen? Darken the fog colors & decrease fog density to relieve some headache.
+- No fog not only removes ground fog but also clouds, smoke, and pipe fog (not including animations)
+- If you get tired of BetterFog settings, just switch to Vanilla mode in-game. No need to exit and disable the mod.
+- Client side - you don't need the host or anyone else to have the mode for it to work (but they should still get it ;D)
+- Works on custom moons! If it is too easy or hard to see on a custom moon, settings can be applied just as they are to vanilla moons.
+- Good for modpacks: you can lock in whatever settings you want by setting a default preset and disabling hotkeys in the config to add some style to your modpack.
 
 Instructions
 ==============
+
 - If you are manually setting up the mod, place BetterFog.dll in "Program Files (x86)/Steam/steamapps/common/Lethal Company/BepInEx/plugins/BetterFog.dll". The fogsettingsgui file should also be included under "Program Files (x86)/Steam/steamapps/common/Lethal Company/BepInEx/plugins/Assets/FogAssetBundnle/fogsettingsgui".
-- Manage presets in the config file. Any number of presets can be added, as long as there is at least one. Settings can be tweaked for fog density and color.
+- Manage presets in the config file. Settings can be tweaked for fog density and color.
 - Hotkey 'n' is used to switch between presets in-game. LeftStickPress should be the button for controller, but this has not been tested yet. Keybinds are adjustable in the config file!
 - Open the pause menu to access GUI which allows for live modification of presets in lobbies. Note that these modified settings do not carry over if you restart the game; you must modify the config file presets to do this.
+- To use density scaling for custom moons you will need to add the full name of the moon and scale to the MoonScales list. Otherwise a warning log will appear indicating that the <full name of moon> was not found in records.
 
 What is "Weather Scale"?
 ==============
@@ -26,7 +39,7 @@ What is "Weather Scale"?
 Default Values Reference
 ==============
 
-For reference here are the default values that simulate vanilla fog. You should be able to see these in the config file descriptions as well:
+For reference here are the default values that *somewhat* simulate vanilla fog. You should be able to see these in the config file descriptions as well:
 
 [Fog Presets]
 
@@ -49,7 +62,8 @@ Known Bugs
 
 To-Dos
 ==============
-- Identified a bug where when leaving the cabin in Rend, the game overrides BetterFog settings and reverts to Vanilla fog. I am currently trying to determine the cause of this issue. Current workaround is to not enter cabin or refresh fog settings when exiting.
+- New modes
+- Possibly add some text on GUI that indicates what weather scale is set at (although the logs do this already)
 
 Screenshots
 ==============

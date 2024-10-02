@@ -104,6 +104,8 @@
     <Compile Include="Assets\WeatherScale.cs" />
     <Compile Include="Input\IngameKeybinds.cs" />
     <Compile Include="Input\KeybindDisplayNames.cs" />
+    <Compile Include="Patches\LocalVolumetricFogArtistParametersPatch.cs" />
+    <Compile Include="Patches\HUDManagerPatch.cs" />
     <Compile Include="Patches\ToggleFogTriggerPatch.cs" />
     <Compile Include="Patches\TimeOfDayPatch.cs" />
     <Compile Include="Patches\MenuManagerPatch.cs" />

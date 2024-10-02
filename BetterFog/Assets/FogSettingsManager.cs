@@ -440,7 +440,7 @@ namespace BetterFog.Assets
             // Create a list of preset names
             List<string> options = new List<string>();
 
-            foreach (FogConfigPreset preset in BetterFog.FogConfigPresets)
+            foreach (FogConfigPreset preset in BetterFog.fogConfigPresets)
             {
                 options.Add(preset.PresetName); // Assuming each preset has a 'name' property
                 //BetterFog.mls.LogInfo($"{preset.PresetName} Added to dropdown options");
@@ -454,7 +454,7 @@ namespace BetterFog.Assets
             // Create a list of preset names
             List<string> options = new List<string>();
 
-            foreach (BetterFogMode mode in BetterFog.FogModes)
+            foreach (BetterFogMode mode in BetterFog.fogModes)
             {
                 options.Add(mode.Name); // Assuming each preset has a 'name' property
                 //BetterFog.mls.LogInfo($"{mode.Name} Added to dropdown options");
@@ -512,13 +512,13 @@ namespace BetterFog.Assets
                 {
                     dropdown.value = BetterFog.currentPresetIndex;
                     //BetterFog.mls.LogInfo($"Preset dropdown updated to: {BetterFog.currentPreset.PresetName}");
-                    BetterFog.mls.LogInfo($"Preset dropdown updated to: {BetterFog.FogConfigPresets[dropdown.value].PresetName}");
+                    BetterFog.mls.LogInfo($"Preset dropdown updated to: {BetterFog.fogConfigPresets[dropdown.value].PresetName}");
                 }
                 else if (dropdown == modeDropdown)
                 {
                     dropdown.value = BetterFog.currentModeIndex;
                     //BetterFog.mls.LogInfo($"Mode dropdown updated to: {BetterFog.currentMode.Name}");
-                    BetterFog.mls.LogInfo($"Mode dropdown updated to: {BetterFog.FogModes[dropdown.value].Name}");
+                    BetterFog.mls.LogInfo($"Mode dropdown updated to: {BetterFog.fogModes[dropdown.value].Name}");
                 }
             }
             else
@@ -531,7 +531,7 @@ namespace BetterFog.Assets
         {
             // Update the currentPreset based on the selected dropdown option
             BetterFog.currentPresetIndex = index;
-            BetterFog.currentPreset = BetterFog.FogConfigPresets[index];
+            BetterFog.currentPreset = BetterFog.fogConfigPresets[index];
             UpdateSlidersWithCurrentPreset();
 
             // Apply the preset or perform other actions based on the selection
@@ -540,20 +540,10 @@ namespace BetterFog.Assets
 
         private void OnModeChanged(int currentIndex, int previousIndex)
         {
-            if (BetterFog.FogModes[previousIndex].Name == "No Fog" && BetterFog.FogModes[currentIndex].Name != "No Fog")
-            {
-                // Disable the fog patch if "No Fog" is being deselected
-                BetterFog.Instance.DisableFogPatch();
-            }
-            else if (BetterFog.FogModes[currentIndex].Name == "No Fog")
-            {
-                // Enable the fog patch if "No Fog" is being selected
-                BetterFog.Instance.EnableFogPatch();
-            }
-
             // Update the current mode in BetterFog
             BetterFog.currentModeIndex = currentIndex;
-            BetterFog.currentMode = BetterFog.FogModes[currentIndex];
+            BetterFog.currentMode = BetterFog.fogModes[currentIndex];
+            BetterFog.Instance.UpdateMode();
 
             // Apply the new fog settings
             BetterFog.ApplyFogSettings();
@@ -561,7 +551,7 @@ namespace BetterFog.Assets
 
         private void ApplyPreset(FogConfigPreset preset) //Could possibly remove?
         {
-            BetterFog.currentPresetIndex = BetterFog.FogConfigPresets.IndexOf(preset);
+            BetterFog.currentPresetIndex = BetterFog.fogConfigPresets.IndexOf(preset);
             BetterFog.currentPreset = preset;
             BetterFog.mls.LogInfo($"Applying preset: {preset.PresetName}");
             BetterFog.ApplyFogSettings();
