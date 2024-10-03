@@ -53,7 +53,8 @@ namespace BetterFog.Assets
                 if (instance == null && !isInitializing)
                 {
                     isInitializing = true;
-                    BetterFog.mls.LogInfo("Instance is null, creating new instance.");
+                    if (BetterFog.verboseLoggingEnabled.Value)
+                        BetterFog.mls.LogInfo("Instance is null, creating new instance.");
                     var gameObject = new GameObject("FogSettingsManager");
                     DontDestroyOnLoad(gameObject);
                     instance = gameObject.AddComponent<FogSettingsManager>();
@@ -70,12 +71,14 @@ namespace BetterFog.Assets
             {
                 instance = this;
                 DontDestroyOnLoad(gameObject);
-                BetterFog.mls.LogInfo("FogSettingsManager created and started.");
+                if (BetterFog.verboseLoggingEnabled.Value)
+                    BetterFog.mls.LogInfo("FogSettingsManager created and started.");
             }
             else if (instance != this)
             {
                 Destroy(gameObject);
-                BetterFog.mls.LogWarning("FogSettingsManager already exists. Duplicate destroyed.");
+                if (BetterFog.verboseLoggingEnabled.Value)
+                    BetterFog.mls.LogWarning("FogSettingsManager already exists. Duplicate destroyed.");
             }
         }
 
@@ -159,13 +162,15 @@ namespace BetterFog.Assets
                     // Find dropdowns and populate
                     presetDropdown = settingsCanvas.transform.Find("PresetDropdown").GetComponent<TMP_Dropdown>();
                     PopulateDropdown(presetDropdown);
-                    BetterFog.mls.LogInfo("Fog preset dropdown is now populated.");
+                    if (BetterFog.verboseLoggingEnabled.Value)
+                        BetterFog.mls.LogInfo("Fog preset dropdown is now populated.");
                     SetCurrentOption(presetDropdown);
 
                     modeDropdown = settingsCanvas.transform.Find("ModeDropdown").GetComponent<TMP_Dropdown>();
                     //BetterFog.mls.LogInfo(modeDropdown.ToString() + "Found");
                     PopulateDropdown(modeDropdown);
-                    BetterFog.mls.LogInfo("Fog mode dropdown is now populated.");
+                    if (BetterFog.verboseLoggingEnabled.Value)
+                        BetterFog.mls.LogInfo("Fog mode dropdown is now populated.");
                     SetCurrentOption(modeDropdown);
                     //BetterFog.mls.LogInfo("SetCurrentOption complete.");
 
@@ -265,7 +270,8 @@ namespace BetterFog.Assets
 
         private void OnSliderValueChanged(Slider slider, float value)
         {
-            BetterFog.mls.LogInfo($"Slider value changed: {slider.name} = {value}");
+            if (BetterFog.verboseLoggingEnabled.Value)
+                BetterFog.mls.LogInfo($"Slider value changed: {slider.name} = {value}");
             if (slider == fogDensitySlider && densityVal != null)
             {
                 densityVal.text = value.ToString("0");
@@ -400,7 +406,8 @@ namespace BetterFog.Assets
 
         private void OnDensityScaleCheckboxValueChanged(bool isChecked)
         {
-            BetterFog.mls.LogInfo($"Density Scale Checkbox value changed: {isChecked}");
+            if (BetterFog.verboseLoggingEnabled.Value)
+                BetterFog.mls.LogInfo($"Density Scale Checkbox value changed: {isChecked}");
             BetterFog.isDensityScaleEnabled = isChecked;
             BetterFog.ApplyFogSettings();
         }
@@ -512,18 +519,21 @@ namespace BetterFog.Assets
                 {
                     dropdown.value = BetterFog.currentPresetIndex;
                     //BetterFog.mls.LogInfo($"Preset dropdown updated to: {BetterFog.currentPreset.PresetName}");
-                    BetterFog.mls.LogInfo($"Preset dropdown updated to: {BetterFog.fogConfigPresets[dropdown.value].PresetName}");
+                    if (BetterFog.verboseLoggingEnabled.Value)
+                        BetterFog.mls.LogInfo($"Preset dropdown updated to: {BetterFog.fogConfigPresets[dropdown.value].PresetName}");
                 }
                 else if (dropdown == modeDropdown)
                 {
                     dropdown.value = BetterFog.currentModeIndex;
                     //BetterFog.mls.LogInfo($"Mode dropdown updated to: {BetterFog.currentMode.Name}");
-                    BetterFog.mls.LogInfo($"Mode dropdown updated to: {BetterFog.fogModes[dropdown.value].Name}");
+                    if (BetterFog.verboseLoggingEnabled.Value)
+                        BetterFog.mls.LogInfo($"Mode dropdown updated to: {BetterFog.fogModes[dropdown.value].Name}");
                 }
             }
             else
             {
-                BetterFog.mls.LogError("Dropdown is null. Cannot update");
+                if (BetterFog.verboseLoggingEnabled.Value)
+                    BetterFog.mls.LogError("Dropdown is null. Cannot update");
             }
         }
 
@@ -553,7 +563,7 @@ namespace BetterFog.Assets
         {
             BetterFog.currentPresetIndex = BetterFog.fogConfigPresets.IndexOf(preset);
             BetterFog.currentPreset = preset;
-            BetterFog.mls.LogInfo($"Applying preset: {preset.PresetName}");
+            //BetterFog.mls.LogInfo($"Applying preset: {preset.PresetName}");
             BetterFog.ApplyFogSettings();
         }
 
@@ -576,7 +586,8 @@ namespace BetterFog.Assets
                 Destroy(settingsCanvas);
                 settingsCanvas = null; // Clear the reference
 
-                BetterFog.mls.LogWarning("Canvas prefab not found. Initializing new Canvas.");
+                if (BetterFog.verboseLoggingEnabled.Value)
+                    BetterFog.mls.LogWarning("Canvas prefab not found. Initializing new Canvas.");
                 UnloadAssetBundle();
                 Initialize(); // Method to handle the initialization of settingsCanvas
             }
@@ -585,7 +596,7 @@ namespace BetterFog.Assets
             settingsCanvas.SetActive(true);
             SetCurrentOption(presetDropdown);
             SetCurrentOption(modeDropdown);
-            BetterFog.mls.LogInfo("Fog Settings enabled.");
+            BetterFog.mls.LogInfo("Fog Settings opened.");
         }
 
         private void UnloadAssetBundle()
@@ -602,7 +613,8 @@ namespace BetterFog.Assets
         {
             if (BetterFog.guiEnabled.Value == false)
             {
-                BetterFog.mls.LogWarning("FogSettingsManager GUI is disabled by config file.");
+                if (BetterFog.verboseLoggingEnabled.Value)
+                    BetterFog.mls.LogWarning("FogSettingsManager GUI is disabled by config file.");
                 return;
             }
 
@@ -610,7 +622,7 @@ namespace BetterFog.Assets
             if (settingsCanvas != null)
             {
                 settingsCanvas.SetActive(false);
-                BetterFog.mls.LogInfo("Fog Settings disabled.");
+                BetterFog.mls.LogInfo("Fog Settings closed.");
             }
             else
             {
@@ -618,7 +630,8 @@ namespace BetterFog.Assets
                 Destroy(settingsCanvas);
                 settingsCanvas = null; // Clear the reference
 
-                BetterFog.mls.LogWarning("Canvas prefab not found. Initializing new Canvas.");
+                if (BetterFog.verboseLoggingEnabled.Value)
+                    BetterFog.mls.LogWarning("Canvas prefab not found. Initializing new Canvas.");
                 UnloadAssetBundle();
                 Initialize(); // Method to handle the initialization of settingsCanvas
             }

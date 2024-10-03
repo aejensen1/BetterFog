@@ -13,6 +13,7 @@ using System.Linq;
 using System.Collections;
 using GameNetcodeStuff;
 using Unity.Netcode;
+using UnityEngine.SceneManagement;
 
 namespace BetterFog
 {
@@ -21,7 +22,7 @@ namespace BetterFog
     {
         public const string modGUID = "ironthumb.BetterFog";
         public const string modName = "BetterFog";
-        public const string modVersion = "3.2.9";
+        public const string modVersion = "3.2.10";
 
         private readonly Harmony harmony = new Harmony(modGUID);
         public static ManualLogSource mls;
@@ -44,6 +45,8 @@ namespace BetterFog
         public static ConfigEntry<bool> verboseLoggingEnabled;
         private static ConfigEntry<bool> excludeEnemyFog; // Exclude enemy fog when applying better fog settings
 
+        public static bool fogRefreshLock = true; // set true to prevent fog settings from being applied
+
         // Weather and moon scaling variables
         private static List<string> densityScaleBlacklist = new List<string> { };
         private static ConfigEntry<string> densityScaleBlacklistConfig;
@@ -52,6 +55,7 @@ namespace BetterFog
         public static string currentWeatherType = "None";
         private static float moonDensityScale = 1f;
         private static float weatherDensityScale = 1f;
+        private static float combinedDensityScale = 1f;
         public static List<WeatherScale> weatherScales;
         private static ConfigEntry<string> weatherScalesConfig;
         public static string currentLevel = "";
@@ -131,7 +135,7 @@ namespace BetterFog
             {
                 new BetterFogMode("Better Fog"),
                 new BetterFogMode("No Fog"),
-                new BetterFogMode("Vanilla")
+                new BetterFogMode("Vanilla") // Vanilla has three tiers of recording values: 1. LoadScene 2. ChangeLevel 3. OnEnable
             };
             mls.LogInfo("fogModes initialized");
 
@@ -142,7 +146,7 @@ namespace BetterFog
                 Config.Bind(section1, "Default Preset Name", "Default", "Name of the default fog preset (No value sets default to first in list).\n" +
                 "Order of settings: Preset Name, Mean Free Path, Albedo Red, Albedo Green, Albedo Blue\n" +
                 "Mean Free Path - Density of fog. The greater the number, the less dense. 0 is the minimum (opaque fog).\n");
-            defaultMode = Config.Bind(section1, "Default Fog Mode", "Default", "Name of the default fog mode. Options: Default, No Fog");
+            defaultMode = Config.Bind(section1, "Default Fog Mode", "Better Fog", "Name of the default fog mode. Options: Better Fog, No Fog, Vanilla");
 
             string section2 = "Key Bindings";
             nextPresetHotkeyConfig = Config.Bind(section2, "Next Preset Hotkey", "n", "Hotkey to switch to the next fog preset.");
@@ -221,7 +225,7 @@ namespace BetterFog
 
             weatherScales = ParseWeatherScales(weatherScalesConfig.Value);
 
-            densityScaleBlacklistConfig = Config.Bind(section4, "Density Scaling Blacklist", "", 
+            densityScaleBlacklistConfig = Config.Bind(section4, "Density Scaling Blacklist", "",
                 "Enter weather names or moon names to trigger temporary disablement of fog density scaling. This is only effective when WeatherScale is enabled. \n" +
                 "Full moon or weather names must be typed in, comma separated. Example: {eclipsed,20 Adamance,85 Rend}");
 
@@ -289,27 +293,35 @@ namespace BetterFog
             try
             {
                 harmony.Patch(original: AccessTools.Method(typeof(StartOfRound), "ChangeLevel"), postfix: new HarmonyMethod(typeof(StartOfRoundPatch), "ChangeLevelPatch"));
-                mls.LogInfo("StartOfRound patches applied successfully.");
+                //mls.LogInfo("StartOfRound patches applied successfully.");
 
                 harmony.Patch(original: AccessTools.Method(typeof(QuickMenuManager), "OpenQuickMenu"), postfix: new HarmonyMethod(typeof(QuickMenuManagerPatch), "OpenQuickMenuPatch"));
                 harmony.Patch(original: AccessTools.Method(typeof(QuickMenuManager), "CloseQuickMenu"), postfix: new HarmonyMethod(typeof(QuickMenuManagerPatch), "CloseQuickMenuPatch"));
-                mls.LogInfo("QuickMenuManager patches applied successfully.");
+                //mls.LogInfo("QuickMenuManager patches applied successfully.");
 
                 harmony.Patch(original: AccessTools.Method(typeof(IngamePlayerSettings), "RefreshAndDisplayCurrentMicrophone"), postfix: new HarmonyMethod(typeof(IngamePlayerSettingsPatch), "RefreshAndDisplayCurrentMicrophonePatch"));
                 harmony.Patch(original: AccessTools.Method(typeof(IngamePlayerSettings), "DiscardChangedSettings"), postfix: new HarmonyMethod(typeof(IngamePlayerSettingsPatch), "DiscardChangedSettingsPatch"));
-                mls.LogInfo("IngamePlayerSettings patches applied successfully.");
+                //mls.LogInfo("IngamePlayerSettings patches applied successfully.");
 
                 harmony.Patch(original: AccessTools.Method(typeof(Terminal), "BeginUsingTerminal"), postfix: new HarmonyMethod(typeof(TerminalPatch), "BeginUsingTerminalPatch"));
                 harmony.Patch(original: AccessTools.Method(typeof(Terminal), "QuitTerminal"), postfix: new HarmonyMethod(typeof(TerminalPatch), "QuitTerminalPatch"));
-                mls.LogInfo("Terminal patches applied successfully.");
+                //mls.LogInfo("Terminal patches applied successfully.");
 
                 harmony.Patch(original: AccessTools.Method(typeof(MenuManager), "PlayCancelSFX"), postfix: new HarmonyMethod(typeof(MenuManagerPatch), "PlayCancelSFXPatch"));
-                mls.LogInfo("MenuManager patches applied successfully.");
+                //mls.LogInfo("MenuManager patches applied successfully.");
 
                 harmony.Patch(original: AccessTools.Method(typeof(HUDManager), "EnableChat_performed"), postfix: new HarmonyMethod(typeof(HUDManagerPatch), "EnableChat_performedPatch"));
                 harmony.Patch(original: AccessTools.Method(typeof(HUDManager), "SubmitChat_performed"), postfix: new HarmonyMethod(typeof(HUDManagerPatch), "SubmitChat_performedPatch"));
                 harmony.Patch(original: AccessTools.Method(typeof(HUDManager), "OpenMenu_performed"), postfix: new HarmonyMethod(typeof(HUDManagerPatch), "OpenMenu_performedPatch"));
-                mls.LogInfo("HUDManager patches applied successfully.");
+                //mls.LogInfo("HUDManager patches applied successfully.");
+
+                harmony.Patch(original: AccessTools.Method(typeof(LocalVolumetricFog), "OnEnable"), postfix: new HarmonyMethod(typeof(LocalVolumetricFogPatch), "OnEnablePatch"));
+                //mls.LogInfo("LocalVolumetricFog patches applied successfully.");
+
+                harmony.Patch(AccessTools.Method(typeof(SceneManager), "LoadScene", new[] { typeof(string), typeof(LoadSceneParameters) }), postfix: new HarmonyMethod(typeof(SceneManagerPatch), "LoadScenePatch"));
+                //mls.LogInfo("SceneManager patches applied successfully.");
+
+                mls.LogInfo("BetterFog patches applied successfully!");
             }
             catch (Exception ex)
             {
@@ -320,11 +332,14 @@ namespace BetterFog
             // Check if the FogSettingsManager instance is valid
             if (FogSettingsManager.Instance != null)
             {
-                mls.LogInfo(FogSettingsManager.Instance.ToString());
+                //mls.LogInfo(FogSettingsManager.Instance.ToString());
+                if (verboseLoggingEnabled.Value)
+                    mls.LogInfo("FogSettingsManager instance is valid.");
             }
             else
             {
-                mls.LogError("FogSettingsManager instance is null.");
+                if (verboseLoggingEnabled.Value)
+                    mls.LogError("FogSettingsManager instance is null.");
             }
         }
 
@@ -332,11 +347,16 @@ namespace BetterFog
 
         public static void ApplyFogSettings()
         {
+            moonDensityScale = 1; // Default to 1 if no moon is detected
+            weatherDensityScale = 1; // Default to 1 if no weather is detected
+
+            if (fogRefreshLock)
+            {
+                mls.LogInfo("Fog settings refresh is locked. Skipping fog settings application.");
+                return;
+            }
             if (isDensityScaleEnabled)
             {
-                moonDensityScale = 1; // Default to 1 if no moon is detected
-                weatherDensityScale = 1; // Default to 1 if no weather is detected
-
                 if (!densityScaleBlacklist.Contains(currentLevel) && !densityScaleBlacklist.Contains(currentWeatherType)) // don't scale when moon/weather is blacklisted.
                 {
                     // Handle Moon Scaling
@@ -346,12 +366,14 @@ namespace BetterFog
                         if ((currentLevel == moonScale.MoonName))
                         {
                             moonDensityScale = moonScale.Scale;
-                            mls.LogInfo($"{currentLevel} moon detected. Set moon density scale to " + moonDensityScale);
+                            if (verboseLoggingEnabled.Value)
+                                mls.LogInfo($"{currentLevel} moon detected. Set moon density scale to " + moonDensityScale);
                             break;
                         }
                         if (moonScale.MoonName == moonScales[moonScales.Count - 1].MoonName)
                         {
-                            mls.LogWarning($"{currentLevel} moon not found in records. Using moon scale of {moonDensityScale}.");
+                            if (verboseLoggingEnabled.Value)
+                                mls.LogWarning($"{currentLevel} moon not found in records. Using moon scale of {moonDensityScale}.");
                         }
                     }
 
@@ -362,23 +384,30 @@ namespace BetterFog
                         if ((currentWeatherType == weatherScale.WeatherName) && !densityScaleBlacklist.Contains(currentWeatherType))
                         {
                             weatherDensityScale = weatherScale.Scale;
-                            mls.LogInfo($"{currentWeatherType} weather type detected. Set weather density scale to " + weatherDensityScale);
+                            if (verboseLoggingEnabled.Value)
+                                mls.LogInfo($"{currentWeatherType} weather type detected. Set weather density scale to " + weatherDensityScale);
                             break;
                         }
                         if (weatherScale.WeatherName == weatherScales[weatherScales.Count - 1].WeatherName)
                         {
-                            mls.LogWarning($"{currentWeatherType} weather type not found in records. Using scale of {weatherDensityScale}.");
+                            if (verboseLoggingEnabled.Value)
+                                mls.LogWarning($"{currentWeatherType} weather type not found in records. Using scale of {weatherDensityScale}.");
                         }
                     }
                 }
                 else
                     mls.LogInfo("Blacklisted moon or weather detected. Setting all density scales to 1.");
-                
-                mls.LogInfo($"Final density scale applied: {moonDensityScale} * {weatherDensityScale} = {moonDensityScale * weatherDensityScale}");
-                mls.LogInfo($"Preset original MeanFreePath: {currentPreset.MeanFreePath}"); // Log the original MeanFreePath (density) value
-                mls.LogInfo($"Scaled MeanFreePath: {currentPreset.MeanFreePath} * {moonDensityScale * weatherDensityScale} = {currentPreset.MeanFreePath * moonDensityScale * weatherDensityScale}"); // Log the scaled MeanFreePath (density) value
             }
-            mls.LogInfo($"Applied: {currentPreset.ToString()}"); // Log the applied preset values
+
+            combinedDensityScale = moonDensityScale * weatherDensityScale;
+            if (verboseLoggingEnabled.Value)
+            {
+                mls.LogInfo($"Final density scale applied: {moonDensityScale} * {weatherDensityScale} = {combinedDensityScale}");
+                mls.LogInfo($"Preset original MeanFreePath: {currentPreset.MeanFreePath}"); // Log the original MeanFreePath (density) value
+                mls.LogInfo($"Scaled MeanFreePath: {currentPreset.MeanFreePath} * {combinedDensityScale} = {currentPreset.MeanFreePath * combinedDensityScale}"); // Log the scaled MeanFreePath (density) value
+            }
+
+
 
             // Find all LocalVolumetricFog objects
             var fogObjects = Resources
@@ -397,7 +426,10 @@ namespace BetterFog
                 // FogExclusionZone is not excluded
                 // Enemy fog is not excluded
                 var enemyLayer = LayerMask.NameToLayer("Enemies");
-                if (fogObject != null && !(fogObject.name == "FogExclusionZone" && applyToFogExclusionZone.Value == false) && !(fogObject.gameObject.layer == enemyLayer && excludeEnemyFog.Value == true))
+                if (fogObject != null &&
+                    !(fogObject.name == "FogExclusionZone" && applyToFogExclusionZone.Value == false) &&
+                    !(fogObject.gameObject.layer == enemyLayer && excludeEnemyFog.Value == true) &&
+                    !(currentMode.Name == "Vanilla"))
                 {
                     // prepare the parameters object for modification
                     var parameters = fogObject.parameters;
@@ -405,7 +437,7 @@ namespace BetterFog
                     if (isDensityScaleEnabled)
                     {
                         // Set new density with scaling applied
-                        parameters.meanFreePath = currentPreset.MeanFreePath * moonDensityScale * weatherDensityScale;
+                        parameters.meanFreePath = currentPreset.MeanFreePath * combinedDensityScale;
                     }
                     else
                     {
@@ -420,27 +452,23 @@ namespace BetterFog
                     );
 
                     // Optionally, apply changes if the parameters object needs to be reassigned
-                    if (currentMode.Name != "Vanilla")
-                        fogObject.parameters = parameters;
-
-                    if (verboseLoggingEnabled.Value) // Log settings if verbose logging is enabled.
-                    {
-                        // Print details of the Fog object
-                        Color fogColor = fogObject.parameters.albedo;
-                        mls.LogInfo($"Found LocalVolumetricFog object: {fogObject.name}, MeanFreePath: {fogObject.parameters.meanFreePath}, AlbedoR: {fogColor.r}, AlbedoG: {fogColor.g}, AlbedoB: {fogColor.b}");
-                    }
-                }             
-                else
+                    fogObject.parameters = parameters;
+                }
+                else if (currentMode.Name == "Vanilla") // attempt to use vanilla settings
                 {
-                    //mls.LogError("Found a null LocalVolumetricFog object.");
+                    ResetFogToVanilla(fogObject.gameObject);
+                }
+
+                if (verboseLoggingEnabled.Value) // Log settings if verbose logging is enabled.
+                {
+                    // Print details of the Fog object
+                    Color fogColor = fogObject.parameters.albedo;
+                    mls.LogInfo($"Found LocalVolumetricFog object: {fogObject.name}, MeanFreePath: {fogObject.parameters.meanFreePath}, AlbedoR: {fogColor.r}, AlbedoG: {fogColor.g}, AlbedoB: {fogColor.b}");
                 }
             }
 
-            mls.LogInfo("\nRecorded fog objects in dictionary");
-            foreach (var fogObject in fogParameterChanges)
-            {
-                mls.LogInfo($"Object: {fogObject.Key.name}, MeanFreePath: {fogObject.Value.meanFreePath}, AlbedoR: {fogObject.Value.albedo.r}, AlbedoG: {fogObject.Value.albedo.g}, AlbedoB: {fogObject.Value.albedo.b}");
-            }
+            if (currentMode.Name == "Better Fog")
+                mls.LogInfo($"Applied Preset: {currentPreset.ToString()}, DensityScale={combinedDensityScale}"); // Log the applied preset values
         }
 
         public static void ApplyFogSettingsOnGameStart() // Duration in seconds, interval in seconds
@@ -464,7 +492,8 @@ namespace BetterFog
         {
             int waitTime = 0;
             int waitTimeLimit = 60;
-            mls.LogInfo($"Waiting for game to start... ({waitTime}s)");
+            if (verboseLoggingEnabled.Value)
+                mls.LogInfo($"Waiting for game to start... ({waitTime}s)");
 
             // Wait until the game starts or timeout after 100 seconds
             while (GameNetworkManager.Instance != null && !GameNetworkManager.Instance.gameHasStarted && waitTime < waitTimeLimit)
@@ -481,7 +510,8 @@ namespace BetterFog
             }
             else
             {
-                mls.LogInfo($"{waitTime}s Timeout reached, game has not started yet. Fog settings not applied.");
+                if (verboseLoggingEnabled.Value)
+                    mls.LogInfo($"{waitTime}s Timeout reached, game has not started yet. Fog settings not applied.");
             }
 
             applyingFogSettings = false;
@@ -491,7 +521,8 @@ namespace BetterFog
         {
             for (int i = 0; i < repeatCount; i++)
             {
-                mls.LogInfo($"Applying fog settings... ({i + 1}/{repeatCount})");
+                if (verboseLoggingEnabled.Value)
+                    mls.LogInfo($"Applying fog settings... ({i + 1}/{repeatCount})");
 
                 ApplyFogSettings(); // Apply fog settings
 
@@ -505,7 +536,6 @@ namespace BetterFog
         public static void NextPreset()
         {
             mls.LogInfo("Next preset hotkey pressed.");
-            mls.LogInfo(FogSettingsManager.Instance.ToString());
             currentPresetIndex = fogConfigPresets.IndexOf(currentPreset);
             if (currentPresetIndex == fogConfigPresets.Count - 1)
             {
@@ -513,8 +543,8 @@ namespace BetterFog
             }
             currentPresetIndex ++;
             currentPreset = fogConfigPresets[currentPresetIndex];
-            mls.LogInfo("Current preset index: " + currentPresetIndex);
-            mls.LogInfo($"Current preset: {currentPreset.PresetName}");
+            //mls.LogInfo("Current preset index: " + currentPresetIndex);
+            mls.LogInfo($"Switched to preset: {currentPreset.PresetName}");
             ApplyFogSettings();
 
             // Notify FogSettingsManager to update dropdown
@@ -531,8 +561,8 @@ namespace BetterFog
             }
             currentModeIndex++;
             currentMode = fogModes[currentModeIndex];
-            mls.LogInfo("Current mode index: " + currentModeIndex);
-            mls.LogInfo($"Current mode: {currentMode.Name}");
+            //mls.LogInfo("Current mode index: " + currentModeIndex);
+            mls.LogInfo($"Switched to mode: {currentMode.Name}");
             Instance.UpdateMode();
 
             // Notify FogSettingsManager to update dropdown
@@ -545,6 +575,7 @@ namespace BetterFog
             {
                 mls.LogInfo("No Fog mode selected.");
                 EnableFogPatch();
+                fogRefreshLock = true;
                 return;
             }
             else
@@ -558,6 +589,7 @@ namespace BetterFog
                 }
                 else
                 {
+                    fogRefreshLock = false;
                     EnableVanillaPatches();
                 }
             }
@@ -614,14 +646,14 @@ namespace BetterFog
         public void EnableFogPatch()
         {
             harmony.Patch(original: AccessTools.Method(typeof(Fog), "UpdateShaderVariablesGlobalCBFogParameters"), prefix: new HarmonyMethod(typeof(FogPatch), "Prefix"));
-            mls.LogInfo("Fog patches enabled successfully.");
+            mls.LogInfo("No Fog enabled successfully.");
         }
 
         public void DisableFogPatch()
         {
             var method = AccessTools.Method(typeof(Fog), "UpdateShaderVariablesGlobalCBFogParameters");
             harmony.Unpatch(method, HarmonyPatchType.All, modGUID);
-            mls.LogInfo("Fog patches disabled successfully.");
+            mls.LogInfo("No Fog patch disabled successfully.");
         }
         //--------------------------------- End No Fog Management ---------------------------------
 
@@ -630,36 +662,37 @@ namespace BetterFog
         public void EnableVanillaPatches()
         {
             harmony.Patch(original: AccessTools.Method(typeof(AudioReverbTrigger), "changeVolume"), prefix: new HarmonyMethod(typeof(AudioReverbTriggerPatch), "changeVolumePrefix"));
-            mls.LogInfo("AudioReverb patches applied successfully.");
+            //mls.LogInfo("AudioReverb patches applied successfully.");
 
             harmony.Patch(original: AccessTools.Method(typeof(TimeOfDay), "SetWeatherBasedOnVariables"), prefix: new HarmonyMethod(typeof(TimeOfDayPatch), "SetWeatherBasedOnVariablesPatch"));
-            mls.LogInfo("TimeOfDay patches applied successfully.");
+            //mls.LogInfo("TimeOfDay patches applied successfully.");
 
             harmony.Patch(original: AccessTools.Method(typeof(ToggleFogTrigger), "Update"), prefix: new HarmonyMethod(typeof(ToggleFogTriggerPatch), "UpdatePatch"));
             harmony.Patch(original: AccessTools.Method(typeof(ToggleFogTrigger), "OnTriggerEnter"), prefix: new HarmonyMethod(typeof(ToggleFogTriggerPatch), "OnTriggerEnterPatch"));
             harmony.Patch(original: AccessTools.Method(typeof(ToggleFogTrigger), "OnTriggerExit"), prefix: new HarmonyMethod(typeof(ToggleFogTriggerPatch), "OnTriggerExitPatch"));
-            mls.LogInfo("ToggleFogUpdate patches applied successfully.");
+            //mls.LogInfo("ToggleFogUpdate patches applied successfully.");
 
             harmony.Patch(original: AccessTools.Method(typeof(EntranceTeleport), "TeleportPlayer"), postfix: new HarmonyMethod(typeof(EntranceTeleportPatch), "TeleportPlayerPatch"));
-            mls.LogInfo("EntranceTeleport patches applied successfully.");
+            //mls.LogInfo("EntranceTeleport patches applied successfully.");
 
             harmony.Patch(original: AccessTools.Method(typeof(PlayerControllerB), "TeleportPlayer"), postfix: new HarmonyMethod(typeof(PlayerControllerBPatch), "TeleportPlayerPatch"));
             harmony.Patch(original: AccessTools.Method(typeof(PlayerControllerB), "SpectateNextPlayer"), postfix: new HarmonyMethod(typeof(PlayerControllerBPatch), "SpectateNextPlayerPatch"));
-            mls.LogInfo("PlayerControllerB patches applied successfully.");
+            //mls.LogInfo("PlayerControllerB patches applied successfully.");
 
             harmony.Patch(original: AccessTools.Method(typeof(NetworkSceneManager), "OnSceneLoaded"), postfix: new HarmonyMethod(typeof(NetworkSceneManagerPatch), "OnSceneLoadedPatch"));
-            mls.LogInfo("NetworkSceneManager patches applied successfully.");
+            //mls.LogInfo("NetworkSceneManager patches applied successfully.");
+            mls.LogInfo("Vanilla patches enabled successfully!");
         }
 
         public void DisableVanillaPatches()
         {
             var method = AccessTools.Method(typeof(AudioReverbTrigger), "changeVolume");
             harmony.Unpatch(method, HarmonyPatchType.All, modGUID);
-            mls.LogInfo("AudioReverb patches disabled successfully.");
+            //mls.LogInfo("AudioReverb patches disabled successfully.");
 
             method = AccessTools.Method(typeof(TimeOfDay), "SetWeatherBasedOnVariables");
             harmony.Unpatch(method, HarmonyPatchType.All, modGUID);
-            mls.LogInfo("TimeOfDay patches disabled successfully.");
+            //mls.LogInfo("TimeOfDay patches disabled successfully.");
 
             method = AccessTools.Method(typeof(ToggleFogTrigger), "Update");
             harmony.Unpatch(method, HarmonyPatchType.All, modGUID);
@@ -667,22 +700,75 @@ namespace BetterFog
             harmony.Unpatch(method, HarmonyPatchType.All, modGUID);
             method = AccessTools.Method(typeof(ToggleFogTrigger), "OnTriggerExit");
             harmony.Unpatch(method, HarmonyPatchType.All, modGUID);
-            mls.LogInfo("ToggleFogUpdate patches disabled successfully.");
+            //mls.LogInfo("ToggleFogUpdate patches disabled successfully.");
 
             method = AccessTools.Method(typeof(EntranceTeleport), "TeleportPlayer");
             harmony.Unpatch(method, HarmonyPatchType.All, modGUID);
-            mls.LogInfo("EntranceTeleport patches disabled successfully.");
+            //mls.LogInfo("EntranceTeleport patches disabled successfully.");
 
             method = AccessTools.Method(typeof(PlayerControllerB), "TeleportPlayer");
             harmony.Unpatch(method, HarmonyPatchType.All, modGUID);
             method = AccessTools.Method(typeof(PlayerControllerB), "SpectateNextPlayer");
             harmony.Unpatch(method, HarmonyPatchType.All, modGUID);
-            mls.LogInfo("PlayerControllerB patches disabled successfully.");
+            //mls.LogInfo("PlayerControllerB patches disabled successfully.");
 
             method = AccessTools.Method(typeof(NetworkSceneManager), "OnSceneLoaded");
             harmony.Unpatch(method, HarmonyPatchType.All, modGUID);
-            mls.LogInfo("NetworkSceneManager patches disabled successfully.");
+            //mls.LogInfo("NetworkSceneManager patches disabled successfully.");
+            mls.LogInfo("Vanilla patches disabled successfully!");
         }
+
+        public static void CollectVanillaValues()
+        {
+            fogRefreshLock = true; // Lock the fog refresh to prevent settings from being applied
+            //mls.LogInfo("LoadScenePatch triggered");
+            var fogObjects = Resources
+                .FindObjectsOfTypeAll<LocalVolumetricFog>()
+                .ToList();
+
+            // Iterate through each fog object and log/capture vanilla parameters
+            foreach (var fogObject in fogObjects)
+            {
+                // Capture vanilla parameters
+                var fogParams = fogObject.parameters;
+                Color fogColor = fogObject.parameters.albedo;
+                if (verboseLoggingEnabled.Value)
+                    mls.LogInfo($"Found LocalVolumetricFog object: {fogObject.name}, MeanFreePath: {fogObject.parameters.meanFreePath}, AlbedoR: {fogColor.r}, AlbedoG: {fogColor.g}, AlbedoB: {fogColor.b}");
+
+                // Store the vanilla values into the dictionary
+                if (!fogParameterChanges.ContainsKey(fogObject.gameObject))
+                {
+                    fogParameterChanges[fogObject.gameObject] = fogParams;
+                    if (verboseLoggingEnabled.Value)
+                        mls.LogInfo($"Captured vanilla fog parameters for {fogObject.gameObject.name}");
+                }
+            }
+
+            // Unlock the fog refresh after capturing vanilla values
+            fogRefreshLock = false;
+        }
+
+        public static void ResetFogToVanilla(GameObject fogObject)
+        {
+            if (fogParameterChanges.TryGetValue(fogObject, out var vanillaParams))
+            {
+                var fogComponent = fogObject.GetComponent<LocalVolumetricFog>();
+                if (fogComponent != null)
+                {
+                    fogComponent.parameters = vanillaParams;
+                    //mls.LogInfo($"Reverted fog parameters for {fogObject.name} to vanilla.");
+                }
+                else
+                {
+                    //mls.LogWarning($"No LocalVolumetricFog component found on {fogObject.name}");
+                }
+            }
+            else
+            {
+                //mls.LogWarning($"No vanilla parameters found for {fogObject.name} in records");
+            }
+        }
+
 
         //--------------------------------- End Vanilla Management ---------------------------------
 

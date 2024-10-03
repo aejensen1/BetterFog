@@ -27,7 +27,7 @@ namespace BetterFog.Patches
                 BetterFog.mls.LogWarning($"Invalid weather index: {currentLevel.currentWeather}. Set to none");
             }
             BetterFog.currentLevel = currentLevel.PlanetName;
+            BetterFog.CollectVanillaValues();
         }
-
     }
 }
