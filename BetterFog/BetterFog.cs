@@ -571,6 +571,7 @@ namespace BetterFog
 
         public void UpdateMode()
         {
+
             if (currentMode.Name == "No Fog")
             {
                 mls.LogInfo("No Fog mode selected.");
@@ -720,7 +721,7 @@ namespace BetterFog
 
         public static void CollectVanillaValues()
         {
-            fogRefreshLock = true; // Lock the fog refresh to prevent settings from being applied
+            //fogRefreshLock = true; // Lock the fog refresh to prevent settings from being applied
             //mls.LogInfo("LoadScenePatch triggered");
             var fogObjects = Resources
                 .FindObjectsOfTypeAll<LocalVolumetricFog>()
@@ -745,7 +746,7 @@ namespace BetterFog
             }
 
             // Unlock the fog refresh after capturing vanilla values
-            fogRefreshLock = false;
+            //fogRefreshLock = false;
         }
 
         public static void ResetFogToVanilla(GameObject fogObject)
