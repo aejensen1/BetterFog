@@ -77,7 +77,7 @@ Screenshots
 | **No Fog** | **Vanilla Fog** | **Red Fog** |
 
 | ![OrangeFog](https://github.com/user-attachments/assets/7f39a444-2267-453a-957b-89817b42110a) | ![PinkFog](https://github.com/user-attachments/assets/27c0e56a-5fd6-4986-aa7d-470331aa5225) | ![BlueFog](https://github.com/user-attachments/assets/5ddfd892-753e-4cce-959d-a847dface9e6) |
-|:--:|:--:|
+|:--:|:--:|:--:|
 | **Orange Fog** | **Pink Fog** | **Blue Fog** |
 
 
