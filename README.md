@@ -72,15 +72,16 @@ Screenshots
 |:--:|:--:|:--:|
 | **Settings GUI** | **Default Fog** | **Heavy Fog** |
 
-| ![NoFog](https://github.com/user-attachments/assets/e400170a-85a7-4b59-8107-a056b8e70bc5) | ![RedFog](https://github.com/user-attachments/assets/e392e535-06e7-47e7-9917-b638ed620271) | ![OrangeFog](https://github.com/user-attachments/assets/7f39a444-2267-453a-957b-89817b42110a) |
+| ![NoFog](https://github.com/user-attachments/assets/e400170a-85a7-4b59-8107-a056b8e70bc5) | ![VanillaFog](https://github.com/user-attachments/assets/56d8d5cd-0f69-4f17-9a25-cdc672e052e1) | ![RedFog](https://github.com/user-attachments/assets/e392e535-06e7-47e7-9917-b638ed620271) |
 |:--:|:--:|:--:|
-| **No Fog** | **Red Fog** | **Orange Fog** |
+| **No Fog** | **Vanilla Fog** | **Red Fog** |
 
-| ![PinkFog](https://github.com/user-attachments/assets/27c0e56a-5fd6-4986-aa7d-470331aa5225) | ![BlueFog](https://github.com/user-attachments/assets/5ddfd892-753e-4cce-959d-a847dface9e6) |
-|:--:|:--:|
-| **Pink Fog** | **Blue Fog** |
+| ![OrangeFog](https://github.com/user-attachments/assets/7f39a444-2267-453a-957b-89817b42110a) | ![PinkFog](https://github.com/user-attachments/assets/27c0e56a-5fd6-4986-aa7d-470331aa5225) | ![BlueFog](https://github.com/user-attachments/assets/5ddfd892-753e-4cce-959d-a847dface9e6) |
+|:--:|:--:|:--:|
+| **Orange Fog** | **Pink Fog** | **Blue Fog** |
 
 
 Credits
 ==============
-Thanks to [mrov](https://github.com/AndreyMrovol) for some code suggestions on finding fog objects.
+- Thanks to [mrov](https://github.com/AndreyMrovol) for some code suggestions on finding fog objects.
+- Thanks to DarthFigo for a code suggestion on finding enemy fog to exclude.
