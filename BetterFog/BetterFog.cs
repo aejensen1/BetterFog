@@ -22,7 +22,7 @@ namespace BetterFog
     {
         public const string modGUID = "ironthumb.BetterFog";
         public const string modName = "BetterFog";
-        public const string modVersion = "3.2.10";
+        public const string modVersion = "3.2.11";
 
         private readonly Harmony harmony = new Harmony(modGUID);
         public static ManualLogSource mls;
@@ -48,8 +48,10 @@ namespace BetterFog
         public static bool fogRefreshLock = true; // set true to prevent fog settings from being applied
 
         // Weather and moon scaling variables
-        private static List<string> densityScaleBlacklist = new List<string> { };
-        private static ConfigEntry<string> densityScaleBlacklistConfig;
+        private static List<string> weatherScaleBlacklist = new List<string> { };
+        private static List<string> moonScaleBlacklist = new List<string> { };
+        private static ConfigEntry<string> weatherScaleBlacklistConfig;
+        private static ConfigEntry<string> moonScaleBlacklistConfig;
         private static ConfigEntry<bool> weatherScaleEnabled;
         public static bool isDensityScaleEnabled;
         public static string currentWeatherType = "None";
@@ -225,11 +227,15 @@ namespace BetterFog
 
             weatherScales = ParseWeatherScales(weatherScalesConfig.Value);
 
-            densityScaleBlacklistConfig = Config.Bind(section4, "Density Scaling Blacklist", "",
-                "Enter weather names or moon names to trigger temporary disablement of fog density scaling. This is only effective when WeatherScale is enabled. \n" +
+            weatherScaleBlacklistConfig = Config.Bind(section4, "Weather Scaling Blacklist", "",
+                "Enter weather names or moon names to trigger temporary disablement of fog WEATHER density scaling. This is only effective when WeatherScale is enabled. \n" +
+                "Full moon or weather names must be typed in, comma separated. Example: {eclipsed,20 Adamance,85 Rend}");
+            moonScaleBlacklistConfig = Config.Bind(section4, "Moon Scaling Blacklist", "",
+                "Enter weather names or moon names to trigger temporary disablement of MOON fog density scaling. This is only effective when WeatherScale is enabled. \n" +
                 "Full moon or weather names must be typed in, comma separated. Example: {eclipsed,20 Adamance,85 Rend}");
 
-            densityScaleBlacklist = ParseDensityScaleBlacklist(densityScaleBlacklistConfig.Value);
+            weatherScaleBlacklist = ParseDensityScaleBlacklist(weatherScaleBlacklistConfig.Value);
+            moonScaleBlacklist = ParseDensityScaleBlacklist(moonScaleBlacklistConfig.Value);
 
             mls.LogInfo("Finished parsing config entries");
 
@@ -357,7 +363,7 @@ namespace BetterFog
             }
             if (isDensityScaleEnabled)
             {
-                if (!densityScaleBlacklist.Contains(currentLevel) && !densityScaleBlacklist.Contains(currentWeatherType)) // don't scale when moon/weather is blacklisted.
+                if (!moonScaleBlacklist.Contains(currentLevel) && !moonScaleBlacklist.Contains(currentWeatherType)) // don't scale moon density when moon/weather is blacklisted.
                 {
                     // Handle Moon Scaling
                     foreach (MoonScale moonScale in moonScales)
@@ -376,12 +382,17 @@ namespace BetterFog
                                 mls.LogWarning($"{currentLevel} moon not found in records. Using moon scale of {moonDensityScale}.");
                         }
                     }
+                }
+                else
+                    mls.LogInfo("Blacklisted moon or weather detected. Setting moon density scale to 1.");
 
+                if (!weatherScaleBlacklist.Contains(currentLevel) && !weatherScaleBlacklist.Contains(currentWeatherType)) // don't scale weather density when moon/weather is blacklisted.
+                {
                     // Handle Weather Scaling
                     foreach (WeatherScale weatherScale in weatherScales)
                     {
                         //mls.LogInfo(weatherScale.WeatherName);
-                        if ((currentWeatherType == weatherScale.WeatherName) && !densityScaleBlacklist.Contains(currentWeatherType))
+                        if ((currentWeatherType == weatherScale.WeatherName))
                         {
                             weatherDensityScale = weatherScale.Scale;
                             if (verboseLoggingEnabled.Value)
@@ -396,7 +407,7 @@ namespace BetterFog
                     }
                 }
                 else
-                    mls.LogInfo("Blacklisted moon or weather detected. Setting all density scales to 1.");
+                    mls.LogInfo("Blacklisted moon or weather detected. Setting weather density scale to 1.");
             }
 
             combinedDensityScale = moonDensityScale * weatherDensityScale;
