@@ -22,7 +22,7 @@ namespace BetterFog
     {
         public const string modGUID = "ironthumb.BetterFog";
         public const string modName = "BetterFog";
-        public const string modVersion = "3.3.0";
+        public const string modVersion = "3.3.2";
 
         private readonly Harmony harmony = new Harmony(modGUID);
         public static ManualLogSource mls;
@@ -310,19 +310,11 @@ namespace BetterFog
                 harmony.Patch(original: AccessTools.Method(typeof(StartOfRound), "ChangeLevel"), postfix: new HarmonyMethod(typeof(StartOfRoundPatch), "ChangeLevelPatch"));
                 //mls.LogInfo("StartOfRound patches applied successfully.");
 
-                //harmony.Patch(original: AccessTools.Method(typeof(QuickMenuManager), "OpenQuickMenu"), postfix: new HarmonyMethod(typeof(QuickMenuManagerPatch), "OpenQuickMenuPatch"));
-                //harmony.Patch(original: AccessTools.Method(typeof(QuickMenuManager), "CloseQuickMenu"), postfix: new HarmonyMethod(typeof(QuickMenuManagerPatch), "CloseQuickMenuPatch"));
-                //mls.LogInfo("QuickMenuManager patches applied successfully.");
-
-                //harmony.Patch(original: AccessTools.Method(typeof(IngamePlayerSettings), "RefreshAndDisplayCurrentMicrophone"), postfix: new HarmonyMethod(typeof(IngamePlayerSettingsPatch), "RefreshAndDisplayCurrentMicrophonePatch"));
-                //harmony.Patch(original: AccessTools.Method(typeof(IngamePlayerSettings), "DiscardChangedSettings"), postfix: new HarmonyMethod(typeof(IngamePlayerSettingsPatch), "DiscardChangedSettingsPatch"));
-                //mls.LogInfo("IngamePlayerSettings patches applied successfully.");
-
                 harmony.Patch(original: AccessTools.Method(typeof(Terminal), "BeginUsingTerminal"), postfix: new HarmonyMethod(typeof(TerminalPatch), "BeginUsingTerminalPatch"));
                 harmony.Patch(original: AccessTools.Method(typeof(Terminal), "QuitTerminal"), postfix: new HarmonyMethod(typeof(TerminalPatch), "QuitTerminalPatch"));
                 //mls.LogInfo("Terminal patches applied successfully.");
 
-                harmony.Patch(original: AccessTools.Method(typeof(MenuManager), "PlayCancelSFX"), postfix: new HarmonyMethod(typeof(MenuManagerPatch), "PlayCancelSFXPatch"));
+                //harmony.Patch(original: AccessTools.Method(typeof(MenuManager), "PlayCancelSFX"), postfix: new HarmonyMethod(typeof(MenuManagerPatch), "PlayCancelSFXPatch"));
                 //mls.LogInfo("MenuManager patches applied successfully.");
 
                 harmony.Patch(original: AccessTools.Method(typeof(HUDManager), "EnableChat_performed"), postfix: new HarmonyMethod(typeof(HUDManagerPatch), "EnableChat_performedPatch"));

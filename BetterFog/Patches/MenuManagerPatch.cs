@@ -1,4 +1,4 @@
-﻿using HarmonyLib;
+﻿/*using HarmonyLib;
 using BetterFog.Assets;
 
 namespace BetterFog.Patches
@@ -21,4 +21,4 @@ namespace BetterFog.Patches
             }
         }
     }
-}
+}*/

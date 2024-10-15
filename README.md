@@ -5,7 +5,7 @@ BetterFog
   <img src="https://github.com/user-attachments/assets/0cb0bf4c-0675-4d7e-92c6-fb2b5742067c" alt="FogIcon"/>
 </p>
 
-BetterFog is a Mod Plugin that can be used on the game Lethal Company. If you have played the game, you may know how foggy weather is detrimental and even downright unplayable in essentially any other moon than Experimentation and Titan. BetterFog mod solves that issue by creating a preset list of fog options that can have custom densities, colors, and lighting settings. With this, there are virtually thousands of variations of custom fog presets possible. Plus, there is a graphical user interface (GUI) available in the pause menu that allows for live modification of presets in game. Client-side.
+BetterFog is a Mod Plugin that can be used on the game Lethal Company. If you have played the game, you may know how foggy weather is detrimental and even downright unplayable in essentially any other moon than Experimentation and Titan. BetterFog mod solves that issue by creating a preset list of fog options that can have custom densities, colors, and lighting settings. With this, there are virtually thousands of variations of custom fog presets possible. Plus, there is a graphical user interface (GUI) available when pressing F1 on your keyboard that allows for live modification of presets in game. Client-side.
 
 Why Use This Mod?
 ==============
@@ -26,7 +26,8 @@ Instructions
 - If you are manually setting up the mod, place BetterFog.dll in "Program Files (x86)/Steam/steamapps/common/Lethal Company/BepInEx/plugins/BetterFog.dll". The fogsettingsgui file should also be included under "Program Files (x86)/Steam/steamapps/common/Lethal Company/BepInEx/plugins/Assets/FogAssetBundnle/fogsettingsgui".
 - Manage presets in the config file. Settings can be tweaked for fog density and color.
 - Hotkey 'n' is used to switch between presets in-game. LeftStickPress should be the button for controller, but this has not been tested yet. Keybinds are adjustable in the config file!
-- Open the pause menu to access GUI which allows for live modification of presets in lobbies. Note that these modified settings do not carry over if you restart the game; you must modify the config file presets to do this.
+- Press F1 on your keyboard (changeable in config) to access GUI which allows for live modification of presets in lobbies. Note that these modified settings do not carry over if you restart the game; you must modify the config file presets to do this.
+- Note, starting at v3.3.0, you must disable the GUI keybind to disable the GUI. There is no longer a config option that states to disable the GUI.
 - To use density scaling for custom moons you will need to add the full name of the moon and scale to the MoonScales list. Otherwise a warning log will appear indicating that the <full name of moon> was not found in records.
 - Please report any bugs to me as they are found. I want to help!
 

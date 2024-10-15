@@ -392,15 +392,12 @@ namespace BetterFog.Assets
                 BetterFog.currentPreset != null)
             {
                 // Example update logic: assuming currentPreset has properties for these values
-                BetterFog.mls.LogMessage($"111Updated sliders to current preset: {BetterFog.currentPreset.ToString()}");
                 fogDensitySlider.value = BetterFog.currentPreset.MeanFreePath;
                 densityValInput.text = fogDensitySlider.value.ToString();
 
-                BetterFog.mls.LogMessage($"222Updated sliders to current preset: {BetterFog.currentPreset.ToString()}");
                 fogRedSlider.value = BetterFog.currentPreset.AlbedoR;
                 redValInput.text = fogRedSlider.value.ToString();
 
-                BetterFog.mls.LogMessage($"333Updated sliders to current preset: {BetterFog.currentPreset.ToString()}");
                 fogGreenSlider.value = BetterFog.currentPreset.AlbedoG;
                 greenValInput.text = fogGreenSlider.value.ToString();
 
@@ -650,6 +647,11 @@ namespace BetterFog.Assets
                 BetterFog.mls.LogWarning("FogSettingsManager GUI is disabled by config file.");
                 return;
             }*/
+            if (!(NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsClient))
+            {
+                BetterFog.mls.LogError("FogSettingsManager cannot be manipulated when not in a lobby.");
+                return;
+            }
 
             if (isSettingsEnabled)
             {
