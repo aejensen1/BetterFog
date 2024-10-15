@@ -4,6 +4,7 @@ using UnityEngine;
 using System.Linq;
 using UnityEngine.SceneManagement;
 using System.Reflection; // Add this to access method info
+using Unity.Netcode;
 
 namespace BetterFog.Patches
 {
@@ -22,6 +23,7 @@ namespace BetterFog.Patches
         public static void LoadScenePatch(string sceneName, LoadSceneParameters parameters)
         {
             BetterFog.CollectVanillaValues();
+            BetterFog.ApplyFogSettings();
         }
     }
 }

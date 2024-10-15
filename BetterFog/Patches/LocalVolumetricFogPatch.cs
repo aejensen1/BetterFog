@@ -8,7 +8,7 @@ namespace BetterFog.Patches
     {
         static void OnEnablePatch(LocalVolumetricFog __instance)
         {
-            if (BetterFog.verboseLoggingEnabled.Value)
+            if (BetterFog.verboseLoggingEnabled)
                 BetterFog.mls.LogInfo("LocalVolumetricFog created, capturing vanilla values.");
 
             // Capture vanilla parameters
@@ -18,7 +18,7 @@ namespace BetterFog.Patches
             if (!BetterFog.fogParameterChanges.ContainsKey(__instance.gameObject))
             {
                 BetterFog.fogParameterChanges[__instance.gameObject] = fogParams;
-                if (BetterFog.verboseLoggingEnabled.Value)
+                if (BetterFog.verboseLoggingEnabled)
                     BetterFog.mls.LogInfo($"Captured vanilla fog parameters for {__instance.gameObject.name}");
             }
         }

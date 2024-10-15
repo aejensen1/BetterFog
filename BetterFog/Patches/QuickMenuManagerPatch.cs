@@ -3,7 +3,7 @@ using BetterFog.Assets;
 
 namespace BetterFog.Patches
 {
-    [HarmonyPatch(typeof(QuickMenuManager))]
+    /*[HarmonyPatch(typeof(QuickMenuManager))]
     public class QuickMenuManagerPatch // For when the player opens the quick menu in game (ESC)
     {
         [HarmonyPatch("OpenQuickMenu")]
@@ -36,5 +36,5 @@ namespace BetterFog.Patches
                 //BetterFog.mls.LogWarning("Settings are already closed.");
             }
         }
-    }
+    }*/
 }

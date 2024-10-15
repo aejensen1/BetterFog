@@ -1,5 +1,6 @@
 ﻿using HarmonyLib;
 using Unity.Netcode;
+using UnityEngine;
 
 namespace BetterFog.Patches
 {

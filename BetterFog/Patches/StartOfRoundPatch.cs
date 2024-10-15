@@ -28,6 +28,7 @@ namespace BetterFog.Patches
             }
             BetterFog.currentLevel = currentLevel.PlanetName;
             BetterFog.CollectVanillaValues();
+            BetterFog.ApplyFogSettings();
         }
     }
 }

@@ -6,40 +6,52 @@ using System.Collections;
 using UnityEngine.EventSystems;
 using BepInEx;
 using System.IO;
+using System.Diagnostics.PerformanceData;
+using UnityEngine.InputSystem;
+using Unity.Netcode;
+using static UnityEngine.Rendering.DebugUI;
 
 namespace BetterFog.Assets
 {
     public class FogSettingsManager : MonoBehaviour
     {
-        private AssetBundle fogsettingsgui;
-        private GameObject settingsCanvas;
-        private TMP_FontAsset customFont;  // Store the custom font asset
-        public TMP_Dropdown presetDropdown; // Dropdown for fog preset
-        public TMP_Dropdown modeDropdown; // Dropown for fog mode
         private bool isSettingsEnabled = false;
 
+        private AssetBundle fogsettingsgui;
+        private GameObject settingsCanvas;
+        private GameObject settingsText;
+        private GameObject settingsInteractables;
+        private TMP_FontAsset customFont;  // Store the custom font asset
+
+        public TMP_Dropdown modeDropdown; // Dropown for fog mode
+        public TMP_Dropdown presetDropdown; // Dropdown for fog 
+
         private Slider fogDensitySlider; // Slider for fog density
-        private TextMeshProUGUI densityVal; // Display for fog density value
-        private Button densityUp;
-        private Button densityDown;
+        //private TextMeshProUGUI densityVal; // Display for fog density value
+        private TMP_InputField densityValInput; // Input field for fog density value
 
-        private Slider fogRedSlider; // Slider for fog density
-        private TextMeshProUGUI redVal; // Display for fog density value
-        private Button redUp;
-        private Button redDown;
+        private Slider fogRedSlider; // Slider for fog red hue
+        //private TextMeshProUGUI redVal; // Display for red hue value
+        TMP_InputField redValInput; // Input field for red hue value
 
-        private Slider fogGreenSlider; // Slider for fog density
-        private TextMeshProUGUI greenVal; // Display for fog density value
-        private Button greenUp;
-        private Button greenDown;
+        private Slider fogGreenSlider; // Slider for green hue
+        //private TextMeshProUGUI greenVal; // Display for green hue value
+        TMP_InputField greenValInput; // Input field for green hue value
 
-        private Slider fogBlueSlider; // Slider for fog density
-        private TextMeshProUGUI blueVal; // Display for fog density value
-        private Button blueUp;
-        private Button blueDown;
+
+        private Slider fogBlueSlider; // Slider for blue hue
+        //private TextMeshProUGUI blueVal; // Display for blue hue value
+        TMP_InputField blueValInput; // Input field for blue hue value
 
         //public Toggle noFogCheckbox;
-        public Toggle weatherScaleCheckbox;
+        public Toggle densityScaleCheckbox;
+        public TextMeshProUGUI densityScaleVal;
+
+        public Toggle excludeShipCheckbox;
+        public Toggle excludeEnemiesCheckbox;
+        public Toggle verboseLogsCheckbox;
+
+        private UnityEngine.UI.Button closeButton; // Button to close the settings
 
         private static FogSettingsManager instance;
         private static bool isInitializing = false;
@@ -53,7 +65,7 @@ namespace BetterFog.Assets
                 if (instance == null && !isInitializing)
                 {
                     isInitializing = true;
-                    if (BetterFog.verboseLoggingEnabled.Value)
+                    if (BetterFog.verboseLoggingEnabled)
                         BetterFog.mls.LogInfo("Instance is null, creating new instance.");
                     var gameObject = new GameObject("FogSettingsManager");
                     DontDestroyOnLoad(gameObject);
@@ -71,13 +83,13 @@ namespace BetterFog.Assets
             {
                 instance = this;
                 DontDestroyOnLoad(gameObject);
-                if (BetterFog.verboseLoggingEnabled.Value)
+                if (BetterFog.verboseLoggingEnabled)
                     BetterFog.mls.LogInfo("FogSettingsManager created and started.");
             }
             else if (instance != this)
             {
                 Destroy(gameObject);
-                if (BetterFog.verboseLoggingEnabled.Value)
+                if (BetterFog.verboseLoggingEnabled)
                     BetterFog.mls.LogWarning("FogSettingsManager already exists. Duplicate destroyed.");
             }
         }
@@ -86,11 +98,11 @@ namespace BetterFog.Assets
 
         private void Initialize()
         {
-            if (BetterFog.guiEnabled.Value == false)
+            /*if (BetterFog.guiEnabled.Value == false)
             {
                 BetterFog.mls.LogWarning("FogSettingsManager GUI is disabled by config file.");
                 return;
-            }
+            }*/
 
             BetterFog.mls.LogInfo("Initializing FogSettingsManager.");
 
@@ -158,53 +170,63 @@ namespace BetterFog.Assets
 
                     // Apply the custom font to TextMeshPro components
                     ApplyCustomFont(settingsCanvas);
+                    BetterFog.mls.LogInfo("Custom font applied to TextMeshPro components.");
+
+                    // Find Settings Content
+                    settingsInteractables = settingsCanvas.transform.Find("Interactables").gameObject;
+                    settingsText = settingsCanvas.transform.Find("Text").gameObject;
 
                     // Find dropdowns and populate
-                    presetDropdown = settingsCanvas.transform.Find("PresetDropdown").GetComponent<TMP_Dropdown>();
+                    presetDropdown = settingsInteractables.transform.Find("PresetDropdown").GetComponent<TMP_Dropdown>();
                     PopulateDropdown(presetDropdown);
-                    if (BetterFog.verboseLoggingEnabled.Value)
+                    if (BetterFog.verboseLoggingEnabled)
                         BetterFog.mls.LogInfo("Fog preset dropdown is now populated.");
                     SetCurrentOption(presetDropdown);
 
-                    modeDropdown = settingsCanvas.transform.Find("ModeDropdown").GetComponent<TMP_Dropdown>();
+                    modeDropdown = settingsInteractables.transform.Find("ModeDropdown").GetComponent<TMP_Dropdown>();
                     //BetterFog.mls.LogInfo(modeDropdown.ToString() + "Found");
                     PopulateDropdown(modeDropdown);
-                    if (BetterFog.verboseLoggingEnabled.Value)
+                    if (BetterFog.verboseLoggingEnabled)
                         BetterFog.mls.LogInfo("Fog mode dropdown is now populated.");
                     SetCurrentOption(modeDropdown);
                     //BetterFog.mls.LogInfo("SetCurrentOption complete.");
 
-                    // Find the slider and text components
-                    fogDensitySlider = settingsCanvas.transform.Find("ThicknessSlider").GetComponent<Slider>();
-                    densityVal = settingsCanvas.transform.Find("ThicknessNum").GetComponent<TextMeshProUGUI>();
-                    densityDown = settingsCanvas.transform.Find("ThicknessDown").GetComponent<Button>();
-                    densityUp = settingsCanvas.transform.Find("ThicknessUp").GetComponent<Button>();
+                    // Find the slider and input objects. Text values can be extracted from the inputs.
+                    fogDensitySlider = settingsInteractables.transform.Find("DensitySlider").GetComponent<Slider>();
+                    densityValInput = settingsInteractables.transform.Find("DensityInput").GetComponent<TMP_InputField>();
 
-                    fogRedSlider = settingsCanvas.transform.Find("RedSlider").GetComponent<Slider>();
-                    redVal = settingsCanvas.transform.Find("RedHueNum").GetComponent<TextMeshProUGUI>();
-                    redDown = settingsCanvas.transform.Find("RedDown").GetComponent<Button>();
-                    redUp = settingsCanvas.transform.Find("RedUp").GetComponent<Button>();
+                    fogRedSlider = settingsInteractables.transform.Find("RedHueSlider").GetComponent<Slider>();
+                    redValInput = settingsInteractables.transform.Find("RedHueInput").GetComponent<TMP_InputField>();
 
-                    fogGreenSlider = settingsCanvas.transform.Find("GreenSlider").GetComponent<Slider>();
-                    greenVal = settingsCanvas.transform.Find("GreenHueNum").GetComponent<TextMeshProUGUI>();
-                    greenDown = settingsCanvas.transform.Find("GreenDown").GetComponent<Button>();
-                    greenUp = settingsCanvas.transform.Find("GreenUp").GetComponent<Button>();
+                    BetterFog.mls.LogInfo("Fog red hue slider and input found.");
+                    fogGreenSlider = settingsInteractables.transform.Find("GreenHueSlider").GetComponent<Slider>();
+                    greenValInput = settingsInteractables.transform.Find("GreenHueInput").GetComponent<TMP_InputField>();
 
-                    fogBlueSlider = settingsCanvas.transform.Find("BlueSlider").GetComponent<Slider>();
-                    blueVal = settingsCanvas.transform.Find("BlueHueNum").GetComponent<TextMeshProUGUI>();
-                    blueDown = settingsCanvas.transform.Find("BlueDown").GetComponent<Button>();
-                    blueUp = settingsCanvas.transform.Find("BlueUp").GetComponent<Button>();
+                    fogBlueSlider = settingsInteractables.transform.Find("BlueHueSlider").GetComponent<Slider>();
+                    blueValInput = settingsInteractables.transform.Find("BlueHueInput").GetComponent<TMP_InputField>();
 
-                    weatherScaleCheckbox = settingsCanvas.transform.Find("WeatherScaleToggle").GetComponent<Toggle>();
-                    weatherScaleCheckbox.isOn = BetterFog.isDensityScaleEnabled;
+                    densityScaleCheckbox = settingsInteractables.transform.Find("DensityScaleToggle").GetComponent<Toggle>();
+                    densityScaleCheckbox.isOn = BetterFog.densityScaleEnabled;
+                    densityScaleVal = settingsText.transform.Find("DensityScaleVal").GetComponent<TextMeshProUGUI>();
 
-                    if (fogDensitySlider != null && densityVal != null)
+                    excludeShipCheckbox = settingsInteractables.transform.Find("ExcludeShipToggle").GetComponent<Toggle>();
+                    excludeShipCheckbox.isOn = BetterFog.excludeShipFogEnabled;
+
+                    excludeEnemiesCheckbox = settingsInteractables.transform.Find("ExcludeEnemiesToggle").GetComponent<Toggle>();
+                    excludeEnemiesCheckbox.isOn = BetterFog.excludeEnemyFogEnabled;
+
+                    verboseLogsCheckbox = settingsInteractables.transform.Find("VerboseLogsToggle").GetComponent<Toggle>();
+                    verboseLogsCheckbox.isOn = BetterFog.verboseLoggingEnabled;
+
+                    closeButton = settingsInteractables.transform.Find("CloseButton").GetComponent<UnityEngine.UI.Button>();
+
+                    if (fogDensitySlider != null && densityValInput != null)
                     {
                         // Initialize the text with the current slider value
-                        densityVal.text = fogDensitySlider.value.ToString();
-                        redVal.text = fogRedSlider.value.ToString();
-                        greenVal.text = fogGreenSlider.value.ToString();
-                        blueVal.text = fogBlueSlider.value.ToString();
+                        densityValInput.text = fogDensitySlider.value.ToString();
+                        redValInput.text = fogRedSlider.value.ToString();
+                        greenValInput.text = fogGreenSlider.value.ToString();
+                        blueValInput.text = fogBlueSlider.value.ToString();
 
                         // Add a listener to update the text and apply the value when the slider changes
                         fogDensitySlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogDensitySlider, value));
@@ -212,15 +234,27 @@ namespace BetterFog.Assets
                         fogGreenSlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogGreenSlider, value));
                         fogBlueSlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogBlueSlider, value));
 
-                        InitializeButtonListeners();
+                        // Add a listener to update the input value and text
+                        densityValInput.onValueChanged.AddListener(value => OnInputValueChanged(densityValInput, value));
+                        redValInput.onValueChanged.AddListener(value => OnInputValueChanged(redValInput, value));
+                        greenValInput.onValueChanged.AddListener(value => OnInputValueChanged(greenValInput, value));
+                        blueValInput.onValueChanged.AddListener(value => OnInputValueChanged(blueValInput, value));
 
                         // Add a listener to update the Weather Scale value when the checkbox is toggled
-                        weatherScaleCheckbox.onValueChanged.AddListener(isChecked => OnDensityScaleCheckboxValueChanged(isChecked));
+                        densityScaleCheckbox.onValueChanged.AddListener(isChecked => OnDensityScaleCheckboxValueChanged(isChecked));
+                        excludeEnemiesCheckbox.onValueChanged.AddListener(isChecked => OnExcludeEnemiesCheckboxValueChanged(isChecked));
+                        excludeShipCheckbox.onValueChanged.AddListener(isChecked => OnExcludeShipCheckboxValueChanged(isChecked));
+                        verboseLogsCheckbox.onValueChanged.AddListener(isChecked => OnVerboseLogsCheckboxValueChanged(isChecked));
+
+                        closeButton.onClick.AddListener(delegate
+                        {
+                            DisableSettings();
+                        });
                     }
                 }
                 else
                 {
-                    BetterFog.mls.LogError("FogSettingsCanvas prefab not found in AssetBundle.");
+                    BetterFog.mls.LogError("FogSettings prefab not found in AssetBundle.");
                 }
             }
             else
@@ -266,56 +300,112 @@ namespace BetterFog.Assets
         }
 
         //--------------------------------- End Custom Font ---------------------------------
-        //--------------------------------- Start Slider Adjustment ---------------------------------
+        //--------------------------------- Start Values Management ---------------------------------
+
+        private void OnValueChanged(string sourceName, float value)
+        {
+            if (BetterFog.verboseLoggingEnabled)
+                BetterFog.mls.LogInfo($"Value changed: {sourceName} = {value}");
+
+            switch (sourceName)
+            {
+                case "Density":
+                    if (fogDensitySlider != null && densityValInput != null)
+                    {
+                        // Synchronize slider and input field
+                        fogDensitySlider.value = value;
+                        densityValInput.text = value.ToString("0");
+                        BetterFog.currentPreset.MeanFreePath = value;
+                    }
+                    break;
+
+                case "Red":
+                    if (fogRedSlider != null && redValInput != null)
+                    {
+                        fogRedSlider.value = value;
+                        redValInput.text = value.ToString("0.00");
+                        BetterFog.currentPreset.AlbedoR = value;
+                    }
+                    break;
+
+                case "Green":
+                    if (fogGreenSlider != null && greenValInput != null)
+                    {
+                        fogGreenSlider.value = value;
+                        greenValInput.text = value.ToString("0.00");
+                        BetterFog.currentPreset.AlbedoG = value;
+                    }
+                    break;
+
+                case "Blue":
+                    if (fogBlueSlider != null && blueValInput != null)
+                    {
+                        fogBlueSlider.value = value;
+                        blueValInput.text = value.ToString("0.00");
+                        BetterFog.currentPreset.AlbedoB = value;
+                    }
+                    break;
+            }
+
+            BetterFog.ApplyFogSettings();
+        }
 
         private void OnSliderValueChanged(Slider slider, float value)
         {
-            if (BetterFog.verboseLoggingEnabled.Value)
-                BetterFog.mls.LogInfo($"Slider value changed: {slider.name} = {value}");
-            if (slider == fogDensitySlider && densityVal != null)
-            {
-                densityVal.text = value.ToString("0");
-                BetterFog.currentPreset.MeanFreePath = value;
-            }
-            else if (slider == fogRedSlider && redVal != null)
-            {
-                redVal.text = value.ToString("0.00");
-                BetterFog.currentPreset.AlbedoR = value;
-            }
-            else if (slider == fogGreenSlider && greenVal != null)
-            {
-                greenVal.text = value.ToString("0.00");
-                BetterFog.currentPreset.AlbedoG = value;
-            }
-            else if (slider == fogBlueSlider && blueVal != null)
-            {
-                blueVal.text = value.ToString("0.00");
-                BetterFog.currentPreset.AlbedoB = value;
-            }
-            BetterFog.ApplyFogSettings();
+            if (slider == fogDensitySlider)
+                OnValueChanged("Density", value);
+            else if (slider == fogRedSlider)
+                OnValueChanged("Red", value);
+            else if (slider == fogGreenSlider)
+                OnValueChanged("Green", value);
+            else if (slider == fogBlueSlider)
+                OnValueChanged("Blue", value);
         }
+
+        private void OnInputValueChanged(TMP_InputField input, string inputValue)
+        {
+            float value;
+            if (float.TryParse(inputValue, out value))
+            {
+                if (input == densityValInput)
+                    OnValueChanged("Density", value);
+                else if (input == redValInput)
+                    OnValueChanged("Red", value);
+                else if (input == greenValInput)
+                    OnValueChanged("Green", value);
+                else if (input == blueValInput)
+                    OnValueChanged("Blue", value);
+            }
+        }
+
+
+        //--------------------------------- End Values Management ---------------------------------
+        //--------------------------------- Start Slider Adjustment ---------------------------------
 
         private void UpdateSlidersWithCurrentPreset()
         {
             // Ensure sliders and preset are valid
-            if (fogDensitySlider != null && densityVal != null &&
-                fogRedSlider != null && redVal != null &&
-                fogGreenSlider != null && greenVal != null &&
-                fogBlueSlider != null && blueVal != null &&
+            if (fogDensitySlider != null && densityValInput != null &&
+                fogRedSlider != null && redValInput != null &&
+                fogGreenSlider != null && greenValInput != null &&
+                fogBlueSlider != null && blueValInput != null &&
                 BetterFog.currentPreset != null)
             {
                 // Example update logic: assuming currentPreset has properties for these values
+                BetterFog.mls.LogMessage($"111Updated sliders to current preset: {BetterFog.currentPreset.ToString()}");
                 fogDensitySlider.value = BetterFog.currentPreset.MeanFreePath;
-                redVal.text = fogDensitySlider.value.ToString();
+                densityValInput.text = fogDensitySlider.value.ToString();
 
+                BetterFog.mls.LogMessage($"222Updated sliders to current preset: {BetterFog.currentPreset.ToString()}");
                 fogRedSlider.value = BetterFog.currentPreset.AlbedoR;
-                redVal.text = fogRedSlider.value.ToString();
+                redValInput.text = fogRedSlider.value.ToString();
 
+                BetterFog.mls.LogMessage($"333Updated sliders to current preset: {BetterFog.currentPreset.ToString()}");
                 fogGreenSlider.value = BetterFog.currentPreset.AlbedoG;
-                greenVal.text = fogGreenSlider.value.ToString();
+                greenValInput.text = fogGreenSlider.value.ToString();
 
                 fogBlueSlider.value = BetterFog.currentPreset.AlbedoB;
-                blueVal.text = fogBlueSlider.value.ToString();
+                blueValInput.text = fogBlueSlider.value.ToString();
 
                 // Log updates for debugging
                 //BetterFog.mls.LogInfo($"Updated sliders to current preset: {BetterFog.currentPreset.PresetName}");
@@ -327,98 +417,80 @@ namespace BetterFog.Assets
         }
 
         //--------------------------------- End Slider Adjustment ---------------------------------
-        //--------------------------------- Start Button Adjustment ---------------------------------
-
-        private void InitializeButtonListeners()
-        {
-            AddAdjustmentListener(densityDown, -1f, fogDensitySlider);
-            AddAdjustmentListener(densityUp, 1f, fogDensitySlider);
-            AddAdjustmentListener(redDown, -0.1f, fogRedSlider);
-            AddAdjustmentListener(redUp, 0.1f, fogRedSlider);
-            AddAdjustmentListener(greenDown, -0.1f, fogGreenSlider);
-            AddAdjustmentListener(greenUp, 0.1f, fogGreenSlider);
-            AddAdjustmentListener(blueDown, -0.1f, fogBlueSlider);
-            AddAdjustmentListener(blueUp, 0.1f, fogBlueSlider);
-        }
-
-        private void AddAdjustmentListener(Button button, float adjustmentStep, Slider slider)
-        {
-            EventTrigger trigger = button.gameObject.GetComponent<EventTrigger>();
-            if (trigger == null)
-                trigger = button.gameObject.AddComponent<EventTrigger>();
-
-            EventTrigger.Entry entryDown = new EventTrigger.Entry
-            {
-                eventID = EventTriggerType.PointerDown
-            };
-            entryDown.callback.AddListener((eventData) => StartAdjusting(slider, adjustmentStep));
-            trigger.triggers.Add(entryDown);
-
-            EventTrigger.Entry entryUp = new EventTrigger.Entry
-            {
-                eventID = EventTriggerType.PointerUp
-            };
-            entryUp.callback.AddListener((eventData) => StopAdjusting());
-            trigger.triggers.Add(entryUp);
-
-            EventTrigger.Entry exitEntry = new EventTrigger.Entry
-            {
-                eventID = EventTriggerType.PointerExit
-            };
-            exitEntry.callback.AddListener((eventData) => StopAdjusting());
-            trigger.triggers.Add(exitEntry);
-        }
-        private Coroutine adjustCoroutine;
-
-        private void StartAdjusting(Slider slider, float changeAmount)
-        {
-            if (adjustCoroutine != null)
-                StopCoroutine(adjustCoroutine);
-
-            adjustCoroutine = StartCoroutine(AdjustSliderValueWithDebounce(slider, changeAmount));
-        }
-
-        private IEnumerator AdjustSliderValueWithDebounce(Slider slider, float changeAmount)
-        {
-            float lastUpdateTime = Time.time;
-
-            while (true)
-            {
-                if (Time.time - lastUpdateTime >= 0.05f) // Debounce interval
-                {
-                    slider.value = Mathf.Clamp(slider.value + changeAmount, slider.minValue, slider.maxValue);
-                    lastUpdateTime = Time.time;
-                }
-
-                yield return null;
-            }
-        }
-
-        private void StopAdjusting()
-        {
-            if (adjustCoroutine != null)
-                StopCoroutine(adjustCoroutine);
-        }
-
-
-        //--------------------------------- End Button Adjustment ---------------------------------
         //--------------------------------- Start Checkbox Adjustment ---------------------------------
 
         private void OnDensityScaleCheckboxValueChanged(bool isChecked)
         {
-            if (BetterFog.verboseLoggingEnabled.Value)
+            if (BetterFog.verboseLoggingEnabled)
                 BetterFog.mls.LogInfo($"Density Scale Checkbox value changed: {isChecked}");
-            BetterFog.isDensityScaleEnabled = isChecked;
+            BetterFog.densityScaleEnabled = isChecked;
             BetterFog.ApplyFogSettings();
+        }
+
+        private void OnExcludeShipCheckboxValueChanged(bool isChecked)
+        {
+            if (BetterFog.verboseLoggingEnabled)
+                BetterFog.mls.LogInfo($"Exclude Ship Checkbox value changed: {isChecked}");
+            BetterFog.excludeShipFogEnabled = isChecked;
+            BetterFog.ApplyFogSettings();
+        }
+
+        private void OnExcludeEnemiesCheckboxValueChanged(bool isChecked)
+        {
+            if (BetterFog.verboseLoggingEnabled)
+                BetterFog.mls.LogInfo($"Exclude Enemies Checkbox value changed: {isChecked}");
+            BetterFog.excludeEnemyFogEnabled = isChecked;
+            BetterFog.ApplyFogSettings();
+        }
+
+        private void OnVerboseLogsCheckboxValueChanged(bool isChecked)
+        {
+            if (BetterFog.verboseLoggingEnabled)
+                BetterFog.mls.LogInfo($"Verbose Logs Checkbox value changed: {isChecked}");
+            BetterFog.verboseLoggingEnabled = isChecked;
+            BetterFog.ApplyFogSettings();
+        }
+
+        private void UpdateCheckboxValues()
+        {
+            UpdateDensityScaleCheckbox();
+            UpdateExcludeShipCheckbox();
+            UpdateExcludeEnemiesCheckbox();
+            UpdateVerboseLogsCheckbox();
         }
 
         private void UpdateDensityScaleCheckbox()
         {
-            if (weatherScaleCheckbox != null)
+            if (densityScaleCheckbox != null)
             {
-                weatherScaleCheckbox.isOn = BetterFog.isDensityScaleEnabled;
+                densityScaleCheckbox.isOn = BetterFog.densityScaleEnabled;
             }
         }
+        private void UpdateExcludeShipCheckbox()
+        {
+            if (excludeShipCheckbox != null)
+            {
+                excludeShipCheckbox.isOn = BetterFog.excludeShipFogEnabled;
+            }
+        }
+
+        private void UpdateExcludeEnemiesCheckbox()
+        {
+            if (excludeEnemiesCheckbox != null)
+            {
+                excludeEnemiesCheckbox.isOn = BetterFog.excludeShipFogEnabled;
+            }
+        }
+
+        private void UpdateVerboseLogsCheckbox()
+        {
+            if (verboseLogsCheckbox != null)
+            {
+                verboseLogsCheckbox.isOn = BetterFog.verboseLoggingEnabled;
+            }
+        }
+
+
 
         //--------------------------------- End Checkbox Adjustment ---------------------------------
         //--------------------------------- Start Dropdown Adjustment ---------------------------------
@@ -505,10 +577,11 @@ namespace BetterFog.Assets
 
         public void UpdateSettings()
         {
+            densityScaleVal.text = BetterFog.combinedDensityScale.ToString("00.000");
             UpdateDropdownWithCurrentOption(presetDropdown);
             UpdateDropdownWithCurrentOption(modeDropdown);
             UpdateSlidersWithCurrentPreset();
-            UpdateDensityScaleCheckbox();
+            UpdateCheckboxValues();
         }
 
         private void UpdateDropdownWithCurrentOption(TMP_Dropdown dropdown)
@@ -519,20 +592,20 @@ namespace BetterFog.Assets
                 {
                     dropdown.value = BetterFog.currentPresetIndex;
                     //BetterFog.mls.LogInfo($"Preset dropdown updated to: {BetterFog.currentPreset.PresetName}");
-                    if (BetterFog.verboseLoggingEnabled.Value)
+                    if (BetterFog.verboseLoggingEnabled)
                         BetterFog.mls.LogInfo($"Preset dropdown updated to: {BetterFog.fogConfigPresets[dropdown.value].PresetName}");
                 }
                 else if (dropdown == modeDropdown)
                 {
                     dropdown.value = BetterFog.currentModeIndex;
                     //BetterFog.mls.LogInfo($"Mode dropdown updated to: {BetterFog.currentMode.Name}");
-                    if (BetterFog.verboseLoggingEnabled.Value)
+                    if (BetterFog.verboseLoggingEnabled)
                         BetterFog.mls.LogInfo($"Mode dropdown updated to: {BetterFog.fogModes[dropdown.value].Name}");
                 }
             }
             else
             {
-                if (BetterFog.verboseLoggingEnabled.Value)
+                if (BetterFog.verboseLoggingEnabled)
                     BetterFog.mls.LogError("Dropdown is null. Cannot update");
             }
         }
@@ -570,13 +643,41 @@ namespace BetterFog.Assets
         //--------------------------------- End Dropdown Adjustment ---------------------------------
         //--------------------------------- Start Settings Enable/Disable ---------------------------------
 
-        public void EnableSettings()
+        public void ToggleSettings()
         {
-            if (BetterFog.guiEnabled.Value == false)
+            /*if (BetterFog.guiEnabled.Value == false)
             {
                 BetterFog.mls.LogWarning("FogSettingsManager GUI is disabled by config file.");
                 return;
+            }*/
+
+            if (isSettingsEnabled)
+            {
+                DisableSettings();
             }
+            else
+            {
+                EnableSettings();
+                UpdateSettings();
+            }
+        }
+
+        public void EnableSettings()
+        {
+            ulong localClientId = NetworkManager.Singleton.LocalClientId; // Get the local client's ID
+
+            // Assign the local player using the same logic as for the host
+            BetterFog.player = BetterFog.Instance.FindLocalPlayer(localClientId);
+            BetterFog.player.disableInteract = true;
+            BetterFog.player.disableLookInput = true;
+            BetterFog.player.disableMoveInput = true;
+            BetterFog.player.inSpecialMenu = true;
+
+            /*if (BetterFog.guiEnabled.Value == false)
+            {
+                BetterFog.mls.LogWarning("FogSettingsManager GUI is disabled by config file.");
+                return;
+            }*/
 
             isSettingsEnabled = true;
 
@@ -586,7 +687,7 @@ namespace BetterFog.Assets
                 Destroy(settingsCanvas);
                 settingsCanvas = null; // Clear the reference
 
-                if (BetterFog.verboseLoggingEnabled.Value)
+                if (BetterFog.verboseLoggingEnabled)
                     BetterFog.mls.LogWarning("Canvas prefab not found. Initializing new Canvas.");
                 UnloadAssetBundle();
                 Initialize(); // Method to handle the initialization of settingsCanvas
@@ -596,7 +697,13 @@ namespace BetterFog.Assets
             settingsCanvas.SetActive(true);
             SetCurrentOption(presetDropdown);
             SetCurrentOption(modeDropdown);
+
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+
             BetterFog.mls.LogInfo("Fog Settings opened.");
+
+            BetterFog.mls.LogInfo($"disableInteract: {BetterFog.player.disableInteract}, disableLookInput { BetterFog.player.disableLookInput}, disableMoveInput: {BetterFog.player.disableMoveInput}");
         }
 
         private void UnloadAssetBundle()
@@ -611,12 +718,16 @@ namespace BetterFog.Assets
 
         public void DisableSettings()
         {
-            if (BetterFog.guiEnabled.Value == false)
+            /*if (BetterFog.guiEnabled.Value == false)
             {
                 if (BetterFog.verboseLoggingEnabled.Value)
                     BetterFog.mls.LogWarning("FogSettingsManager GUI is disabled by config file.");
                 return;
-            }
+            }*/
+            BetterFog.player.disableInteract = false;
+            BetterFog.player.disableLookInput = false;
+            BetterFog.player.disableMoveInput = false;
+            BetterFog.player.inSpecialMenu = false;
 
             isSettingsEnabled = false;
             if (settingsCanvas != null)
@@ -630,12 +741,18 @@ namespace BetterFog.Assets
                 Destroy(settingsCanvas);
                 settingsCanvas = null; // Clear the reference
 
-                if (BetterFog.verboseLoggingEnabled.Value)
+                if (BetterFog.verboseLoggingEnabled)
                     BetterFog.mls.LogWarning("Canvas prefab not found. Initializing new Canvas.");
                 UnloadAssetBundle();
                 Initialize(); // Method to handle the initialization of settingsCanvas
             }
+
+            if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsClient)
+                Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
         }
+
+        
 
         private void OnDestroy()
         {

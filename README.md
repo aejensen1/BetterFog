@@ -33,7 +33,7 @@ Instructions
 What is "Weather Scale"?
 ==============
 
-"Weather Scale" is essentially a toggle option that when set to true multiplies the fog density value to another value based on the moon and weather type. For example, Rend, being naturally more foggy even without weather, might have a multiplier of 0.3, while Offense with no fog may have a multiplier of 0.9. A larger value means more space between fog particles which also means thinner fog. These values can be changed in the config file. When weather scaling is disabled the fog stays static according to the preset it is on, or in other words the fog will not change based on weather or moon. 
+"Weather Scale" or "Density Scale" is essentially a toggle option that when set to true multiplies the fog density value to another value based on the moon and weather type. For example, Rend, being naturally more foggy even without weather, might have a multiplier of 0.3, while Offense with no fog may have a multiplier of 0.9. A larger value means more space between fog particles which also means thinner fog. These values can be changed in the config file. When weather scaling is disabled the fog stays static according to the preset it is on, or in other words the fog will not change based on weather or moon. 
 
 "Weather Scaled Enabled by Default" in the config file is a convenience option to enable the Weather Scale on the booting up of the game. When disabled, Weather Scale will be disabled by default and must be enabled via the GUI or hotkey.
 
@@ -64,7 +64,6 @@ Known Bugs
 To-Dos
 ==============
 - New modes
-- Possibly add some text on GUI that indicates what weather scale is set at (although the logs do this already)
 
 Screenshots
 ==============
@@ -80,8 +79,11 @@ Screenshots
 |:--:|:--:|:--:|
 | **Orange Fog** | **Pink Fog** | **Blue Fog** |
 
+Questions?
+==============
+You may post questions in the Lethal Company Modding discord server: https://discord.com/channels/1168655651455639582/1280288943857733632
 
 Credits
 ==============
-- Thanks to [mrov](https://github.com/AndreyMrovol) for some code suggestions on finding fog objects.
-- Thanks to DarthFigo for a code suggestion on finding enemy fog to exclude.
+- [mrov](https://github.com/AndreyMrovol) for some code suggestions on finding fog objects.
+- DarthFigo for a code suggestion on finding enemy fog to exclude.
