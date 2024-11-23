@@ -12,7 +12,7 @@ namespace BetterFog.Patches
             if (GameNetworkManager.Instance.gameHasStarted)
             {
                 BetterFog.mls.LogInfo("Teleported player. Applying fog settings to moon.");
-                BetterFog.ApplyFogSettings();
+                BetterFog.ApplyFogSettings(false);
             }
         }
 
@@ -23,7 +23,7 @@ namespace BetterFog.Patches
             if (GameNetworkManager.Instance.gameHasStarted)
             {
                 BetterFog.mls.LogInfo("Spectating the next player. Applying fog settings to moon.");
-                BetterFog.ApplyFogSettings();
+                BetterFog.ApplyFogSettings(false);
             }
         }
     }

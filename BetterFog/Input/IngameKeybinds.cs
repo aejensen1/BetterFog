@@ -70,7 +70,7 @@ namespace BetterFog.Input
             if (refreshPresetHotKey != null && refreshPresetHotKey.enabled)
             {
                 refreshPresetHotKey.Disable();
-                refreshPresetHotKey.performed -= ctx => BetterFog.ApplyFogSettings();
+                refreshPresetHotKey.performed -= ctx => BetterFog.ApplyFogSettings(false);
             }
             refreshPresetHotKey = new InputAction("Refresh Fog Preset", binding: $"<Keyboard>/{refreshHotkeyString}");
             if (BetterFog.refreshHotKeyEnabled.Value)
@@ -79,7 +79,7 @@ namespace BetterFog.Input
                 refreshPresetHotKey.Enable();
 
                 // Subscribe to the performed event
-                refreshPresetHotKey.performed += ctx => BetterFog.ApplyFogSettings();
+                refreshPresetHotKey.performed += ctx => BetterFog.ApplyFogSettings(false);
             }
             else
                 refreshPresetHotKey.Disable();
@@ -91,7 +91,7 @@ namespace BetterFog.Input
                 weatherScalePresetHotKey.performed -= ctx =>
                 {
                     BetterFog.densityScaleEnabled = !BetterFog.densityScaleEnabled;
-                    BetterFog.ApplyFogSettings();
+                    BetterFog.ApplyFogSettings(false);
                     if (FogSettingsManager.Instance.IsSettingsEnabled())
                     {
                         FogSettingsManager.Instance.UpdateSettings();
@@ -110,7 +110,7 @@ namespace BetterFog.Input
                 {
                     BetterFog.densityScaleEnabled = !BetterFog.densityScaleEnabled;
                     //BetterFog.mls.LogInfo($"Density scaling is now {(BetterFog.isDensityScaleEnabled ? "enabled" : "disabled")}.");
-                    BetterFog.ApplyFogSettings();
+                    BetterFog.ApplyFogSettings(false);
                     if (FogSettingsManager.Instance.IsSettingsEnabled())
                     {
                         FogSettingsManager.Instance.UpdateSettings();

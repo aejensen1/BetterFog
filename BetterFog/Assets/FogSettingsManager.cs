@@ -2,14 +2,10 @@
 using UnityEngine.UI;
 using TMPro;  // Make sure you have this namespace for TextMeshPro
 using System.Collections.Generic;
-using System.Collections;
-using UnityEngine.EventSystems;
 using BepInEx;
 using System.IO;
-using System.Diagnostics.PerformanceData;
-using UnityEngine.InputSystem;
 using Unity.Netcode;
-using static UnityEngine.Rendering.DebugUI;
+using BetterFog.Input;
 
 namespace BetterFog.Assets
 {
@@ -27,29 +23,28 @@ namespace BetterFog.Assets
         public TMP_Dropdown presetDropdown; // Dropdown for fog 
 
         private Slider fogDensitySlider; // Slider for fog density
-        //private TextMeshProUGUI densityVal; // Display for fog density value
         private TMP_InputField densityValInput; // Input field for fog density value
 
         private Slider fogRedSlider; // Slider for fog red hue
-        //private TextMeshProUGUI redVal; // Display for red hue value
         TMP_InputField redValInput; // Input field for red hue value
 
         private Slider fogGreenSlider; // Slider for green hue
-        //private TextMeshProUGUI greenVal; // Display for green hue value
         TMP_InputField greenValInput; // Input field for green hue value
 
 
         private Slider fogBlueSlider; // Slider for blue hue
-        //private TextMeshProUGUI blueVal; // Display for blue hue value
         TMP_InputField blueValInput; // Input field for blue hue value
 
-        //public Toggle noFogCheckbox;
+        public TextMeshProUGUI currentWeatherVal;
+        public TextMeshProUGUI currentMoonVal;
+
         public Toggle densityScaleCheckbox;
         public TextMeshProUGUI densityScaleVal;
 
         public Toggle excludeShipCheckbox;
         public Toggle excludeEnemiesCheckbox;
         public Toggle verboseLogsCheckbox;
+        public Toggle autoPresetModeCheckbox;
 
         private UnityEngine.UI.Button closeButton; // Button to close the settings
 
@@ -98,12 +93,6 @@ namespace BetterFog.Assets
 
         private void Initialize()
         {
-            /*if (BetterFog.guiEnabled.Value == false)
-            {
-                BetterFog.mls.LogWarning("FogSettingsManager GUI is disabled by config file.");
-                return;
-            }*/
-
             BetterFog.mls.LogInfo("Initializing FogSettingsManager.");
 
             string[] assetPaths = Directory.GetFiles(Paths.PluginPath, "fogsettingsgui", SearchOption.AllDirectories);
@@ -198,12 +187,15 @@ namespace BetterFog.Assets
                     fogRedSlider = settingsInteractables.transform.Find("RedHueSlider").GetComponent<Slider>();
                     redValInput = settingsInteractables.transform.Find("RedHueInput").GetComponent<TMP_InputField>();
 
-                    BetterFog.mls.LogInfo("Fog red hue slider and input found.");
+                    //BetterFog.mls.LogInfo("Fog red hue slider and input found.");
                     fogGreenSlider = settingsInteractables.transform.Find("GreenHueSlider").GetComponent<Slider>();
                     greenValInput = settingsInteractables.transform.Find("GreenHueInput").GetComponent<TMP_InputField>();
 
                     fogBlueSlider = settingsInteractables.transform.Find("BlueHueSlider").GetComponent<Slider>();
                     blueValInput = settingsInteractables.transform.Find("BlueHueInput").GetComponent<TMP_InputField>();
+
+                    currentWeatherVal = settingsText.transform.Find("CurrentWeatherVal").GetComponent<TextMeshProUGUI>();
+                    currentMoonVal = settingsText.transform.Find("CurrentMoonVal").GetComponent<TextMeshProUGUI>();
 
                     densityScaleCheckbox = settingsInteractables.transform.Find("DensityScaleToggle").GetComponent<Toggle>();
                     densityScaleCheckbox.isOn = BetterFog.densityScaleEnabled;
@@ -214,6 +206,11 @@ namespace BetterFog.Assets
 
                     excludeEnemiesCheckbox = settingsInteractables.transform.Find("ExcludeEnemiesToggle").GetComponent<Toggle>();
                     excludeEnemiesCheckbox.isOn = BetterFog.excludeEnemyFogEnabled;
+                    //BetterFog.mls.LogInfo("Fog exclude enemies checkbox found.");
+
+                    autoPresetModeCheckbox = settingsInteractables.transform.Find("AutoPresetModeToggle").GetComponent<Toggle>();
+                    autoPresetModeCheckbox.isOn = BetterFog.autoPresetModeEnabled;
+                    //BetterFog.mls.LogInfo("Fog auto preset mode checkbox found.");
 
                     verboseLogsCheckbox = settingsInteractables.transform.Find("VerboseLogsToggle").GetComponent<Toggle>();
                     verboseLogsCheckbox.isOn = BetterFog.verboseLoggingEnabled;
@@ -244,6 +241,7 @@ namespace BetterFog.Assets
                         densityScaleCheckbox.onValueChanged.AddListener(isChecked => OnDensityScaleCheckboxValueChanged(isChecked));
                         excludeEnemiesCheckbox.onValueChanged.AddListener(isChecked => OnExcludeEnemiesCheckboxValueChanged(isChecked));
                         excludeShipCheckbox.onValueChanged.AddListener(isChecked => OnExcludeShipCheckboxValueChanged(isChecked));
+                        autoPresetModeCheckbox.onValueChanged.AddListener(isChecked => OnAutoPresetModeCheckboxValueChanged(isChecked));
                         verboseLogsCheckbox.onValueChanged.AddListener(isChecked => OnVerboseLogsCheckboxValueChanged(isChecked));
 
                         closeButton.onClick.AddListener(delegate
@@ -346,8 +344,8 @@ namespace BetterFog.Assets
                     }
                     break;
             }
-
-            BetterFog.ApplyFogSettings();
+            if (!BetterFog.autoPresetModeEnabled)
+                BetterFog.ApplyFogSettings(false);
         }
 
         private void OnSliderValueChanged(Slider slider, float value)
@@ -421,7 +419,7 @@ namespace BetterFog.Assets
             if (BetterFog.verboseLoggingEnabled)
                 BetterFog.mls.LogInfo($"Density Scale Checkbox value changed: {isChecked}");
             BetterFog.densityScaleEnabled = isChecked;
-            BetterFog.ApplyFogSettings();
+            BetterFog.ApplyFogSettings(false);
         }
 
         private void OnExcludeShipCheckboxValueChanged(bool isChecked)
@@ -429,7 +427,7 @@ namespace BetterFog.Assets
             if (BetterFog.verboseLoggingEnabled)
                 BetterFog.mls.LogInfo($"Exclude Ship Checkbox value changed: {isChecked}");
             BetterFog.excludeShipFogEnabled = isChecked;
-            BetterFog.ApplyFogSettings();
+            BetterFog.ApplyFogSettings(false);
         }
 
         private void OnExcludeEnemiesCheckboxValueChanged(bool isChecked)
@@ -437,7 +435,27 @@ namespace BetterFog.Assets
             if (BetterFog.verboseLoggingEnabled)
                 BetterFog.mls.LogInfo($"Exclude Enemies Checkbox value changed: {isChecked}");
             BetterFog.excludeEnemyFogEnabled = isChecked;
-            BetterFog.ApplyFogSettings();
+            BetterFog.ApplyFogSettings(false);
+        }
+
+        private void OnAutoPresetModeCheckboxValueChanged(bool isChecked)
+        {
+            if (BetterFog.verboseLoggingEnabled)
+                BetterFog.mls.LogInfo($"Auto Preset Mode Checkbox value changed: {isChecked}");
+            BetterFog.autoPresetModeEnabled = isChecked;
+            if (isChecked)
+            {
+                BetterFog.ApplyFogSettings(true);
+                IngameKeybinds.Instance.nextPresetHotkey.Disable();
+                IngameKeybinds.Instance.nextModeHotkey.Disable();
+            }
+            else
+            {
+                IngameKeybinds.Instance.nextPresetHotkey.Enable();
+                IngameKeybinds.Instance.nextModeHotkey.Enable();
+            }
+
+            //UpdateSettings();
         }
 
         private void OnVerboseLogsCheckboxValueChanged(bool isChecked)
@@ -445,7 +463,7 @@ namespace BetterFog.Assets
             if (BetterFog.verboseLoggingEnabled)
                 BetterFog.mls.LogInfo($"Verbose Logs Checkbox value changed: {isChecked}");
             BetterFog.verboseLoggingEnabled = isChecked;
-            BetterFog.ApplyFogSettings();
+            BetterFog.ApplyFogSettings(false);
         }
 
         private void UpdateCheckboxValues()
@@ -487,7 +505,13 @@ namespace BetterFog.Assets
             }
         }
 
-
+        private void UpdateAutoPresetModeCheckbox()
+        {
+            if (autoPresetModeCheckbox != null)
+            {
+                autoPresetModeCheckbox.isOn = BetterFog.autoPresetModeEnabled;
+            }
+        }
 
         //--------------------------------- End Checkbox Adjustment ---------------------------------
         //--------------------------------- Start Dropdown Adjustment ---------------------------------
@@ -574,6 +598,8 @@ namespace BetterFog.Assets
 
         public void UpdateSettings()
         {
+            currentWeatherVal.text = BetterFog.currentWeatherType;
+            currentMoonVal.text = BetterFog.currentLevel;
             densityScaleVal.text = BetterFog.combinedDensityScale.ToString("00.000");
             UpdateDropdownWithCurrentOption(presetDropdown);
             UpdateDropdownWithCurrentOption(modeDropdown);
@@ -609,33 +635,50 @@ namespace BetterFog.Assets
 
         private void OnPresetChanged(int index)
         {
-            // Update the currentPreset based on the selected dropdown option
-            BetterFog.currentPresetIndex = index;
-            BetterFog.currentPreset = BetterFog.fogConfigPresets[index];
-            UpdateSlidersWithCurrentPreset();
+            if(!BetterFog.autoPresetModeEnabled)
+            {
+                // Update the currentPreset based on the selected dropdown option
+                BetterFog.currentPresetIndex = index;
+                BetterFog.currentPreset = BetterFog.fogConfigPresets[index];
+                UpdateSlidersWithCurrentPreset();
 
-            // Apply the preset or perform other actions based on the selection
-            ApplyPreset(BetterFog.currentPreset);
+                // Apply the preset or perform other actions based on the selection
+                //ApplyPreset(BetterFog.currentPreset); //Will remove soon.
+            }
+            else
+            {
+                // Revert the dropdown value to the previous index
+                presetDropdown.value = BetterFog.currentPresetIndex;
+            }
         }
 
         private void OnModeChanged(int currentIndex, int previousIndex)
         {
-            // Update the current mode in BetterFog
-            BetterFog.currentModeIndex = currentIndex;
-            BetterFog.currentMode = BetterFog.fogModes[currentIndex];
-            BetterFog.Instance.UpdateMode();
+            if (!BetterFog.autoPresetModeEnabled)
+            {
+                BetterFog.mls.LogInfo($"Mode Update 0 - Mode changed from: {BetterFog.currentMode.Name} to: {BetterFog.fogModes[currentIndex].Name}");
+                // Update the current mode in BetterFog
+                BetterFog.currentModeIndex = currentIndex;
+                BetterFog.currentMode = BetterFog.fogModes[currentIndex];
 
-            // Apply the new fog settings
-            BetterFog.ApplyFogSettings();
+                BetterFog.Instance.UpdateMode();
+                BetterFog.ApplyFogSettings(false);
+            }
+            else
+            {
+                // Revert the dropdown value to the previous index
+                modeDropdown.value = previousIndex;
+            }
+
         }
 
-        private void ApplyPreset(FogConfigPreset preset) //Could possibly remove?
-        {
-            BetterFog.currentPresetIndex = BetterFog.fogConfigPresets.IndexOf(preset);
-            BetterFog.currentPreset = preset;
-            //BetterFog.mls.LogInfo($"Applying preset: {preset.PresetName}");
-            BetterFog.ApplyFogSettings();
-        }
+        //private void ApplyPreset(FogConfigPreset preset) //Could possibly remove?
+        //{
+        //    BetterFog.currentPresetIndex = BetterFog.fogConfigPresets.IndexOf(preset);
+        //    BetterFog.currentPreset = preset;
+        //    //BetterFog.mls.LogInfo($"Applying preset: {preset.PresetName}");
+        //    BetterFog.ApplyFogSettings();
+        //}
 
         //--------------------------------- End Dropdown Adjustment ---------------------------------
         //--------------------------------- Start Settings Enable/Disable ---------------------------------
@@ -705,7 +748,8 @@ namespace BetterFog.Assets
 
             BetterFog.mls.LogInfo("Fog Settings opened.");
 
-            BetterFog.mls.LogInfo($"disableInteract: {BetterFog.player.disableInteract}, disableLookInput { BetterFog.player.disableLookInput}, disableMoveInput: {BetterFog.player.disableMoveInput}");
+            if (BetterFog.verboseLoggingEnabled)
+                BetterFog.mls.LogInfo($"disableInteract: {BetterFog.player.disableInteract}, disableLookInput { BetterFog.player.disableLookInput}, disableMoveInput: {BetterFog.player.disableMoveInput}");
         }
 
         private void UnloadAssetBundle()

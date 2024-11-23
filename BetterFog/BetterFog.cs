@@ -14,6 +14,8 @@ using System.Collections;
 using GameNetcodeStuff;
 using Unity.Netcode;
 using UnityEngine.SceneManagement;
+using WeatherRegistry;
+using WeatherRegistry.Definitions;
 
 namespace BetterFog
 {
@@ -22,7 +24,7 @@ namespace BetterFog
     {
         public const string modGUID = "ironthumb.BetterFog";
         public const string modName = "BetterFog";
-        public const string modVersion = "3.3.2";
+        public const string modVersion = "3.3.3";
 
         private readonly Harmony harmony = new Harmony(modGUID);
         public static ManualLogSource mls;
@@ -67,6 +69,12 @@ namespace BetterFog
         public static string currentLevel = "";
         public static List<MoonScale> moonScales;
         private static ConfigEntry<string> moonScalesConfig;
+
+        // Auto Preset/Mode Settings
+        private static List<AutoPresetMode> autoPresetModes;
+        private static ConfigEntry<string> autoPresetModeConfig;
+        private static ConfigEntry<bool> autoPresetModeEnabledDefault;
+        public static bool autoPresetModeEnabled;
 
         // Fog preset variables
         private static ConfigEntry<string> defaultPresetName;
@@ -169,10 +177,12 @@ namespace BetterFog
             weatherScaleHotKeyEnabled = Config.Bind(section2, "Enable Weather Scale Hotkey", false, "Enable or disable hotkey for Weather Scaling toggle.");
 
             string section3 = "Fog Settings";
-            excludeShipFogDefault = Config.Bind(section3, "Apply to Fog Exclusion Zone", true, "Apply fog settings to the Fog Exclusion Zone (eg. inside of ship).");
+            excludeShipFogDefault = Config.Bind(section3, "Exclude Ship", true, "Enable or Disable fog settings to the Fog Exclusion Zone (eg. inside of ship).");
             excludeShipFogEnabled = excludeShipFogDefault.Value;
             densityScaleEnabledDefault = Config.Bind(section3, "Weather Scale Enabled Default", true, "Enable density scaling for moons and weather by default when booting game.");
             densityScaleEnabled = densityScaleEnabledDefault.Value;
+            autoPresetModeEnabledDefault = Config.Bind(section3, "Auto Preset/Mode Enabled", false, "Enable or disable auto preset/mode settings by default.");
+            autoPresetModeEnabled = autoPresetModeEnabledDefault.Value;
             verboseLoggingDefault = Config.Bind(section3, "Verbose Logging Enabled", false, "Enable or disable verbose logging for the mod. Can be used for debugging.");
             verboseLoggingEnabled = verboseLoggingDefault.Value;
             excludeEnemyFogDefault = Config.Bind(section3, "Exclude Enemy Fog", true, "Exclude enemy fog when applying better fog settings.");
@@ -246,6 +256,15 @@ namespace BetterFog
 
             weatherScaleBlacklist = ParseDensityScaleBlacklist(weatherScaleBlacklistConfig.Value);
             moonScaleBlacklist = ParseDensityScaleBlacklist(moonScaleBlacklistConfig.Value);
+
+            string section5 = "Auto Preset/Mode Settings";
+            autoPresetModeConfig = Config.Bind(section5, "Auto Preset/Mode Settings", "", "Automatically apply presets and modes to moons and weathers. On the left of = enter \n" +
+                "a moon and/or weather name, and on the right enter a single preset or mode name. Entering a preset name on the right automatically sets the mode to \"Better Fog\". \n" +
+                "To have a condition that requires both a moon and weather, enter \"&\" in between entries. This will override single entries if both moon and weather are present. \n" +
+                "If a preset name is the same as a mode name, the mode will be set to \"Better Fog\" and that preset will be set. \n" +
+                "Warning: If you create different conditions that conflict (such as none=mist,68 Artifice=No Fog and you land on Art with no weather), only one condition will apply. \n" +
+                "Example: 61 March=Light Fog,7 Dine&eclipsed=Orange Fog,7 Dine=Heavy Fog,eclipsed=Red Fog,8 Titan=Heavy Fog,none=Mist,none&8 Titan=No Fog");
+            autoPresetModes = ParseAutoPresetMode(autoPresetModeConfig.Value);
 
             mls.LogInfo("Finished parsing config entries");
 
@@ -325,6 +344,10 @@ namespace BetterFog
                 harmony.Patch(original: AccessTools.Method(typeof(LocalVolumetricFog), "OnEnable"), postfix: new HarmonyMethod(typeof(LocalVolumetricFogPatch), "OnEnablePatch"));
                 //mls.LogInfo("LocalVolumetricFog patches applied successfully.");
 
+                harmony.Patch(original: AccessTools.Method(typeof(WeatherManager), "GetWeather"), postfix: new HarmonyMethod(typeof(WeatherManagerPatch), "GetWeatherPatch"));
+                //mls.LogInfo("WeatherManager patches applied successfully.");
+
+                // Specify parameters to avoid ambiguity between overloaded methods
                 harmony.Patch(AccessTools.Method(typeof(SceneManager), "LoadScene", new[] { typeof(string), typeof(LoadSceneParameters) }), postfix: new HarmonyMethod(typeof(SceneManagerPatch), "LoadScenePatch"));
                 //mls.LogInfo("SceneManager patches applied successfully.");
 
@@ -352,17 +375,155 @@ namespace BetterFog
 
         //--------------------------------- Start Fog Application Methods ---------------------------------
 
-        public static void ApplyFogSettings()
+        public static void ApplyFogSettings(bool activateAutoPresetMode) // Argument only true when autoPresetMode is being enabled/checked
         {
-            moonDensityScale = 1; // Default to 1 if no moon is detected
-            weatherDensityScale = 1; // Default to 1 if no weather is detected
-
-            if (fogRefreshLock)
+            if (fogRefreshLock && !autoPresetModeEnabled)
             {
                 if (verboseLoggingEnabled)
                     mls.LogWarning("Fog settings refresh is locked. Skipping fog settings application.");
                 return;
             }
+
+            SetWeatherScale();
+
+            // Depreciated code (to remove soon)
+            //// Find all LocalVolumetricFog objects
+            //var fogObjects = Resources
+            //    .FindObjectsOfTypeAll<LocalVolumetricFog>()
+            //    .ToList();
+            //// Add for name filter if desired:
+            ////.Where(fog => fog.name == "Foggy")
+            ////.ToList()
+            ////.FirstOrDefault();
+
+            //// Iterate through each fog object
+            //foreach (var fogObject in fogObjects)
+            //{
+            //    // Apply settings if:
+            //    // the fog object is not null
+            //    // FogExclusionZone is not excluded
+            //    // Enemy fog is not excluded
+            //    var enemyLayer = LayerMask.NameToLayer("Enemies");
+            //    if (fogObject != null &&
+            //        !(fogObject.name == "FogExclusionZone" && excludeShipFogEnabled == true) &&
+            //        !(fogObject.gameObject.layer == enemyLayer && excludeEnemyFogEnabled == true) &&
+            //        !(currentMode.Name == "Vanilla") &&
+            //        !(autoPresetModeEnabled))
+            //    {
+            //        // prepare the parameters object for modification
+            //        var parameters = fogObject.parameters;
+
+            //        if (densityScaleEnabled)
+            //        {
+            //            // Set new density with scaling applied
+            //            parameters.meanFreePath = currentPreset.MeanFreePath * combinedDensityScale;
+            //        }
+            //        else
+            //        {
+            //            //mls.LogInfo("Weather scaling is disabled. Using a scale of 1.");
+            //            parameters.meanFreePath = currentPreset.MeanFreePath;
+            //        }
+            //        parameters.albedo = new Color(
+            //            currentPreset.AlbedoR,
+            //            currentPreset.AlbedoG,
+            //            currentPreset.AlbedoB,
+            //            1f
+            //        );
+
+            //        // Optionally, apply changes if the parameters object needs to be reassigned
+            //        fogObject.parameters = parameters;
+            //    }
+            //    else if (currentMode.Name == "Vanilla") // attempt to use vanilla settings
+            //    {
+            //        ResetFogToVanilla(fogObject.gameObject);
+            //    }
+
+            //    if (verboseLoggingEnabled) // Log settings if verbose logging is enabled.
+            //    {
+            //        // Print details of the Fog object
+            //        Color fogColor = fogObject.parameters.albedo;
+            //        mls.LogInfo($"Found LocalVolumetricFog object: {fogObject.name}, MeanFreePath: {fogObject.parameters.meanFreePath}, AlbedoR: {fogColor.r}, AlbedoG: {fogColor.g}, AlbedoB: {fogColor.b}");
+            //    }
+            //}
+
+            // Main Function
+            var fogObjects = Resources
+                .FindObjectsOfTypeAll<LocalVolumetricFog>()
+                .ToList();
+
+            if(verboseLoggingEnabled)
+                mls.LogInfo($"autoPresetModeEnabled: {autoPresetModeEnabled}");
+                mls.LogInfo($"activateAutoPresetMode: {activateAutoPresetMode}");
+
+            foreach (var fogObject in fogObjects)
+            {
+                ProcessFogObject(fogObject, activateAutoPresetMode);
+            }
+
+            //if (currentMode.Name == "Better Fog")
+            //    mls.LogInfo($"Applied Preset: {currentPreset.ToString()}, DensityScale={combinedDensityScale}"); // Log the applied preset values
+        }
+
+        // New Function
+        private static void ProcessFogObject(LocalVolumetricFog fogObject, bool activateAutoPresetMode) // Argument only true when autoPresetMode is being enabled/checked
+        {
+            var enemyLayer = LayerMask.NameToLayer("Enemies");
+
+            if (fogObject != null &&
+                !(fogObject.name == "FogExclusionZone" && excludeShipFogEnabled) &&
+                !(fogObject.gameObject.layer == enemyLayer && excludeEnemyFogEnabled) &&
+                !(currentMode.Name == "Vanilla") &&
+                !(activateAutoPresetMode))
+            {
+                ApplyFogParameters(fogObject);
+            }
+            else if (fogObject != null &&
+                !(fogObject.name == "FogExclusionZone" && excludeShipFogEnabled) &&
+                !(fogObject.gameObject.layer == enemyLayer && excludeEnemyFogEnabled) &&
+                (activateAutoPresetMode))
+            {
+                ApplyAutoPresetMode(fogObject);
+            }
+            else if (currentMode.Name == "Vanilla")
+            {
+                ResetFogToVanilla(fogObject.gameObject);
+            }
+
+            if (verboseLoggingEnabled)
+            {
+                Color fogColor = fogObject.parameters.albedo;
+                mls.LogInfo($"Found LocalVolumetricFog object: {fogObject.name}, MeanFreePath: {fogObject.parameters.meanFreePath}, AlbedoR: {fogColor.r}, AlbedoG: {fogColor.g}, AlbedoB: {fogColor.b}");
+            }
+        }
+
+        private static void ApplyFogParameters(LocalVolumetricFog fogObject)
+        {
+            var parameters = fogObject.parameters;
+
+            if (densityScaleEnabled)
+            {
+                parameters.meanFreePath = currentPreset.MeanFreePath * combinedDensityScale;
+            }
+            else
+            {
+                parameters.meanFreePath = currentPreset.MeanFreePath;
+            }
+
+            parameters.albedo = new Color(
+                currentPreset.AlbedoR,
+                currentPreset.AlbedoG,
+                currentPreset.AlbedoB,
+                1f
+            );
+
+            fogObject.parameters = parameters;
+        }
+
+        private static void SetWeatherScale()
+        {
+            moonDensityScale = 1; // Default to 1 if no moon is detected
+            weatherDensityScale = 1; // Default to 1 if no weather is detected
+
             if (densityScaleEnabled)
             {
                 if (!moonScaleBlacklist.Contains(currentLevel) && !moonScaleBlacklist.Contains(currentWeatherType)) // don't scale moon density when moon/weather is blacklisted.
@@ -394,7 +555,7 @@ namespace BetterFog
                     foreach (WeatherScale weatherScale in weatherScales)
                     {
                         //mls.LogInfo(weatherScale.WeatherName);
-                        if ((currentWeatherType == weatherScale.WeatherName))
+                        if (currentWeatherType == weatherScale.WeatherName)
                         {
                             weatherDensityScale = weatherScale.Scale;
                             if (verboseLoggingEnabled)
@@ -408,7 +569,7 @@ namespace BetterFog
                         }
                     }
                 }
-                else
+                else if (verboseLoggingEnabled)
                     mls.LogInfo("Blacklisted moon or weather detected. Setting weather density scale to 1.");
             }
 
@@ -419,70 +580,67 @@ namespace BetterFog
                 mls.LogInfo($"Preset original MeanFreePath: {currentPreset.MeanFreePath}"); // Log the original MeanFreePath (density) value
                 mls.LogInfo($"Scaled MeanFreePath: {currentPreset.MeanFreePath} * {combinedDensityScale} = {currentPreset.MeanFreePath * combinedDensityScale}"); // Log the scaled MeanFreePath (density) value
             }
+        }
 
+        private static void ApplyAutoPresetMode(LocalVolumetricFog fogObject) // Apply auto preset/mode settings if they match current weather or moon
+        {
+            AutoPresetMode matchedPreset = null;
 
-
-            // Find all LocalVolumetricFog objects
-            var fogObjects = Resources
-                .FindObjectsOfTypeAll<LocalVolumetricFog>()
-                .ToList();
-            // Add for name filter if desired:
-            //.Where(fog => fog.name == "Foggy")
-            //.ToList()
-            //.FirstOrDefault();
-
-            // Iterate through each fog object
-            foreach (var fogObject in fogObjects)
+            foreach (var preset in autoPresetModes)
             {
-                // Apply settings if:
-                // the fog object is not null
-                // FogExclusionZone is not excluded
-                // Enemy fog is not excluded
-                var enemyLayer = LayerMask.NameToLayer("Enemies");
-                if (fogObject != null &&
-                    !(fogObject.name == "FogExclusionZone" && excludeShipFogEnabled == true) &&
-                    !(fogObject.gameObject.layer == enemyLayer && excludeEnemyFogEnabled == true) &&
-                    !(currentMode.Name == "Vanilla"))
+                if (verboseLoggingEnabled)
+                    mls.LogInfo($"Checking if preset: {preset} matches current weather ({currentWeatherType}) or moon ({currentLevel})");
+                // Check if all conditions are met
+                var conditionsMet = preset.Conditions.All(condition =>
                 {
-                    // prepare the parameters object for modification
-                    var parameters = fogObject.parameters;
+                    // Match against the current moon or weather
+                    return condition.Equals(currentLevel) || condition.Equals(currentWeatherType);
+                });
 
-                    if (densityScaleEnabled)
-                    {
-                        // Set new density with scaling applied
-                        parameters.meanFreePath = currentPreset.MeanFreePath * combinedDensityScale;
-                    }
-                    else
-                    {
-                        //mls.LogInfo("Weather scaling is disabled. Using a scale of 1.");
-                        parameters.meanFreePath = currentPreset.MeanFreePath;
-                    }
-                    parameters.albedo = new Color(
-                        currentPreset.AlbedoR,
-                        currentPreset.AlbedoG,
-                        currentPreset.AlbedoB,
-                        1f
-                    );
-
-                    // Optionally, apply changes if the parameters object needs to be reassigned
-                    fogObject.parameters = parameters;
-                }
-                else if (currentMode.Name == "Vanilla") // attempt to use vanilla settings
+                if (conditionsMet)
                 {
-                    ResetFogToVanilla(fogObject.gameObject);
-                }
-
-                if (verboseLoggingEnabled) // Log settings if verbose logging is enabled.
-                {
-                    // Print details of the Fog object
-                    Color fogColor = fogObject.parameters.albedo;
-                    mls.LogInfo($"Found LocalVolumetricFog object: {fogObject.name}, MeanFreePath: {fogObject.parameters.meanFreePath}, AlbedoR: {fogColor.r}, AlbedoG: {fogColor.g}, AlbedoB: {fogColor.b}");
+                    if (verboseLoggingEnabled)
+                        mls.LogInfo($"Match between preset ({preset}) and current weather ({currentWeatherType}) or moon ({currentLevel}) found.");
+                    matchedPreset = preset;
+                    break; // Stop at the first match
                 }
             }
 
-            if (currentMode.Name == "Better Fog")
-                mls.LogInfo($"Applied Preset: {currentPreset.ToString()}, DensityScale={combinedDensityScale}"); // Log the applied preset values
+            if (matchedPreset != null)
+            {
+                var effect = matchedPreset.Effect;
+
+                // Check if the effect matches a preset in FogConfigPresets
+                var matchedPresetConfig = fogConfigPresets.FirstOrDefault(p => p.PresetName.ToLower() == effect);
+                if (matchedPresetConfig != null)
+                {
+                    currentMode = fogModes.FirstOrDefault(m => m.Name == "Better Fog"); // Set the mode to "Better Fog"
+                    currentModeIndex = fogModes.IndexOf(currentMode);
+                    currentPreset = matchedPresetConfig; // Apply the preset
+                    currentPresetIndex = fogConfigPresets.IndexOf(currentPreset);
+                    Instance.UpdateMode();
+                    FogSettingsManager.Instance.UpdateSettings();
+                    if(verboseLoggingEnabled)
+                        mls.LogInfo($"Preset applied: {currentPreset}, Mode set to {currentMode.Name}");
+                }
+                else
+                {
+                    // Check if the effect matches a mode in FogModes
+                    var matchedModeConfig = fogModes.FirstOrDefault(m => m.Name.ToLower() == effect);
+                    if (matchedModeConfig != null)
+                    {
+                        currentMode = matchedModeConfig; // Set the mode
+                        currentModeIndex = fogModes.IndexOf(currentMode);
+                        Instance.UpdateMode();
+                        FogSettingsManager.Instance.UpdateSettings();
+                        if (verboseLoggingEnabled)
+                            mls.LogInfo($"Mode set to {currentMode.Name}");
+                    }
+                }
+            }
+            ApplyFogParameters(fogObject);
         }
+
 
         public static void ApplyFogSettingsOnGameStart() // Duration in seconds, interval in seconds
         {
@@ -537,7 +695,7 @@ namespace BetterFog
                 if (verboseLoggingEnabled)
                     mls.LogInfo($"Applying fog settings... ({i + 1}/{repeatCount})");
 
-                ApplyFogSettings(); // Apply fog settings
+                ApplyFogSettings(false); // Apply fog settings
 
                 // Wait for 1 second between applications
                 yield return new WaitForSecondsRealtime(1);
@@ -558,7 +716,7 @@ namespace BetterFog
             currentPreset = fogConfigPresets[currentPresetIndex];
             //mls.LogInfo("Current preset index: " + currentPresetIndex);
             mls.LogInfo($"Switched to preset: {currentPreset.PresetName}");
-            ApplyFogSettings();
+            ApplyFogSettings(false);
 
             // Notify FogSettingsManager to update dropdown
             FogSettingsManager.Instance.UpdateSettings();
@@ -584,7 +742,6 @@ namespace BetterFog
 
         public void UpdateMode()
         {
-
             if (currentMode.Name == "No Fog")
             {
                 mls.LogInfo("No Fog mode selected.");
@@ -620,7 +777,7 @@ namespace BetterFog
                 var keyValue = pair.Split('=');
                 if (keyValue.Length == 2 && float.TryParse(keyValue[1], out float scaleValue))
                 {
-                    weatherScales.Add(new WeatherScale(keyValue[0], scaleValue));
+                    weatherScales.Add(new WeatherScale(keyValue[0].ToLower(), scaleValue));
                 }
             }
             return weatherScales;
@@ -636,7 +793,7 @@ namespace BetterFog
                 var keyValue = pair.Split('=');
                 if (keyValue.Length == 2 && float.TryParse(keyValue[1], out float scaleValue))
                 {
-                    moonScales.Add(new MoonScale(keyValue[0], scaleValue));
+                    moonScales.Add(new MoonScale(keyValue[0].ToLower(), scaleValue));
                 }
             }
             return moonScales;
@@ -649,10 +806,27 @@ namespace BetterFog
 
             foreach (var item in items)
             {
-                blacklist.Add(item);
+                blacklist.Add(item.ToLower());
             }
 
             return blacklist;
+        }
+
+        // Function to parse the auto preset/mode settings
+        private List<AutoPresetMode> ParseAutoPresetMode(string configString)
+        {
+            var autoPresetMode = new List<AutoPresetMode>();
+            var pairs = configString.Split(',');
+
+            foreach (var pair in pairs)
+            {
+                var keyValue = pair.Split('=');
+                if (keyValue.Length == 2)
+                {
+                    autoPresetMode.Add(new AutoPresetMode(keyValue[0].ToLower(), keyValue[1].ToLower()));
+                }
+            }
+            return autoPresetMode;
         }
 
         //--------------------------------- Start No Fog Management ---------------------------------
@@ -660,14 +834,16 @@ namespace BetterFog
         public void EnableFogPatch()
         {
             harmony.Patch(original: AccessTools.Method(typeof(Fog), "UpdateShaderVariablesGlobalCBFogParameters"), prefix: new HarmonyMethod(typeof(FogPatch), "Prefix"));
-            mls.LogInfo("No Fog enabled successfully.");
+            if (verboseLoggingEnabled)
+                mls.LogInfo("No Fog enabled successfully.");
         }
 
         public void DisableFogPatch()
         {
             var method = AccessTools.Method(typeof(Fog), "UpdateShaderVariablesGlobalCBFogParameters");
             harmony.Unpatch(method, HarmonyPatchType.All, modGUID);
-            mls.LogInfo("No Fog patch disabled successfully.");
+            if (verboseLoggingEnabled)
+                mls.LogInfo("No Fog patch disabled successfully.");
         }
         //--------------------------------- End No Fog Management ---------------------------------
 
@@ -695,7 +871,8 @@ namespace BetterFog
 
             harmony.Patch(original: AccessTools.Method(typeof(NetworkSceneManager), "OnSceneLoaded"), postfix: new HarmonyMethod(typeof(NetworkSceneManagerPatch), "OnSceneLoadedPatch"));
             //mls.LogInfo("NetworkSceneManager patches applied successfully.");
-            mls.LogInfo("Vanilla patches enabled successfully!");
+            if (verboseLoggingEnabled)
+                mls.LogInfo("Vanilla patches enabled successfully!");
         }
 
         public void DisableVanillaPatches()
@@ -806,7 +983,7 @@ namespace BetterFog
             if (GameNetworkManager.Instance.gameHasStarted)
             {
                 mls.LogInfo("Game has started. Applying fog settings to moon.");
-                ApplyFogSettings();
+                ApplyFogSettings(false);
             }
             else
             {
@@ -826,11 +1003,12 @@ namespace BetterFog
                 //playerController.inSpecialMenu = true;
                 if (playerController.actualClientId == localClientId) // Compare the local client's ID
                 {
-                    mls.LogInfo($"Local player found: {playerController.name}");
+                    if (verboseLoggingEnabled)
+                        mls.LogInfo($"Local player found: {playerController.name}");
                     return playerController;
                 }
             }
-
+            
             mls.LogError("Local player not found!");
             return null; // Handle cases where no local player is found
         }

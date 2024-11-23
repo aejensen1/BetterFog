@@ -23,7 +23,7 @@ namespace BetterFog.Patches
         public static void LoadScenePatch(string sceneName, LoadSceneParameters parameters)
         {
             BetterFog.CollectVanillaValues();
-            BetterFog.ApplyFogSettings();
+            BetterFog.ApplyFogSettings(false);
         }
     }
 }
