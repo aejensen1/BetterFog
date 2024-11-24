@@ -80,7 +80,7 @@ To-Dos
 
 Screenshots
 ==============
-| ![SettingsGUI](https://github.com/user-attachments/assets/f9df6c2e-1194-4332-b5f6-720833e2fad6) | ![DefaultFog](https://github.com/user-attachments/assets/6ddc9d3e-c16e-4a0d-868e-4025786e49bf) | ![HeavyFog](https://github.com/user-attachments/assets/f9273464-d866-47d8-b3d2-2b1733d23994) |
+| ![![settings](https://github.com/user-attachments/assets/a225bc44-f4f2-4252-ad91-d0e00aac4e32) | ![DefaultFog](https://github.com/user-attachments/assets/6ddc9d3e-c16e-4a0d-868e-4025786e49bf) | ![HeavyFog](https://github.com/user-attachments/assets/f9273464-d866-47d8-b3d2-2b1733d23994) |
 |:--:|:--:|:--:|
 | **Settings GUI** | **Default Fog** | **Heavy Fog** |
 
