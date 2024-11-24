@@ -12,7 +12,7 @@ Why Use This Mod?
 - Extremely feature rich configurable settings with changeable hotkeys
 - Not binary with No Fog and All Fog - You can set the density and colors to any level!
 - Thousands of potential fog presets. Set your game to fit your mood.
-- Fog density can adapt to different moons/weathers, or just specified moons/weathers by blacklisting the others.
+- Fog density can adapt to different moons/weathers, or just specified moons/weathers by blacklisting the others. The atmosphere can be augmented to your liking.
 - Reduces eye strain. Are you in a dark room? Squinting to see through super thick fog two inches away from the screen? Darken the fog colors & decrease fog density to relieve some headache.
 - No fog not only removes ground fog but also clouds, smoke, and pipe fog (not including animations)
 - If you get tired of BetterFog settings, just switch to Vanilla mode in-game. No need to exit and disable the mod.
@@ -27,8 +27,14 @@ Instructions
 - Manage presets in the config file. Settings can be tweaked for fog density and color.
 - Hotkey 'n' is used to switch between presets in-game. LeftStickPress should be the button for controller, but this has not been tested yet. Keybinds are adjustable in the config file!
 - Press F1 on your keyboard (changeable in config) to access GUI which allows for live modification of presets in lobbies. Note that these modified settings do not carry over if you restart the game; you must modify the config file presets to do this.
-- Note, starting at v3.3.0, you must disable the GUI keybind to disable the GUI. There is no longer a config option that states to disable the GUI.
 - To use density scaling for custom moons you will need to add the full name of the moon and scale to the MoonScales list. Otherwise a warning log will appear indicating that the <full name of moon> was not found in records.
+- "Auto Preset/Mode Settings: Automatically apply presets and modes to moons and weathers. 
+  - On the left of = enter a moon and/or weather name, and on the right enter a single preset or mode name. 
+  - Entering a preset name on the right automatically sets the mode to "Better Fog". 
+  - To have a condition that requires both a moon and weather, enter "&" in between entries. This will override single entries if both moon and weather are present. 
+  - If a preset name is the same as a mode name, the mode will be set to \"Better Fog\" and that preset will be set. 
+  - Warning: If you create different conditions that conflict (such as none=mist,68 Artifice=No Fog and you land on Art with no weather), the leftmost condition will apply. For that reason, put double conditions with the most specific condition first, and single condition last.
+  - Example: "7 Dine&eclipsed=Orange Fog,61 March=Light Fog,7 Dine=Heavy Fog,eclipsed=Red Fog,8 Titan=Heavy Fog,none=Mist,none&8 Titan=No Fog"
 - Please report any bugs to me as they are found. I want to help!
 
 What is "Weather Scale"?
@@ -37,6 +43,11 @@ What is "Weather Scale"?
 "Weather Scale" or "Density Scale" is essentially a toggle option that when set to true multiplies the fog density value to another value based on the moon and weather type. For example, Rend, being naturally more foggy even without weather, might have a multiplier of 0.3, while Offense with no fog may have a multiplier of 0.9. A larger value means more space between fog particles which also means thinner fog. These values can be changed in the config file. When weather scaling is disabled the fog stays static according to the preset it is on, or in other words the fog will not change based on weather or moon. 
 
 "Weather Scaled Enabled by Default" in the config file is a convenience option to enable the Weather Scale on the booting up of the game. When disabled, Weather Scale will be disabled by default and must be enabled via the GUI or hotkey.
+
+Notes
+==============
+- Starting at v3.3.0, you must disable the GUI keybind to disable the GUI. There is no longer a config option that states to disable the GUI.
+- Starting at v3.3.3, WeatherRegistry by Mrov is a dependency to this mod. It should be also installed, or the mod may not work correctly.
 
 Default Values Reference
 ==============
@@ -57,10 +68,11 @@ Prerequisites
 ==============
 - [BepInEx](https://thunderstore.io/c/lethal-company/p/BepInEx/BepInExPack/)
 - [LethalCompanyInputUtils](https://thunderstore.io/c/lethal-company/p/Rune580/LethalCompany_InputUtils/)
+- [WeatherRegistry](https://thunderstore.io/c/lethal-company/p/mrov/WeatherRegistry/)
 
 Known Bugs
 ==============
-- No known bugs
+- "LC Simplified Chinese Localization" By NarkiriFox in combination with this mod causes text to lose their texture and become unreadable. This affects a very small group of players. Solution has not been found...
 
 To-Dos
 ==============

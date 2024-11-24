@@ -263,7 +263,8 @@ namespace BetterFog
                 "a moon and/or weather name, and on the right enter a single preset or mode name. Entering a preset name on the right automatically sets the mode to \"Better Fog\". \n" +
                 "To have a condition that requires both a moon and weather, enter \"&\" in between entries. This will override single entries if both moon and weather are present. \n" +
                 "If a preset name is the same as a mode name, the mode will be set to \"Better Fog\" and that preset will be set. \n" +
-                "Warning: If you create different conditions that conflict (such as none=mist,68 Artifice=No Fog and you land on Art with no weather), only one condition will apply. \n" +
+                "Warning: If you create different conditions that conflict (such as none=mist,68 Artifice=No Fog and you land on Art with no weather), the leftmost condition will apply. \n" +
+                "For that reason, put double conditions with the most specific condition first, and single condition last. \n" +
                 "Example: 61 March=Light Fog,7 Dine&eclipsed=Orange Fog,7 Dine=Heavy Fog,eclipsed=Red Fog,8 Titan=Heavy Fog,none=Mist,none&8 Titan=No Fog");
             autoPresetModes = ParseAutoPresetMode(autoPresetModeConfig.Value);
 
