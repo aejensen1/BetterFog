@@ -60,12 +60,13 @@ namespace BetterFog
         private static ConfigEntry<string> moonScaleBlacklistConfig;
         private static ConfigEntry<bool> densityScaleEnabledDefault;
         public static bool densityScaleEnabled;
-        public static string currentWeatherType = "None";
+        public static string currentWeatherType = "none";
         private static float moonDensityScale = 1f;
         private static float weatherDensityScale = 1f;
         public static float combinedDensityScale = 1f;
         public static List<WeatherScale> weatherScales;
         private static ConfigEntry<string> weatherScalesConfig;
+        public static SelectableLevel currentLevelType;
         public static string currentLevel = "";
         public static List<MoonScale> moonScales;
         private static ConfigEntry<string> moonScalesConfig;
@@ -452,8 +453,10 @@ namespace BetterFog
                 .ToList();
 
             if(verboseLoggingEnabled)
+            {
                 mls.LogInfo($"autoPresetModeEnabled: {autoPresetModeEnabled}");
                 mls.LogInfo($"activateAutoPresetMode: {activateAutoPresetMode}");
+            }
 
             foreach (var fogObject in fogObjects)
             {

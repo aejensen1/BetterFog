@@ -11,7 +11,7 @@ namespace BetterFog.Patches
         {
             BetterFog.mls.LogInfo("ChangeLevelPatch Activated");
             // Access the current level
-            SelectableLevel currentLevel = __instance.currentLevel;
+            BetterFog.currentLevelType = __instance.currentLevel;
 
             //// Check if the currentWeather value is within the bounds of the effects array
             //if ((int)currentLevel.currentWeather >= 0 && (int)currentLevel.currentWeather < TimeOfDay.Instance.effects.Length)
@@ -40,7 +40,7 @@ namespace BetterFog.Patches
             //    BetterFog.currentWeatherType = "none";
             //    BetterFog.mls.LogWarning($"Invalid weather index: {currentLevel.currentWeather}. Set to none");
             //}
-            BetterFog.currentLevel = currentLevel.PlanetName.ToLower();
+            BetterFog.currentLevel = BetterFog.currentLevelType.PlanetName.ToLower();
             BetterFog.CollectVanillaValues();
             BetterFog.ApplyFogSettings(false);
         }
