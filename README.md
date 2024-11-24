@@ -99,4 +99,6 @@ You may post questions in the Lethal Company Modding discord server: https://dis
 Credits
 ==============
 - [mrov](https://github.com/AndreyMrovol) for some code suggestions on finding fog objects.
+- mrov for WeatherRegistry
+- Rune580 for LethalCompany InputUtils
 - DarthFigo for a code suggestion on finding enemy fog to exclude.
