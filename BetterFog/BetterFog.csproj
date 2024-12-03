@@ -95,9 +95,6 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Lethal Company\Lethal Company_Data\Managed\UnityEngine.UIModule.dll</HintPath>
     </Reference>
-    <Reference Include="WeatherRegistry">
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Lethal Company\BepInEx\plugins\WeatherRegistry.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\AutoPresetMode.cs" />
@@ -108,13 +105,11 @@
     <Compile Include="Assets\WeatherScale.cs" />
     <Compile Include="Input\IngameKeybinds.cs" />
     <Compile Include="Input\KeybindDisplayNames.cs" />
-    <Compile Include="Patches\WeatherManagerPatch.cs" />
     <Compile Include="Patches\HUDManagerPatch.cs" />
     <Compile Include="Patches\LocalVolumetricFogPatch.cs" />
     <Compile Include="Patches\SceneManagerPatch.cs" />
     <Compile Include="Patches\ToggleFogTriggerPatch.cs" />
     <Compile Include="Patches\TimeOfDayPatch.cs" />
-    <Compile Include="Patches\MenuManagerPatch.cs" />
     <Compile Include="Patches\EntranceTeleportPatch.cs" />
     <Compile Include="Patches\FogPatch.cs" />
     <Compile Include="Patches\AudioReverbTriggerPatch.cs" />

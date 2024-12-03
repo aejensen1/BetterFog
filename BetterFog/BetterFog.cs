@@ -14,8 +14,6 @@ using System.Collections;
 using GameNetcodeStuff;
 using Unity.Netcode;
 using UnityEngine.SceneManagement;
-using WeatherRegistry;
-using WeatherRegistry.Definitions;
 
 namespace BetterFog
 {
@@ -32,16 +30,12 @@ namespace BetterFog
 
         // Hotkey variables
         public static bool hotkeysEnabled = true;
-        private static ConfigEntry<string> nextPresetHotkeyConfig;
-        public static ConfigEntry<bool> nextPresetHotKeyEnabled;
-        private static ConfigEntry<string> nextModeHotkeyConfig;
-        public static ConfigEntry<bool> nextModeHotKeyEnabled;
-        private static ConfigEntry<string> refreshPresetHotkeyConfig;
-        public static ConfigEntry<bool> refreshHotKeyEnabled;
+        public static ConfigEntry<string> nextPresetHotkeyConfig;
+        public static ConfigEntry<string> nextModeHotkeyConfig;
+        public static ConfigEntry<string> refreshPresetHotkeyConfig;
         public static ConfigEntry<string> weatherScaleHotkeyConfig;
-        public static ConfigEntry<bool> weatherScaleHotKeyEnabled;
         public static ConfigEntry<string> settingsHotkeyConfig;
-        public static ConfigEntry<bool> settingsHotKeyEnabled;
+        public static ConfigEntry<string> autoPresetModeHotkeyConfig;
 
         // Fog settings variables
         public static ConfigEntry<bool> excludeShipFogDefault;
@@ -66,6 +60,7 @@ namespace BetterFog
         public static float combinedDensityScale = 1f;
         public static List<WeatherScale> weatherScales;
         private static ConfigEntry<string> weatherScalesConfig;
+        public static bool weatherSaveLoaded = false;
         public static SelectableLevel currentLevelType;
         public static string currentLevel = "";
         public static List<MoonScale> moonScales;
@@ -76,6 +71,8 @@ namespace BetterFog
         private static ConfigEntry<string> autoPresetModeConfig;
         private static ConfigEntry<bool> autoPresetModeEnabledDefault;
         public static bool autoPresetModeEnabled;
+        public static bool autoPresetModeMatchFound = false;
+        public static AutoPresetMode matchedPreset = null;
 
         // Fog preset variables
         private static ConfigEntry<string> defaultPresetName;
@@ -83,6 +80,8 @@ namespace BetterFog
         private ConfigEntry<string>[] presetEntries;
         public static int currentPresetIndex;
         public static FogConfigPreset currentPreset;
+        public static bool lockPresetDropdownModification = false;
+        public static bool lockPresetValueModification = false;
 
         public static Dictionary<GameObject, LocalVolumetricFogArtistParameters> fogParameterChanges = new Dictionary<GameObject, LocalVolumetricFogArtistParameters>(); // Dictionary to store vanilla fog settings
 
@@ -90,7 +89,10 @@ namespace BetterFog
         public static List<BetterFogMode> fogModes;
         public static int currentModeIndex;
         public static BetterFogMode currentMode;
+        public static bool lockModeDropdownModification = false;
 
+        public static bool isFogSettingsActive = false;
+        public static bool settingsHotkeyEnabled;
         public static bool applyingFogSettings = false;
 
         public static PlayerControllerB player;
@@ -134,17 +136,17 @@ namespace BetterFog
             // Arguments: Preset Name, MeanFreePath, AlbedoR, AlbedoG, AlbedoB, AlbedoA
             fogConfigPresets = new List<FogConfigPreset>
             {
-                new FogConfigPreset("Default", 250f, 0.441f, 0.459f, 0.500f),
-                new FogConfigPreset("Heavy Fog", 50f, 0f, 0f, 0f),
-                new FogConfigPreset("Light Fog", 9850f, 5f, 5f, 5f),
-                new FogConfigPreset("Mist", 10000000f, 1f, 1f, 1f),
-                new FogConfigPreset("Red Fog", 500f, 20f, 0f, 0f),
-                new FogConfigPreset("Orange Fog", 500f, 20f, 9.33f, 4.5f),
-                new FogConfigPreset("Yellow Fog", 1300f, 20f, 20f, 0f),
-                new FogConfigPreset("Green Fog", 1300f, 0f, 20f, 0f),
-                new FogConfigPreset("Blue Fog", 1300f, 0f, 0f, 20f),
-                new FogConfigPreset("Purple Fog", 500f, 11.5f, 7.2f, 20f),
-                new FogConfigPreset("Pink Fog", 500f, 20f, 4.75f, 20f),
+                new FogConfigPreset("Default", 14750f, 0.441f, 0.459f, 0.500f),
+                new FogConfigPreset("Heavy Fog", 14950f, 0f, 0f, 0f),
+                new FogConfigPreset("Light Fog", 5150f, 5f, 5f, 5f),
+                new FogConfigPreset("Mist", 0f, 1f, 1f, 1f),
+                new FogConfigPreset("Red Fog", 14500f, 20f, 0f, 0f),
+                new FogConfigPreset("Orange Fog", 14500f, 20f, 9.33f, 4.5f),
+                new FogConfigPreset("Yellow Fog", 13700f, 20f, 20f, 0f),
+                new FogConfigPreset("Green Fog", 13700f, 0f, 20f, 0f),
+                new FogConfigPreset("Blue Fog", 13700f, 0f, 0f, 20f),
+                new FogConfigPreset("Purple Fog", 14500f, 11.5f, 7.2f, 20f),
+                new FogConfigPreset("Pink Fog", 14500f, 20f, 4.75f, 20f),
             };
             mls.LogInfo("fogConfigPresets initialized.");
 
@@ -164,18 +166,14 @@ namespace BetterFog
                 "Order of settings: Preset Name, Mean Free Path, Albedo Red, Albedo Green, Albedo Blue\n" +
                 "Mean Free Path - Density of fog. The greater the number, the less dense. 0 is the minimum (opaque fog).\n");
             defaultMode = Config.Bind(section1, "Default Fog Mode", "Better Fog", "Name of the default fog mode. Options: Better Fog, No Fog, Vanilla");
-
+            
             string section2 = "Key Bindings";
             settingsHotkeyConfig = Config.Bind(section2, "Settings Hotkey", "f1", "Hotkey to open the BetterFog settings menu.");
-            settingsHotKeyEnabled = Config.Bind(section2, "Enable Settings Hotkey", true, "Enable or disable hotkey for opening the BetterFog settings menu.");
             nextPresetHotkeyConfig = Config.Bind(section2, "Next Preset Hotkey", "n", "Hotkey to switch to the next fog preset.");
-            nextPresetHotKeyEnabled = Config.Bind(section2, "Enable Next Hotkey", true, "Enable or disable hotkeys for switching fog presets.");
             nextModeHotkeyConfig = Config.Bind(section2, "Next Mode Hotkey", "m", "Hotkey to switch to the next fog mode.");
-            nextModeHotKeyEnabled = Config.Bind(section2, "Enable Next Mode Hotkey", false, "Enable or disable hotkey for switching fog modes.");
             refreshPresetHotkeyConfig = Config.Bind(section2, "Refresh Hotkey", "r", "Hotkey to refresh fog settings.");
-            refreshHotKeyEnabled = Config.Bind(section2, "Enable Refresh Hotkey", true, "Enable or disable hotkey for refreshing fog settings.");
             weatherScaleHotkeyConfig = Config.Bind(section2, "Weather Scale Hotkey", "c", "Hotkey to toggle weather scaling.");
-            weatherScaleHotKeyEnabled = Config.Bind(section2, "Enable Weather Scale Hotkey", false, "Enable or disable hotkey for Weather Scaling toggle.");
+            autoPresetModeHotkeyConfig = Config.Bind(section2, "Auto Sync Hotkey", "j", "Hotkey to toggle auto sync.");
 
             string section3 = "Fog Settings";
             excludeShipFogDefault = Config.Bind(section3, "Exclude Ship", true, "Enable or Disable fog settings to the Fog Exclusion Zone (eg. inside of ship).");
@@ -190,8 +188,7 @@ namespace BetterFog
             excludeEnemyFogEnabled = excludeEnemyFogDefault.Value;
 
             // Initialize the key bindings with the hotkey value
-            IngameKeybinds.Instance.InitializeKeybindings(nextPresetHotkeyConfig.Value, nextModeHotkeyConfig.Value, refreshPresetHotkeyConfig.Value, weatherScaleHotkeyConfig.Value, settingsHotkeyConfig.Value);
-
+            IngameKeybinds.Instance.InitializeKeybindings(nextPresetHotkeyConfig.Value, nextModeHotkeyConfig.Value, refreshPresetHotkeyConfig.Value, weatherScaleHotkeyConfig.Value, settingsHotkeyConfig.Value, autoPresetModeHotkeyConfig.Value);
             // Create config entries for each preset
             presetEntries = new ConfigEntry<string>[fogConfigPresets.Count];
 
@@ -221,7 +218,13 @@ namespace BetterFog
                             fogConfigPresets[i].PresetName = value;
                             break;
                         case "Density":
-                            fogConfigPresets[i].MeanFreePath = float.Parse(value);
+                            float meanFreePath = float.Parse(value);
+                            if (meanFreePath < 0)
+                                meanFreePath = 0;
+                            else if (meanFreePath > 15000)
+                                meanFreePath = 15000;
+                            else
+                                fogConfigPresets[i].MeanFreePath = float.Parse(value);
                             break;
                         case "Red Hue":
                             fogConfigPresets[i].AlbedoR = float.Parse(value);
@@ -258,8 +261,8 @@ namespace BetterFog
             weatherScaleBlacklist = ParseDensityScaleBlacklist(weatherScaleBlacklistConfig.Value);
             moonScaleBlacklist = ParseDensityScaleBlacklist(moonScaleBlacklistConfig.Value);
 
-            string section5 = "Auto Preset/Mode Settings";
-            autoPresetModeConfig = Config.Bind(section5, "Auto Preset/Mode Settings", "", "Automatically apply presets and modes to moons and weathers. On the left of = enter \n" +
+            string section5 = "Auto Sync Preset/Mode Settings";
+            autoPresetModeConfig = Config.Bind(section5, "Auto Sync Preset/Mode Settings", "", "Automatically apply presets and modes to moons and weathers. On the left of = enter \n" +
                 "a moon and/or weather name, and on the right enter a single preset or mode name. Entering a preset name on the right automatically sets the mode to \"Better Fog\". \n" +
                 "To have a condition that requires both a moon and weather, enter \"&\" in between entries. This will override single entries if both moon and weather are present. \n" +
                 "If a preset name is the same as a mode name, the mode will be set to \"Better Fog\" and that preset will be set. \n" +
@@ -282,11 +285,6 @@ namespace BetterFog
             {
                 try
                 {
-                    // Attempt to find the preset with the default name
-                    //foreach(var preset in fogConfigPresets)
-                    //{
-                    //    mls.LogInfo(preset.ToString());
-                    //}
                     currentPreset = fogConfigPresets.Find(preset => preset.PresetName == defaultPresetName.Value);
                     currentPresetIndex = fogConfigPresets.IndexOf(currentPreset);
                     mls.LogInfo($"Default preset found: {currentPreset.PresetName}");
@@ -333,10 +331,8 @@ namespace BetterFog
 
                 harmony.Patch(original: AccessTools.Method(typeof(Terminal), "BeginUsingTerminal"), postfix: new HarmonyMethod(typeof(TerminalPatch), "BeginUsingTerminalPatch"));
                 harmony.Patch(original: AccessTools.Method(typeof(Terminal), "QuitTerminal"), postfix: new HarmonyMethod(typeof(TerminalPatch), "QuitTerminalPatch"));
+                harmony.Patch(original: AccessTools.Method(typeof(Terminal), "Start"), postfix: new HarmonyMethod(typeof(TerminalPatch), "StartPatch"));
                 //mls.LogInfo("Terminal patches applied successfully.");
-
-                //harmony.Patch(original: AccessTools.Method(typeof(MenuManager), "PlayCancelSFX"), postfix: new HarmonyMethod(typeof(MenuManagerPatch), "PlayCancelSFXPatch"));
-                //mls.LogInfo("MenuManager patches applied successfully.");
 
                 harmony.Patch(original: AccessTools.Method(typeof(HUDManager), "EnableChat_performed"), postfix: new HarmonyMethod(typeof(HUDManagerPatch), "EnableChat_performedPatch"));
                 harmony.Patch(original: AccessTools.Method(typeof(HUDManager), "SubmitChat_performed"), postfix: new HarmonyMethod(typeof(HUDManagerPatch), "SubmitChat_performedPatch"));
@@ -345,9 +341,6 @@ namespace BetterFog
 
                 harmony.Patch(original: AccessTools.Method(typeof(LocalVolumetricFog), "OnEnable"), postfix: new HarmonyMethod(typeof(LocalVolumetricFogPatch), "OnEnablePatch"));
                 //mls.LogInfo("LocalVolumetricFog patches applied successfully.");
-
-                harmony.Patch(original: AccessTools.Method(typeof(WeatherManager), "GetWeather"), postfix: new HarmonyMethod(typeof(WeatherManagerPatch), "GetWeatherPatch"));
-                //mls.LogInfo("WeatherManager patches applied successfully.");
 
                 // Specify parameters to avoid ambiguity between overloaded methods
                 harmony.Patch(AccessTools.Method(typeof(SceneManager), "LoadScene", new[] { typeof(string), typeof(LoadSceneParameters) }), postfix: new HarmonyMethod(typeof(SceneManagerPatch), "LoadScenePatch"));
@@ -361,17 +354,25 @@ namespace BetterFog
                 throw; // Rethrow the exception to indicate initialization failure
             }
 
-            // Check if the FogSettingsManager instance is valid
-            if (FogSettingsManager.Instance != null)
+            if (settingsHotkeyEnabled)
             {
-                //mls.LogInfo(FogSettingsManager.Instance.ToString());
-                if (verboseLoggingEnabled)
-                    mls.LogInfo("FogSettingsManager instance is valid.");
+                // Check if the FogSettingsManager instance is valid
+                if (FogSettingsManager.Instance != null)
+                {
+                    //mls.LogInfo(FogSettingsManager.Instance.ToString());
+                    if (verboseLoggingEnabled)
+                        mls.LogInfo("FogSettingsManager instance is valid.");
+                }
+                else
+                {
+                    if (verboseLoggingEnabled)
+                        mls.LogError("FogSettingsManager instance is null.");
+                }
             }
             else
             {
                 if (verboseLoggingEnabled)
-                    mls.LogError("FogSettingsManager instance is null.");
+                    mls.LogInfo("Settings hotkey is disabled. Settings GUI will not be instantiated");
             }
         }
 
@@ -379,85 +380,96 @@ namespace BetterFog
 
         public static void ApplyFogSettings(bool activateAutoPresetMode) // Argument only true when autoPresetMode is being enabled/checked
         {
+            if (verboseLoggingEnabled)
+            {
+                mls.LogInfo($"autoPresetModeEnabled: {autoPresetModeEnabled}");
+                mls.LogInfo($"activateAutoPresetMode: {activateAutoPresetMode}");
+            }
+
             if (fogRefreshLock && !autoPresetModeEnabled)
             {
                 if (verboseLoggingEnabled)
                     mls.LogWarning("Fog settings refresh is locked. Skipping fog settings application.");
                 return;
             }
+            if (activateAutoPresetMode)
+            {
+                matchedPreset = null;
+
+                foreach (var preset in autoPresetModes)
+                {
+                    if (verboseLoggingEnabled)
+                    {
+                        mls.LogInfo($"Checking Conditions: {string.Join(", ", preset.Conditions)} against Current weather: {currentWeatherType}, Current moon: {currentLevel}");
+                    }
+                    // Check if all conditions are met
+                    var conditionsMet = preset.Conditions.All(condition =>
+                    {
+                        // Match against the current moon or weather
+                        return condition.Equals(currentLevel) || condition.Equals(currentWeatherType);
+                    });
+
+                    if (conditionsMet)
+                    {
+                        if (verboseLoggingEnabled)
+                        {
+                            mls.LogInfo($"Preset match found between Conditions: {string.Join(", ", preset.Conditions)} and Current Moon: {currentLevel}, Current Weather: {currentWeatherType}");
+                            mls.LogInfo($"Effect to apply: {preset.Effect}");
+                        }
+                        matchedPreset = preset;
+                        break; // Stop at the first match
+                    }
+                }
+
+                if (matchedPreset != null)
+                {
+                    autoPresetModeMatchFound = true;
+
+                    var effect = matchedPreset.Effect;
+
+                    // Check if the effect matches a preset in FogConfigPresets
+                    var matchedPresetConfig = fogConfigPresets.FirstOrDefault(p => p.PresetName.ToLower() == effect);
+                    if (matchedPresetConfig != null)
+                    {
+                        currentMode = fogModes.FirstOrDefault(m => m.Name == "Better Fog"); // Set the mode to "Better Fog"
+                        currentModeIndex = fogModes.IndexOf(currentMode);
+                        currentPreset = matchedPresetConfig; // Apply the preset
+                        currentPresetIndex = fogConfigPresets.IndexOf(currentPreset);
+                        Instance.UpdateMode();
+                        if (settingsHotkeyEnabled && isFogSettingsActive)
+                            FogSettingsManager.Instance.UpdateSettings();
+                        if (verboseLoggingEnabled)
+                            mls.LogInfo($"Preset applied: {currentPreset}, Mode set to {currentMode.Name}");
+                    }
+                    else
+                    {
+                        // Check if the effect matches a mode in FogModes
+                        var matchedModeConfig = fogModes.FirstOrDefault(m => m.Name.ToLower() == effect);
+                        if (matchedModeConfig != null)
+                        {
+                            currentMode = matchedModeConfig; // Set the mode
+                            currentModeIndex = fogModes.IndexOf(currentMode);
+                            Instance.UpdateMode();
+                            if (settingsHotkeyEnabled && isFogSettingsActive)
+                                FogSettingsManager.Instance.UpdateSettings();
+                            if (verboseLoggingEnabled)
+                                mls.LogInfo($"Mode set to {currentMode.Name}");
+                        }
+                    }
+                }
+                else
+                {
+                    autoPresetModeMatchFound = false;
+                }
+            }
+
+            UpdateLockInteractionSettings();
 
             SetWeatherScale();
 
-            // Depreciated code (to remove soon)
-            //// Find all LocalVolumetricFog objects
-            //var fogObjects = Resources
-            //    .FindObjectsOfTypeAll<LocalVolumetricFog>()
-            //    .ToList();
-            //// Add for name filter if desired:
-            ////.Where(fog => fog.name == "Foggy")
-            ////.ToList()
-            ////.FirstOrDefault();
-
-            //// Iterate through each fog object
-            //foreach (var fogObject in fogObjects)
-            //{
-            //    // Apply settings if:
-            //    // the fog object is not null
-            //    // FogExclusionZone is not excluded
-            //    // Enemy fog is not excluded
-            //    var enemyLayer = LayerMask.NameToLayer("Enemies");
-            //    if (fogObject != null &&
-            //        !(fogObject.name == "FogExclusionZone" && excludeShipFogEnabled == true) &&
-            //        !(fogObject.gameObject.layer == enemyLayer && excludeEnemyFogEnabled == true) &&
-            //        !(currentMode.Name == "Vanilla") &&
-            //        !(autoPresetModeEnabled))
-            //    {
-            //        // prepare the parameters object for modification
-            //        var parameters = fogObject.parameters;
-
-            //        if (densityScaleEnabled)
-            //        {
-            //            // Set new density with scaling applied
-            //            parameters.meanFreePath = currentPreset.MeanFreePath * combinedDensityScale;
-            //        }
-            //        else
-            //        {
-            //            //mls.LogInfo("Weather scaling is disabled. Using a scale of 1.");
-            //            parameters.meanFreePath = currentPreset.MeanFreePath;
-            //        }
-            //        parameters.albedo = new Color(
-            //            currentPreset.AlbedoR,
-            //            currentPreset.AlbedoG,
-            //            currentPreset.AlbedoB,
-            //            1f
-            //        );
-
-            //        // Optionally, apply changes if the parameters object needs to be reassigned
-            //        fogObject.parameters = parameters;
-            //    }
-            //    else if (currentMode.Name == "Vanilla") // attempt to use vanilla settings
-            //    {
-            //        ResetFogToVanilla(fogObject.gameObject);
-            //    }
-
-            //    if (verboseLoggingEnabled) // Log settings if verbose logging is enabled.
-            //    {
-            //        // Print details of the Fog object
-            //        Color fogColor = fogObject.parameters.albedo;
-            //        mls.LogInfo($"Found LocalVolumetricFog object: {fogObject.name}, MeanFreePath: {fogObject.parameters.meanFreePath}, AlbedoR: {fogColor.r}, AlbedoG: {fogColor.g}, AlbedoB: {fogColor.b}");
-            //    }
-            //}
-
-            // Main Function
             var fogObjects = Resources
                 .FindObjectsOfTypeAll<LocalVolumetricFog>()
                 .ToList();
-
-            if(verboseLoggingEnabled)
-            {
-                mls.LogInfo($"autoPresetModeEnabled: {autoPresetModeEnabled}");
-                mls.LogInfo($"activateAutoPresetMode: {activateAutoPresetMode}");
-            }
 
             foreach (var fogObject in fogObjects)
             {
@@ -476,19 +488,16 @@ namespace BetterFog
             if (fogObject != null &&
                 !(fogObject.name == "FogExclusionZone" && excludeShipFogEnabled) &&
                 !(fogObject.gameObject.layer == enemyLayer && excludeEnemyFogEnabled) &&
-                !(currentMode.Name == "Vanilla") &&
-                !(activateAutoPresetMode))
+                !(currentMode.Name == "Vanilla"))
             {
                 ApplyFogParameters(fogObject);
             }
-            else if (fogObject != null &&
+            // If the mode is set to vanilla, or the fog object is in the enemies layer but needs to be set to vanilla, reset the fog to vanilla
+            else if ((currentMode.Name == "Vanilla") ||
+                ((fogObject != null &&
                 !(fogObject.name == "FogExclusionZone" && excludeShipFogEnabled) &&
-                !(fogObject.gameObject.layer == enemyLayer && excludeEnemyFogEnabled) &&
-                (activateAutoPresetMode))
-            {
-                ApplyAutoPresetMode(fogObject);
-            }
-            else if (currentMode.Name == "Vanilla")
+                (fogObject.gameObject.layer == enemyLayer && excludeEnemyFogEnabled) &&
+                !(currentMode.Name == "Vanilla"))))
             {
                 ResetFogToVanilla(fogObject.gameObject);
             }
@@ -506,11 +515,11 @@ namespace BetterFog
 
             if (densityScaleEnabled)
             {
-                parameters.meanFreePath = currentPreset.MeanFreePath * combinedDensityScale;
+                parameters.meanFreePath = (15000 - currentPreset.MeanFreePath) * combinedDensityScale;
             }
             else
             {
-                parameters.meanFreePath = currentPreset.MeanFreePath;
+                parameters.meanFreePath = (15000 - currentPreset.MeanFreePath);
             }
 
             parameters.albedo = new Color(
@@ -588,60 +597,7 @@ namespace BetterFog
 
         private static void ApplyAutoPresetMode(LocalVolumetricFog fogObject) // Apply auto preset/mode settings if they match current weather or moon
         {
-            AutoPresetMode matchedPreset = null;
 
-            foreach (var preset in autoPresetModes)
-            {
-                if (verboseLoggingEnabled)
-                    mls.LogInfo($"Checking if preset: {preset} matches current weather ({currentWeatherType}) or moon ({currentLevel})");
-                // Check if all conditions are met
-                var conditionsMet = preset.Conditions.All(condition =>
-                {
-                    // Match against the current moon or weather
-                    return condition.Equals(currentLevel) || condition.Equals(currentWeatherType);
-                });
-
-                if (conditionsMet)
-                {
-                    if (verboseLoggingEnabled)
-                        mls.LogInfo($"Match between preset ({preset}) and current weather ({currentWeatherType}) or moon ({currentLevel}) found.");
-                    matchedPreset = preset;
-                    break; // Stop at the first match
-                }
-            }
-
-            if (matchedPreset != null)
-            {
-                var effect = matchedPreset.Effect;
-
-                // Check if the effect matches a preset in FogConfigPresets
-                var matchedPresetConfig = fogConfigPresets.FirstOrDefault(p => p.PresetName.ToLower() == effect);
-                if (matchedPresetConfig != null)
-                {
-                    currentMode = fogModes.FirstOrDefault(m => m.Name == "Better Fog"); // Set the mode to "Better Fog"
-                    currentModeIndex = fogModes.IndexOf(currentMode);
-                    currentPreset = matchedPresetConfig; // Apply the preset
-                    currentPresetIndex = fogConfigPresets.IndexOf(currentPreset);
-                    Instance.UpdateMode();
-                    FogSettingsManager.Instance.UpdateSettings();
-                    if(verboseLoggingEnabled)
-                        mls.LogInfo($"Preset applied: {currentPreset}, Mode set to {currentMode.Name}");
-                }
-                else
-                {
-                    // Check if the effect matches a mode in FogModes
-                    var matchedModeConfig = fogModes.FirstOrDefault(m => m.Name.ToLower() == effect);
-                    if (matchedModeConfig != null)
-                    {
-                        currentMode = matchedModeConfig; // Set the mode
-                        currentModeIndex = fogModes.IndexOf(currentMode);
-                        Instance.UpdateMode();
-                        FogSettingsManager.Instance.UpdateSettings();
-                        if (verboseLoggingEnabled)
-                            mls.LogInfo($"Mode set to {currentMode.Name}");
-                    }
-                }
-            }
             ApplyFogParameters(fogObject);
         }
 
@@ -710,25 +666,34 @@ namespace BetterFog
 
         public static void NextPreset()
         {
-            mls.LogInfo("Next preset hotkey pressed.");
+            if (lockPresetDropdownModification)
+            {
+                mls.LogWarning("Cannot switch presets when preset interaction is disabled.");
+                return;
+            }
             currentPresetIndex = fogConfigPresets.IndexOf(currentPreset);
             if (currentPresetIndex == fogConfigPresets.Count - 1)
             {
                 currentPresetIndex = -1; // Reset to the first preset if the last preset is reached
             }
-            currentPresetIndex ++;
+            currentPresetIndex++;
             currentPreset = fogConfigPresets[currentPresetIndex];
             //mls.LogInfo("Current preset index: " + currentPresetIndex);
             mls.LogInfo($"Switched to preset: {currentPreset.PresetName}");
             ApplyFogSettings(false);
 
             // Notify FogSettingsManager to update dropdown
-            FogSettingsManager.Instance.UpdateSettings();
+            if (isFogSettingsActive)
+                FogSettingsManager.Instance.UpdateSettings();
         }
 
         public static void NextMode()
         {
-            mls.LogInfo("Next mode hotkey pressed.");
+            if (lockModeDropdownModification)
+            {
+                mls.LogWarning("Cannot switch modes when mode interaction is disabled.");
+                return;
+            }
             currentModeIndex = fogModes.IndexOf(currentMode);
             if (currentModeIndex == fogModes.Count - 1)
             {
@@ -736,12 +701,28 @@ namespace BetterFog
             }
             currentModeIndex++;
             currentMode = fogModes[currentModeIndex];
-            //mls.LogInfo("Current mode index: " + currentModeIndex);
-            mls.LogInfo($"Switched to mode: {currentMode.Name}");
+
+            mls.LogInfo($"Switched to next mode: {currentMode.Name}");
             Instance.UpdateMode();
 
+            // Lock the preset modification if mode is set to No Fog or Vanilla
+            if (settingsHotkeyEnabled && (currentMode.Name == "No Fog" || currentMode.Name == "Vanilla") && autoPresetModeMatchFound)
+            {
+                lockPresetDropdownModification = true;
+                lockPresetValueModification = true;
+            }
+            else if (settingsHotkeyEnabled)
+                lockPresetDropdownModification = false;
+
             // Notify FogSettingsManager to update dropdown
-            FogSettingsManager.Instance.UpdateSettings();
+            if (isFogSettingsActive)
+            {
+                FogSettingsManager.Instance.UpdateSettings();
+                FogSettingsManager.Instance.LockPresetDropdownInteract(lockPresetDropdownModification);
+                FogSettingsManager.Instance.LockPresetValueInteract(lockPresetValueModification);
+            }
+
+            ApplyFogSettings(false);
         }
 
         public void UpdateMode()
@@ -945,25 +926,16 @@ namespace BetterFog
 
         public static void ResetFogToVanilla(GameObject fogObject)
         {
-            if (fogParameterChanges.TryGetValue(fogObject, out var vanillaParams))
+            if (fogParameterChanges.TryGetValue(fogObject, out var vanillaParams)) // Check if the vanilla parameters are found
             {
                 var fogComponent = fogObject.GetComponent<LocalVolumetricFog>();
-                if (fogComponent != null)
+                if (fogComponent != null) // Check if the LocalVolumetricFog component is found
                 {
                     fogComponent.parameters = vanillaParams;
                     //mls.LogInfo($"Reverted fog parameters for {fogObject.name} to vanilla.");
                 }
-                else
-                {
-                    //mls.LogWarning($"No LocalVolumetricFog component found on {fogObject.name}");
-                }
-            }
-            else
-            {
-                //mls.LogWarning($"No vanilla parameters found for {fogObject.name} in records");
             }
         }
-
 
         //--------------------------------- End Vanilla Management ---------------------------------
 
@@ -1001,10 +973,6 @@ namespace BetterFog
 
             foreach (PlayerControllerB playerController in allPlayers)
             {
-                //playerController.disableInteract = true;
-                //playerController.disableLookInput = true;
-                //playerController.disableMoveInput = true;
-                //playerController.inSpecialMenu = true;
                 if (playerController.actualClientId == localClientId) // Compare the local client's ID
                 {
                     if (verboseLoggingEnabled)
@@ -1012,9 +980,77 @@ namespace BetterFog
                     return playerController;
                 }
             }
-            
+
             mls.LogError("Local player not found!");
             return null; // Handle cases where no local player is found
+        }
+
+        // --------------------------------- Start Auto Preset/Mode Management ---------------------------------
+
+        public static void ToggleAutoPresetMode()
+        {
+            autoPresetModeEnabled = !autoPresetModeEnabled;
+            if (autoPresetModeEnabled)
+            {
+                mls.LogInfo("Auto Preset/Mode enabled.");
+                ApplyFogSettings(true);
+            }
+            else
+            {
+                mls.LogInfo("Auto Preset/Mode disabled.");
+                ApplyFogSettings(false);
+            }
+            if (isFogSettingsActive)
+            {
+                FogSettingsManager.Instance.UpdateSettings();
+            }
+        }
+
+        public static void ToggleWeatherScaling()
+        {
+            if (lockPresetDropdownModification)
+            {
+                mls.LogWarning("Cannot toggle weather when preset interaction is disabled.");
+                return;
+            }
+            densityScaleEnabled = !densityScaleEnabled;
+            ApplyFogSettings(false);
+            if (isFogSettingsActive)
+            {
+                FogSettingsManager.Instance.UpdateSettings();
+            }
+        }
+
+        public static void UpdateLockInteractionSettings()
+        {
+            if (autoPresetModeMatchFound & autoPresetModeEnabled)
+            {
+                mls.LogInfo($"AutoPresetMode Match Found: {matchedPreset.Effect}");
+                lockModeDropdownModification = true;
+                lockPresetDropdownModification = true;
+                lockPresetValueModification = (currentMode.Name == "No Fog" || currentMode.Name == "Vanilla");
+            }
+            else if (currentMode.Name == "No Fog" || currentMode.Name == "Vanilla")
+            {
+                mls.LogInfo($"AutoPresetMode Match Not Found. Mode: {currentMode.Name}");
+                lockModeDropdownModification = false;
+                lockPresetDropdownModification = true;
+                lockPresetValueModification = true;
+            }
+            else
+            {
+                mls.LogInfo($"AutoPresetMode Match Not Found. Mode: {currentMode.Name}");
+                lockModeDropdownModification = false;
+                lockPresetDropdownModification = false;
+                lockPresetValueModification = false;
+            }
+
+            if (isFogSettingsActive) // Update settings GUI, if applicable
+            {
+                FogSettingsManager.Instance.LockPresetDropdownInteract(lockPresetDropdownModification);
+                FogSettingsManager.Instance.LockPresetValueInteract(lockPresetValueModification);
+                FogSettingsManager.Instance.LockModeDropdownInteract(lockModeDropdownModification);
+            }
         }
     }
     //--------------------------------- End Class ---------------------------------

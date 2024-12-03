@@ -28,11 +28,11 @@ Instructions
 - Hotkey 'n' is used to switch between presets in-game. LeftStickPress should be the button for controller, but this has not been tested yet. Keybinds are adjustable in the config file!
 - Press F1 on your keyboard (changeable in config) to access GUI which allows for live modification of presets in lobbies. Note that these modified settings do not carry over if you restart the game; you must modify the config file presets to do this.
 - To use density scaling for custom moons you will need to add the full name of the moon and scale to the MoonScales list. Otherwise a warning log will appear indicating that the <full name of moon> was not found in records.
-- "Auto Preset/Mode Settings: Automatically apply presets and modes to moons and weathers. 
+- "Auto Sync" Preset/Mode Settings: Automatically apply presets and modes to moons and weathers. 
   - On the left of = enter a moon and/or weather name, and on the right enter a single preset or mode name. 
   - Entering a preset name on the right automatically sets the mode to "Better Fog". 
   - To have a condition that requires both a moon and weather, enter "&" in between entries. This will override single entries if both moon and weather are present. 
-  - If a preset name is the same as a mode name, the mode will be set to \"Better Fog\" and that preset will be set. 
+  - If a preset name is the same as a mode name, the mode will be set to "Better Fog" and that preset will be applied. 
   - Warning: If you create different conditions that conflict (such as none=mist,68 Artifice=No Fog and you land on Art with no weather), the leftmost condition will apply. For that reason, put double conditions with the most specific condition first, and single condition last.
   - Example: "7 Dine&eclipsed=Orange Fog,61 March=Light Fog,7 Dine=Heavy Fog,eclipsed=Red Fog,8 Titan=Heavy Fog,none=Mist,none&8 Titan=No Fog"
 - Please report any bugs to me as they are found. I want to help!
@@ -47,12 +47,12 @@ What is "Weather Scale"?
 Notes
 ==============
 - Starting at v3.3.0, you must disable the GUI keybind to disable the GUI. There is no longer a config option that states to disable the GUI.
-- Starting at v3.3.3, WeatherRegistry by Mrov is a dependency to this mod. It should be also installed, or the mod may not work correctly.
+- For Exclude Enemy Fog, this works best if you enable it by default. If the Better Fog is applied
 
 Default Values Reference
 ==============
 
-For reference here are the default values that *somewhat* simulate vanilla fog. You should be able to see these in the config file descriptions as well:
+It's recommended to set the mode to Vanilla if you want a most accurate Vanilla simulation. For reference here are the default "Better Fog" mode values that *somewhat* simulate vanilla fog. You should be able to see these in the config file descriptions as well. 
 
 [Fog Presets]
 
@@ -68,11 +68,10 @@ Prerequisites
 ==============
 - [BepInEx](https://thunderstore.io/c/lethal-company/p/BepInEx/BepInExPack/)
 - [LethalCompanyInputUtils](https://thunderstore.io/c/lethal-company/p/Rune580/LethalCompany_InputUtils/)
-- [WeatherRegistry](https://thunderstore.io/c/lethal-company/p/mrov/WeatherRegistry/)
 
 Known Bugs
 ==============
-- "LC Simplified Chinese Localization" By NarkiriFox in combination with this mod causes text to lose their texture and become unreadable. This affects a very small group of players. Solution has not been found...
+- "LC Simplified Chinese Localization" By NarkiriFox in combination with this mod causes text to lose their texture and become unreadable. This affects a very small group of players. To mitigate, set "Enable Settings Hotkey" to false and graphics will not be loaded in. This also disabled in-game settings, but text displays correctly.
 
 To-Dos
 ==============

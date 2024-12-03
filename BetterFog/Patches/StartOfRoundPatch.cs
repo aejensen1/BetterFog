@@ -1,4 +1,5 @@
 ﻿using HarmonyLib;
+using UnityEngine;
 
 namespace BetterFog.Patches
 {
@@ -9,40 +10,31 @@ namespace BetterFog.Patches
         [HarmonyPostfix]
         public static void ChangeLevelPatch(StartOfRound __instance, int levelID)
         {
-            BetterFog.mls.LogInfo("ChangeLevelPatch Activated");
+            //BetterFog.mls.LogInfo("ChangeLevelPatch Activated");
             // Access the current level
             BetterFog.currentLevelType = __instance.currentLevel;
-
-            //// Check if the currentWeather value is within the bounds of the effects array
-            //if ((int)currentLevel.currentWeather >= 0 && (int)currentLevel.currentWeather < TimeOfDay.Instance.effects.Length)
-            //{
-            //    BetterFog.mls.LogInfo($"Weather changed from {BetterFog.currentWeatherType} to {TimeOfDay.Instance.effects[(int)currentLevel.currentWeather].name.ToLower()}");
-            //    WeatherEffect weatherEffect = TimeOfDay.Instance.effects[(int)currentLevel.currentWeather];
-
-            //    // Log the current weather type
-                
-            //    BetterFog.currentWeatherType = weatherEffect.name.ToLower();
-            //}
-            // Check if the currentWeather value is within the bounds of the effects array
-            
-            
-            //if ((int)currentLevel.currentWeather >= 0)
-            //{
-            //    BetterFog.mls.LogInfo($"Weather changed from {BetterFog.currentWeatherType} to {TimeOfDay.Instance.effects[(int)currentLevel.currentWeather].name.ToLower()}");
-            //    WeatherEffect weatherEffect = TimeOfDay.Instance.effects[(int)currentLevel.currentWeather];
-
-            //    // Log the current weather type
-
-            //    BetterFog.currentWeatherType = weatherEffect.name.ToLower();
-            //}
-            //else
-            //{
-            //    BetterFog.currentWeatherType = "none";
-            //    BetterFog.mls.LogWarning($"Invalid weather index: {currentLevel.currentWeather}. Set to none");
-            //}
             BetterFog.currentLevel = BetterFog.currentLevelType.PlanetName.ToLower();
             BetterFog.CollectVanillaValues();
-            BetterFog.ApplyFogSettings(false);
+
+            if (BetterFog.weatherSaveLoaded)
+            {
+                if ((int)BetterFog.currentLevelType.currentWeather >= 0)
+                {
+                    WeatherEffect weatherEffect = TimeOfDay.Instance.effects[(int)BetterFog.currentLevelType.currentWeather];
+                    BetterFog.mls.LogInfo($"Weather changed from {BetterFog.currentWeatherType} to {weatherEffect.name.ToLower()}");
+                    BetterFog.currentWeatherType = weatherEffect.name.ToLower();
+                }
+                else
+                {
+                    BetterFog.currentWeatherType = "none";
+                    BetterFog.mls.LogWarning($"Invalid weather index: {BetterFog.currentLevelType.currentWeather}. Set to none");
+                }
+                
+                if(BetterFog.autoPresetModeEnabled)
+                    BetterFog.ApplyFogSettings(true);
+                else
+                    BetterFog.ApplyFogSettings(false);
+            }
         }
     }
 }
