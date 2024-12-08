@@ -9,16 +9,17 @@ BetterFog is a Mod Plugin that can be used on the game Lethal Company. If you ha
 
 Why Use This Mod?
 ==============
-- Extremely feature rich configurable settings with changeable hotkeys
-- Not binary with No Fog and All Fog - You can set the density and colors to any level!
-- Thousands of potential fog presets. Set your game to fit your mood.
-- Fog density can adapt to different moons/weathers, or just specified moons/weathers by blacklisting the others. The atmosphere can be augmented to your liking.
-- Reduces eye strain. Are you in a dark room? Squinting to see through super thick fog two inches away from the screen? Darken the fog colors & decrease fog density to relieve some headache.
-- No fog not only removes ground fog but also clouds, smoke, and pipe fog (not including animations)
-- If you get tired of BetterFog settings, just switch to Vanilla mode in-game. No need to exit and disable the mod.
-- Client side - you don't need the host or anyone else to have the mode for it to work (but they should still get it ;D)
-- Works on custom moons! If it is too easy or hard to see on a custom moon, settings can be applied just as they are to vanilla moons.
-- Good for modpacks: you can lock in whatever settings you want by setting a default preset and disabling hotkeys in the config to add some style to your modpack.
+- **Feature rich configurable settings** with changeable hotkeys
+- **Not binary with No Fog and All Fog** - You can set the density and colors to any level!
+- **Thousands of potential fog presets.** Set your game to fit your mood.
+- **Fog density can adapt to different moons/weathers**, or just specified moons/weathers by blacklisting the others. The atmosphere can be augmented to your liking.
+- **Reduces eye strain.** Are you in a dark room? Squinting to see through super thick fog two inches away from the screen? Darken the fog colors & decrease fog density to relieve some headache.
+- **No fog not only removes all fog**, including ground fog clouds, smoke, and pipe fog (not including animations)
+- **Vanilla mode available in settings.** No need to exit and disable the mod.
+- **Client side** - you don't need the host or anyone else to have the mode for it to work (but they should still get it ;D)
+- **Works on custom moons!** If it is too easy or hard to see on a custom moon, settings can be applied just as they are to vanilla moons.
+- **Works on custom weathers!**
+- **Good for modpacks**: you can lock in whatever settings you want by setting a default preset and disabling hotkeys in the config to add some style to your modpack.
 
 Instructions
 ==============
