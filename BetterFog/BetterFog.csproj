@@ -107,6 +107,7 @@
     <Compile Include="Input\KeybindDisplayNames.cs" />
     <Compile Include="Patches\HUDManagerPatch.cs" />
     <Compile Include="Patches\LocalVolumetricFogPatch.cs" />
+    <Compile Include="Patches\QuickMenuManagerPatch.cs" />
     <Compile Include="Patches\SceneManagerPatch.cs" />
     <Compile Include="Patches\ToggleFogTriggerPatch.cs" />
     <Compile Include="Patches\TimeOfDayPatch.cs" />

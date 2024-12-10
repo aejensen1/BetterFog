@@ -42,6 +42,8 @@ namespace BetterFog.Patches
                 BetterFog.ApplyFogSettings(false);
 
             BetterFog.weatherSaveLoaded = true; // Set to true after loading the weather from the save file. Allow StartOfRoundPatch to change weather now.
+
+            IngameKeybinds.EnableHotkeys();
         }
     }
 }

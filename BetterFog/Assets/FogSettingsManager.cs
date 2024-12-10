@@ -435,6 +435,7 @@ namespace BetterFog.Assets
                 BetterFog.mls.LogInfo($"Density Scale Checkbox value changed: {isChecked}");
             BetterFog.densityScaleEnabled = isChecked;
             BetterFog.ApplyFogSettings(false);
+            UpdateText();
         }
 
         private void OnExcludeShipCheckboxValueChanged(bool isChecked)
@@ -632,7 +633,9 @@ namespace BetterFog.Assets
             currentMoonVal.text = BetterFog.currentLevel;
             currentDensityVal.text = BetterFog.currentPreset.MeanFreePath.ToString("00000.000");
             densityScaleVal.text = ("x" + BetterFog.combinedDensityScale.ToString("00.000"));
+            // calcDensityVal.text = (BetterFog.maxDensitySliderValue - ((BetterFog.maxDensitySliderValue - BetterFog.currentPreset.MeanFreePath) * BetterFog.combinedDensityScale)).ToString("00000.000");
             calcDensityVal.text = (BetterFog.currentPreset.MeanFreePath * BetterFog.combinedDensityScale).ToString("00000.000");
+            BetterFog.mls.LogInfo($"{BetterFog.maxDensitySliderValue} - {BetterFog.maxDensitySliderValue - BetterFog.currentPreset.MeanFreePath} * {BetterFog.combinedDensityScale}");
             if (BetterFog.autoPresetModeEnabled)
             {
                 if (!(BetterFog.matchedPreset == null))

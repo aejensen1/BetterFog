@@ -26,7 +26,7 @@ namespace BetterFog.Patches
         [HarmonyPostfix]
         public static void OpenMenu_performedPatch()
         {
-            IngameKeybinds.EnableHotkeys();
+            //IngameKeybinds.EnableHotkeys();
             //BetterFog.mls.LogInfo("Menu Opened. Enabling hotkeys.");
         }
     }

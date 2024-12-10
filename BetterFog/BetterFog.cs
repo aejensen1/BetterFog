@@ -14,6 +14,7 @@ using System.Collections;
 using GameNetcodeStuff;
 using Unity.Netcode;
 using UnityEngine.SceneManagement;
+using System.Globalization;
 
 namespace BetterFog
 {
@@ -58,6 +59,7 @@ namespace BetterFog
         private static float moonDensityScale = 1f;
         private static float weatherDensityScale = 1f;
         public static float combinedDensityScale = 1f;
+        public const float maxDensitySliderValue = 15000; // Sets the max value possible for the density slider scale (inversed mean free path)
         public static List<WeatherScale> weatherScales;
         private static ConfigEntry<string> weatherScalesConfig;
         public static bool weatherSaveLoaded = false;
@@ -132,6 +134,10 @@ namespace BetterFog
 
             mls = base.Logger;
 
+            // Override existing Unity or BepInEx locale configurations if applicable
+            CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+            CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+
             // Initialize your fogConfigPresets list
             // Arguments: Preset Name, MeanFreePath, AlbedoR, AlbedoG, AlbedoB, AlbedoA
             fogConfigPresets = new List<FogConfigPreset>
@@ -140,7 +146,7 @@ namespace BetterFog
                 new FogConfigPreset("Heavy Fog", 14950f, 0f, 0f, 0f),
                 new FogConfigPreset("Light Fog", 5150f, 5f, 5f, 5f),
                 new FogConfigPreset("Mist", 0f, 1f, 1f, 1f),
-                new FogConfigPreset("Red Fog", 14500f, 20f, 0f, 0f),
+                new FogConfigPreset("Red Fog", 14000f, 20f, 0f, 0f),
                 new FogConfigPreset("Orange Fog", 14500f, 20f, 9.33f, 4.5f),
                 new FogConfigPreset("Yellow Fog", 13700f, 20f, 20f, 0f),
                 new FogConfigPreset("Green Fog", 13700f, 0f, 20f, 0f),
@@ -221,21 +227,29 @@ namespace BetterFog
                             float meanFreePath = float.Parse(value);
                             if (meanFreePath < 0)
                                 meanFreePath = 0;
-                            else if (meanFreePath > 15000)
-                                meanFreePath = 15000;
+                            else if (meanFreePath > maxDensitySliderValue)
+                                meanFreePath = maxDensitySliderValue;
                             else
-                                fogConfigPresets[i].MeanFreePath = float.Parse(value);
+                                fogConfigPresets[i].MeanFreePath = float.Parse(value, CultureInfo.InvariantCulture);
                             break;
                         case "Red Hue":
-                            fogConfigPresets[i].AlbedoR = float.Parse(value);
+                            fogConfigPresets[i].AlbedoR = float.Parse(value, CultureInfo.InvariantCulture);
                             break;
                         case "Green Hue":
-                            fogConfigPresets[i].AlbedoG = float.Parse(value);
+                            fogConfigPresets[i].AlbedoG = float.Parse(value, CultureInfo.InvariantCulture);
                             break;
                         case "Blue Hue":
-                            fogConfigPresets[i].AlbedoB = float.Parse(value);
+                            fogConfigPresets[i].AlbedoB = float.Parse(value, CultureInfo.InvariantCulture);
                             break;
                     }
+                }
+            }
+
+            if (verboseLoggingEnabled)
+            {
+                foreach (var preset in fogConfigPresets)
+                {
+                    mls.LogInfo($"Preset '{preset.PresetName}': Density={preset.MeanFreePath}, AlbedoR={preset.AlbedoR}, AlbedoG={preset.AlbedoG}, AlbedoB={preset.AlbedoB}");
                 }
             }
 
@@ -333,6 +347,9 @@ namespace BetterFog
                 harmony.Patch(original: AccessTools.Method(typeof(Terminal), "QuitTerminal"), postfix: new HarmonyMethod(typeof(TerminalPatch), "QuitTerminalPatch"));
                 harmony.Patch(original: AccessTools.Method(typeof(Terminal), "Start"), postfix: new HarmonyMethod(typeof(TerminalPatch), "StartPatch"));
                 //mls.LogInfo("Terminal patches applied successfully.");
+
+                harmony.Patch(original: AccessTools.Method(typeof(QuickMenuManager), "OpenQuickMenu"), postfix: new HarmonyMethod(typeof(QuickMenuManagerPatch), "OpenQuickMenuPatch"));
+                harmony.Patch(original: AccessTools.Method(typeof(QuickMenuManager), "CloseQuickMenu"), postfix: new HarmonyMethod(typeof(QuickMenuManagerPatch), "CloseQuickMenuPatch"));
 
                 harmony.Patch(original: AccessTools.Method(typeof(HUDManager), "EnableChat_performed"), postfix: new HarmonyMethod(typeof(HUDManagerPatch), "EnableChat_performedPatch"));
                 harmony.Patch(original: AccessTools.Method(typeof(HUDManager), "SubmitChat_performed"), postfix: new HarmonyMethod(typeof(HUDManagerPatch), "SubmitChat_performedPatch"));
@@ -515,11 +532,11 @@ namespace BetterFog
 
             if (densityScaleEnabled)
             {
-                parameters.meanFreePath = (15000 - currentPreset.MeanFreePath) * combinedDensityScale;
+                parameters.meanFreePath = (maxDensitySliderValue - currentPreset.MeanFreePath) * combinedDensityScale;
             }
             else
             {
-                parameters.meanFreePath = (15000 - currentPreset.MeanFreePath);
+                parameters.meanFreePath = (maxDensitySliderValue - currentPreset.MeanFreePath);
             }
 
             parameters.albedo = new Color(
@@ -591,7 +608,7 @@ namespace BetterFog
             {
                 mls.LogInfo($"Final density scale applied: {moonDensityScale} * {weatherDensityScale} = {combinedDensityScale}");
                 mls.LogInfo($"Preset original MeanFreePath: {currentPreset.MeanFreePath}"); // Log the original MeanFreePath (density) value
-                mls.LogInfo($"Scaled MeanFreePath: {currentPreset.MeanFreePath} * {combinedDensityScale} = {currentPreset.MeanFreePath * combinedDensityScale}"); // Log the scaled MeanFreePath (density) value
+                mls.LogInfo($"Scaled MeanFreePath: {maxDensitySliderValue - currentPreset.MeanFreePath} * {combinedDensityScale} = {(maxDensitySliderValue - currentPreset.MeanFreePath) * combinedDensityScale}"); // Log the scaled MeanFreePath (density) value
             }
         }
 

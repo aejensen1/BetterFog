@@ -1,5 +1,6 @@
 ﻿using BetterFog.Assets;
 using LethalCompanyInputUtils.Api;
+using Unity.Netcode;
 using UnityEngine.InputSystem;
 
 namespace BetterFog.Input
@@ -46,8 +47,11 @@ namespace BetterFog.Input
                 nextPresetHotkey.Enable();
                 nextPresetHotkey.performed += ctx =>
                 {
-                    BetterFog.mls.LogInfo("Next preset hotkey pressed.");
-                    BetterFog.NextPreset();
+                    if (InLobby())
+                    {
+                        BetterFog.mls.LogInfo("Next preset hotkey pressed.");
+                        BetterFog.NextPreset();
+                    }
                 };
             }
             else
@@ -68,8 +72,11 @@ namespace BetterFog.Input
                 // Subscribe to the performed event
                 nextModeHotkey.performed += ctx =>
                 {
-                    BetterFog.mls.LogInfo("Next mode hotkey pressed.");
-                    BetterFog.NextMode();
+                    if (InLobby())
+                    {
+                        BetterFog.mls.LogInfo("Next mode hotkey pressed.");
+                        BetterFog.NextMode();
+                    }
                 };
             }
             else
@@ -90,8 +97,11 @@ namespace BetterFog.Input
                 // Subscribe to the performed event
                 autoPresetModeHotkey.performed += ctx =>
                 {
-                    BetterFog.mls.LogInfo("Auto preset mode hotkey pressed.");
-                    BetterFog.ToggleAutoPresetMode();
+                    if (InLobby())
+                    {
+                        BetterFog.mls.LogInfo("Auto preset mode hotkey pressed.");
+                        BetterFog.ToggleAutoPresetMode();
+                    }
                 };
             }
             else
@@ -112,8 +122,11 @@ namespace BetterFog.Input
                 // Subscribe to the performed event
                 refreshPresetHotkey.performed += ctx =>
                 {
-                    BetterFog.mls.LogInfo("Refresh preset hotkey pressed.");
-                    BetterFog.ApplyFogSettings(false);
+                    if (InLobby())
+                    {
+                        BetterFog.mls.LogInfo("Refresh preset hotkey pressed.");
+                        BetterFog.ApplyFogSettings(false);
+                    }
                 };
             }
             else
@@ -135,8 +148,11 @@ namespace BetterFog.Input
                 // Subscribe to the performed event
                 weatherScalePresetHotkey.performed += ctx =>
                 {
-                    BetterFog.mls.LogInfo("Weather scaling hotkey pressed.");
-                    BetterFog.ToggleWeatherScaling();
+                    if (InLobby())
+                    {
+                        BetterFog.mls.LogInfo("Weather scaling hotkey pressed.");
+                        BetterFog.ToggleWeatherScaling();
+                    }
                 };
             }
             else
@@ -158,8 +174,11 @@ namespace BetterFog.Input
                 // Subscribe to the performed event
                 settingsHotkey.performed += ctx =>
                 {
-                    BetterFog.mls.LogInfo("Settings hotkey pressed.");
-                    FogSettingsManager.Instance.ToggleSettings();
+                    if (InLobby())
+                    {
+                        BetterFog.mls.LogInfo("Settings hotkey pressed.");
+                        FogSettingsManager.Instance.ToggleSettings();
+                    }
                 };
             }
             else
@@ -169,22 +188,37 @@ namespace BetterFog.Input
             }              
         }
 
+        private static bool InLobby()
+        {
+            if (!(NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsClient))
+            {
+                BetterFog.mls.LogError("Hotkeys cannot be used when not in a lobby.");
+                return false;
+            }
+            else
+                return true;
+        }
+
         public static void DisableHotkeys()
         {
             BetterFog.hotkeysEnabled = false;
             Instance.nextPresetHotkey.Disable();
+            Instance.nextModeHotkey.Disable();
             Instance.refreshPresetHotkey.Disable();
             Instance.weatherScalePresetHotkey.Disable();
             Instance.settingsHotkey.Disable();
+            Instance.autoPresetModeHotkey.Disable();
         }
 
         public static void EnableHotkeys()
         {
             BetterFog.hotkeysEnabled = true;
             Instance.nextPresetHotkey.Enable();
+            Instance.nextModeHotkey.Enable();
             Instance.refreshPresetHotkey.Enable();
             Instance.weatherScalePresetHotkey.Enable();
             Instance.settingsHotkey.Enable();
+            Instance.autoPresetModeHotkey.Enable();
         }
     }
 }
