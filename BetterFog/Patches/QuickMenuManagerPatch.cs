@@ -18,7 +18,7 @@ namespace BetterFog.Patches
             if (BetterFog.verboseLoggingEnabled)
                 BetterFog.mls.LogInfo("Quick menu opened. Disabling hotkeys");
 
-            IngameKeybinds.DisableHotkeys();
+            IngameKeybinds.DisableHotkeys(); // Disable hotkeys when the quick menu is open
         }
         [HarmonyPatch("CloseQuickMenu")]
         [HarmonyPostfix]
@@ -27,7 +27,7 @@ namespace BetterFog.Patches
             if (BetterFog.verboseLoggingEnabled)
                 BetterFog.mls.LogInfo("Quick menu closed. Enabling hotkeys");
 
-            IngameKeybinds.EnableHotkeys();
+            IngameKeybinds.EnableHotkeys(); // Enable hotkeys when the quick menu is closed
         }
     }
 }
