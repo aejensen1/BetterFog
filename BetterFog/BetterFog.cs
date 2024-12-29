@@ -23,7 +23,7 @@ namespace BetterFog
     {
         public const string modGUID = "ironthumb.BetterFog";
         public const string modName = "BetterFog";
-        public const string modVersion = "3.3.3";
+        public const string modVersion = "3.3.6";
 
         private readonly Harmony harmony = new Harmony(modGUID);
         public static ManualLogSource mls;
@@ -96,28 +96,32 @@ namespace BetterFog
         public static bool isFogSettingsActive = false;
         public static bool settingsHotkeyEnabled;
         public static bool applyingFogSettings = false;
+        public static bool inTerminal = false;
+        
 
         public static PlayerControllerB player;
+
+        private static readonly object lockObject = new object();
 
         // Singleton pattern
         public static BetterFog Instance
         {
             get
             {
-                if (instance == null)
+                lock (lockObject)
                 {
-                    // Find existing instances
-                    instance = FindObjectOfType<BetterFog>();
-
                     if (instance == null)
                     {
-                        // Create a new instance if none found
-                        var gameObject = new GameObject("BetterFog");
-                        DontDestroyOnLoad(gameObject);
-                        instance = gameObject.AddComponent<BetterFog>();
+                        instance = FindObjectOfType<BetterFog>();
+                        if (instance == null)
+                        {
+                            var gameObject = new GameObject("BetterFog");
+                            DontDestroyOnLoad(gameObject);
+                            instance = gameObject.AddComponent<BetterFog>();
+                        }
                     }
+                    return instance;
                 }
-                return instance;
             }
         }
 
@@ -125,14 +129,18 @@ namespace BetterFog
         {
             if (instance != null && instance != this)
             {
-                Destroy(this.gameObject);
+                Destroy(gameObject);
                 return;
             }
 
             instance = this;
-            DontDestroyOnLoad(this.gameObject);
+            DontDestroyOnLoad(gameObject);
 
             mls = base.Logger;
+            if (mls == null)
+            {
+                Debug.LogWarning("Logger not initialized in BetterFog.");
+            }
 
             // Override existing Unity or BepInEx locale configurations if applicable
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
@@ -142,17 +150,17 @@ namespace BetterFog
             // Arguments: Preset Name, MeanFreePath, AlbedoR, AlbedoG, AlbedoB, AlbedoA
             fogConfigPresets = new List<FogConfigPreset>
             {
-                new FogConfigPreset("Default", 14750f, 0.441f, 0.459f, 0.500f),
-                new FogConfigPreset("Heavy Fog", 14950f, 0f, 0f, 0f),
+                new FogConfigPreset("Default", 14915f, 0.441f, 0.459f, 0.500f),
+                new FogConfigPreset("Heavy Fog", 14923f, 0.25f, 0.25f, 0.25f),
                 new FogConfigPreset("Light Fog", 5150f, 5f, 5f, 5f),
                 new FogConfigPreset("Mist", 0f, 1f, 1f, 1f),
-                new FogConfigPreset("Red Fog", 14000f, 20f, 0f, 0f),
-                new FogConfigPreset("Orange Fog", 14500f, 20f, 9.33f, 4.5f),
-                new FogConfigPreset("Yellow Fog", 13700f, 20f, 20f, 0f),
-                new FogConfigPreset("Green Fog", 13700f, 0f, 20f, 0f),
-                new FogConfigPreset("Blue Fog", 13700f, 0f, 0f, 20f),
-                new FogConfigPreset("Purple Fog", 14500f, 11.5f, 7.2f, 20f),
-                new FogConfigPreset("Pink Fog", 14500f, 20f, 4.75f, 20f),
+                new FogConfigPreset("Red Fog", 14915f, 3f, 0f, 0f),
+                new FogConfigPreset("Orange Fog", 14910f, 20f, 9.33f, 4.5f),
+                new FogConfigPreset("Yellow Fog", 14915f, 3f, 3f, 0f),
+                new FogConfigPreset("Green Fog", 14915f, 0f, 3f, 0f),
+                new FogConfigPreset("Blue Fog", 14909f, 0f, 0f, 3f),
+                new FogConfigPreset("Purple Fog", 14915f, 11.5f, 7.2f, 20f),
+                new FogConfigPreset("Pink Fog", 14915f, 20f, 4.75f, 20f),
             };
             mls.LogInfo("fogConfigPresets initialized.");
 
@@ -254,16 +262,32 @@ namespace BetterFog
             }
 
             string section4 = "Weather and Moon Density Scales";
-            moonScalesConfig = Config.Bind(section4, "MoonScales", "71 Gordion=1,41 Experimentation=0.95,220 Assurance=0.9,56 Vow=0.8,21 Offense=0.9," +
-                "61 March=0.75,20 Adamance=0.75,85 Rend=0.285,7 Dine=0.325,8 Titan=0.285,68 Artifice=0.9,5 Embrion=0.85,44 Liquidation=0.85",
-                "Moon scales in the format {Gordion=1,41 Experimentation=0.95,220 Assurance=0.9,...}");
+            moonScalesConfig = Config.Bind(section4, "MoonScales", "71 Gordion=1,41 Experimentation=0.998,220 Assurance=1,56 Vow=1.003,21 Offense=1," +
+                "61 March=1.003,20 Adamance=1.003,85 Rend=1.002,7 Dine=1.001,8 Titan=1.002,68 Artifice=1.001,5 Embrion=1.002,44 Liquidation=1,Fallback=1",
+                "Moon scales in the format {71 Gordion=1,41 Experimentation=0.998,220 Assurance=1,...}. When \"Fallback={number}\" is in the list, the density will default to \n" +
+                "this value if no moon is detected.");
 
             moonScales = ParseMoonScales(moonScalesConfig.Value);
 
-            weatherScalesConfig = Config.Bind(section4, "WeatherScales", "none=1,rainy=0.75,stormy=0.5,foggy=0.45,eclipsed=0.77,dust clouds=0.8,flooded=0.765",
-            "Weather scales in the format {none=1,rainy=0.69,stormy=0.65,...}");
+            weatherScalesConfig = Config.Bind(section4, "WeatherScales", "none=1,rainy=1.002,stormy=1.0022,foggy=1.0025,eclipsed=1.002,dust clouds=1.001,flooded=1.0018,Fallback=1",
+            "Weather scales in the format {none=1,rainy=1.002,stormy=1.0022,...}. When \"Fallback={number}\" is in the list, the density will default to this value if no moon is detected.");
 
             weatherScales = ParseWeatherScales(weatherScalesConfig.Value);
+
+            // check whether any combination of moon and weather scales exceed the maxDensitySliderValue for every preset
+            foreach (var preset in fogConfigPresets)
+            {
+                foreach (var moonScale in moonScales)
+                {
+                    foreach (var weatherScale in weatherScales)
+                    {
+                        if ((preset.MeanFreePath * moonScale.Scale * weatherScale.Scale) > maxDensitySliderValue)
+                        {
+                            mls.LogWarning($"Preset '{preset.PresetName}' exceeds max density slider value with Moon '{moonScale.MoonName}' and Weather '{weatherScale.WeatherName}'. Decrease the scales or preset fog density to prevent a black screen...");
+                        }
+                    }
+                }
+            }
 
             weatherScaleBlacklistConfig = Config.Bind(section4, "Weather Scaling Blacklist", "",
                 "Enter weather names or moon names to trigger temporary disablement of fog WEATHER density scaling. This is only effective when WeatherScale is enabled. \n" +
@@ -281,8 +305,8 @@ namespace BetterFog
                 "To have a condition that requires both a moon and weather, enter \"&\" in between entries. This will override single entries if both moon and weather are present. \n" +
                 "If a preset name is the same as a mode name, the mode will be set to \"Better Fog\" and that preset will be set. \n" +
                 "Warning: If you create different conditions that conflict (such as none=mist,68 Artifice=No Fog and you land on Art with no weather), the leftmost condition will apply. \n" +
-                "For that reason, put double conditions with the most specific condition first, and single condition last. \n" +
-                "Example: 61 March=Light Fog,7 Dine&eclipsed=Orange Fog,7 Dine=Heavy Fog,eclipsed=Red Fog,8 Titan=Heavy Fog,none=Mist,none&8 Titan=No Fog");
+                "For that reason, put double conditions with the most specific condition first, and single condition last. Keyword \"All\" Matches all moons and whethers. Use this last as \n" +
+                "a fallback value in case no matches are found. Example: 61 March=Light Fog,7 Dine&eclipsed=Orange Fog,7 Dine=Heavy Fog,eclipsed=Red Fog,8 Titan=Heavy Fog,none=Mist,none&8 Titan=No Fog,All=Default");
             autoPresetModes = ParseAutoPresetMode(autoPresetModeConfig.Value);
 
             mls.LogInfo("Finished parsing config entries");
@@ -423,7 +447,7 @@ namespace BetterFog
                     var conditionsMet = preset.Conditions.All(condition =>
                     {
                         // Match against the current moon or weather
-                        return condition.Equals(currentLevel) || condition.Equals(currentWeatherType);
+                        return condition.Equals(currentLevel) || condition.Equals(currentWeatherType) || condition.Equals("all");
                     });
 
                     if (conditionsMet)
@@ -481,6 +505,7 @@ namespace BetterFog
             }
 
             UpdateLockInteractionSettings();
+            mls.LogInfo("Applying fog settings from ApplyFogSettings");
 
             SetWeatherScale();
 
@@ -530,14 +555,21 @@ namespace BetterFog
         {
             var parameters = fogObject.parameters;
 
-            if (densityScaleEnabled)
+            //if (densityScaleEnabled)
+            //{
+            if ((currentPreset.MeanFreePath * combinedDensityScale) > maxDensitySliderValue) // Max density is as thick as the fog can get. Do not exceed this value.
             {
-                parameters.meanFreePath = (maxDensitySliderValue - currentPreset.MeanFreePath) * combinedDensityScale;
+                parameters.meanFreePath = 0;
             }
             else
             {
-                parameters.meanFreePath = (maxDensitySliderValue - currentPreset.MeanFreePath);
+                parameters.meanFreePath = maxDensitySliderValue - (currentPreset.MeanFreePath * combinedDensityScale);
             }
+            //}
+            //else
+            //{
+            //    parameters.meanFreePath = (maxDensitySliderValue - currentPreset.MeanFreePath);
+            //}
 
             parameters.albedo = new Color(
                 currentPreset.AlbedoR,
@@ -569,6 +601,12 @@ namespace BetterFog
                                 mls.LogInfo($"{currentLevel} moon detected. Set moon density scale to " + moonDensityScale);
                             break;
                         }
+                        else if (moonScale.MoonName == "Fallback")
+                        {
+                            moonDensityScale = moonScale.Scale;
+                            if (verboseLoggingEnabled)
+                                mls.LogInfo("Fallback moon scale detected. Set moon density scale to " + moonDensityScale);
+                        }
                         if (moonScale.MoonName == moonScales[moonScales.Count - 1].MoonName)
                         {
                             if (verboseLoggingEnabled)
@@ -592,6 +630,12 @@ namespace BetterFog
                                 mls.LogInfo($"{currentWeatherType} weather type detected. Set weather density scale to " + weatherDensityScale);
                             break;
                         }
+                        else if (weatherScale.WeatherName == "Fallback")
+                        {
+                            weatherDensityScale = weatherScale.Scale;
+                            if (verboseLoggingEnabled)
+                                mls.LogInfo("Fallback weather scale detected. Set weather density scale to " + weatherDensityScale);
+                        }
                         if (weatherScale.WeatherName == weatherScales[weatherScales.Count - 1].WeatherName)
                         {
                             if (verboseLoggingEnabled)
@@ -608,7 +652,9 @@ namespace BetterFog
             {
                 mls.LogInfo($"Final density scale applied: {moonDensityScale} * {weatherDensityScale} = {combinedDensityScale}");
                 mls.LogInfo($"Preset original MeanFreePath: {currentPreset.MeanFreePath}"); // Log the original MeanFreePath (density) value
-                mls.LogInfo($"Scaled MeanFreePath: {maxDensitySliderValue - currentPreset.MeanFreePath} * {combinedDensityScale} = {(maxDensitySliderValue - currentPreset.MeanFreePath) * combinedDensityScale}"); // Log the scaled MeanFreePath (density) value
+                mls.LogInfo($"Scaled MeanFreePath: {maxDensitySliderValue} - {currentPreset.MeanFreePath * combinedDensityScale}  = {(maxDensitySliderValue - (currentPreset.MeanFreePath * combinedDensityScale)) }"); // Log the scaled MeanFreePath (density) value
+                if ((currentPreset.MeanFreePath * combinedDensityScale) > maxDensitySliderValue)
+                    mls.LogWarning($"MeanFreePath value exceeded max Density SliderValue. Setting density to {maxDensitySliderValue}");
             }
         }
 
@@ -795,6 +841,8 @@ namespace BetterFog
                 var keyValue = pair.Split('=');
                 if (keyValue.Length == 2 && float.TryParse(keyValue[1], out float scaleValue))
                 {
+                    if (scaleValue < 0)
+                        scaleValue = 0;
                     moonScales.Add(new MoonScale(keyValue[0].ToLower(), scaleValue));
                 }
             }

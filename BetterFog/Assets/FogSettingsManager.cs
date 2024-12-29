@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using TMPro;  // Make sure you have this namespace for TextMeshPro
 using System.Collections.Generic;
@@ -6,6 +7,9 @@ using BepInEx;
 using System.IO;
 using Unity.Netcode;
 using BetterFog.Input;
+using System.Runtime.CompilerServices;
+using System.Collections;
+//using UnityEngine.UIElements;
 
 namespace BetterFog.Assets
 {
@@ -29,7 +33,6 @@ namespace BetterFog.Assets
         private Slider fogGreenSlider; // Slider for green hue
         TMP_InputField greenValInput; // Input field for green hue value
 
-
         private Slider fogBlueSlider; // Slider for blue hue
         TMP_InputField blueValInput; // Input field for blue hue value
 
@@ -51,8 +54,14 @@ namespace BetterFog.Assets
 
         private UnityEngine.UI.Button closeButton; // Button to close the settings
 
+        private RectTransform rectTransform;
+        private bool isMouseDown = false;
+        private bool isTyping = false;
+
         private static FogSettingsManager instance;
+        private static readonly object lockObject = new object();
         private static bool isInitializing = false;
+        public static bool supressApplyingFogSettings = false; // Used to prevent fog settings from being applied. When one GUI element is changed, the others should not apply fog settings.
 
         private int previousModeIndex;
 
@@ -60,35 +69,43 @@ namespace BetterFog.Assets
         {
             get
             {
-                if (instance == null && !isInitializing)
+                lock (lockObject)
                 {
-                    isInitializing = true;
-                    if (BetterFog.verboseLoggingEnabled)
-                        BetterFog.mls.LogInfo("Instance is null, creating new instance.");
-                    var gameObject = new GameObject("FogSettingsManager");
-                    DontDestroyOnLoad(gameObject);
-                    instance = gameObject.AddComponent<FogSettingsManager>();
-                    instance.Initialize();
-                    isInitializing = false;
+                    if (instance == null)
+                    {
+                        isInitializing = true;
+                        if (BetterFog.verboseLoggingEnabled)
+                            BetterFog.mls.LogInfo("Instance is null, creating new instance.");
+
+                        var gameObject = new GameObject("FogSettingsManager");
+                        DontDestroyOnLoad(gameObject);
+                        instance = gameObject.AddComponent<FogSettingsManager>();
+                        instance.Initialize();
+
+                        isInitializing = false;
+                    }
+                    return instance;
                 }
-                return instance;
             }
         }
 
         private void Awake()
         {
-            if (instance == null)
+            lock (lockObject)
             {
-                instance = this;
-                DontDestroyOnLoad(gameObject);
-                if (BetterFog.verboseLoggingEnabled)
-                    BetterFog.mls.LogInfo("FogSettingsManager created and started.");
-            }
-            else if (instance != this)
-            {
-                Destroy(gameObject);
-                if (BetterFog.verboseLoggingEnabled)
-                    BetterFog.mls.LogWarning("FogSettingsManager already exists. Duplicate destroyed.");
+                if (instance == null)
+                {
+                    instance = this;
+                    DontDestroyOnLoad(gameObject);
+                    if (BetterFog.verboseLoggingEnabled)
+                        BetterFog.mls.LogInfo("FogSettingsManager created and started.");
+                }
+                else if (instance != this)
+                {
+                    Destroy(gameObject);
+                    if (BetterFog.verboseLoggingEnabled)
+                        BetterFog.mls.LogWarning("FogSettingsManager already exists. Duplicate destroyed.");
+                }
             }
         }
 
@@ -239,6 +256,18 @@ namespace BetterFog.Assets
                         fogGreenSlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogGreenSlider, value));
                         fogBlueSlider.onValueChanged.AddListener(value => OnSliderValueChanged(fogBlueSlider, value));
 
+                        // Add a listener to check if the player is typing in an input field
+                        densityValInput.onSelect.AddListener(delegate { isTyping = true; supressApplyingFogSettings = true; });
+                        redValInput.onSelect.AddListener(delegate { isTyping = true; supressApplyingFogSettings = true; });
+                        greenValInput.onSelect.AddListener(delegate { isTyping = true; supressApplyingFogSettings = true; });
+                        blueValInput.onSelect.AddListener(delegate { isTyping = true; supressApplyingFogSettings = true; });
+
+                        // Add a listener to check if the player is done typing in an input field
+                        densityValInput.onDeselect.AddListener(delegate { isTyping = false; supressApplyingFogSettings = false; });
+                        redValInput.onDeselect.AddListener(delegate { isTyping = false; supressApplyingFogSettings = false; });
+                        greenValInput.onDeselect.AddListener(delegate { isTyping = false; supressApplyingFogSettings = false; });
+                        blueValInput.onDeselect.AddListener(delegate { isTyping = false; supressApplyingFogSettings = false; });
+
                         // Add a listener to update the input value and text
                         densityValInput.onValueChanged.AddListener(value => OnInputValueChanged(densityValInput, value));
                         redValInput.onValueChanged.AddListener(value => OnInputValueChanged(redValInput, value));
@@ -359,8 +388,23 @@ namespace BetterFog.Assets
                     }
                     break;
             }
-            if (!BetterFog.lockPresetValueModification)
-                BetterFog.ApplyFogSettings(false);
+        }
+
+        private IEnumerator ApplySliderSettingsWhilePressed()
+        {
+            while (isMouseDown)
+            {
+                Vector2 mousePreviousPosition = Mouse.current.position.ReadValue();
+                yield return new WaitForSeconds(0.001f);
+                isMouseDown = Mouse.current.leftButton.IsPressed();
+                if (isMouseDown && !(mousePreviousPosition == Mouse.current.position.ReadValue()))
+                {
+                    Debug.Log("Applying fog settings while mouse is pressed.");
+                    BetterFog.ApplyFogSettings(false);
+                }
+            }
+            supressApplyingFogSettings = false;
+            Debug.Log("Stopped applying fog settings. Mouse is no longer down.");
         }
 
         private void OnSliderValueChanged(Slider slider, float value)
@@ -373,6 +417,21 @@ namespace BetterFog.Assets
                 OnValueChanged("Green", value);
             else if (slider == fogBlueSlider)
                 OnValueChanged("Blue", value);
+
+            // Check if mouse is over the TMP_Slider and the left mouse button is pressed
+            rectTransform = slider.GetComponent<RectTransform>(); // Get the RectTransform component to detect contact with mouse
+            Vector2 mousePosition = Mouse.current.position.ReadValue();
+
+            if (!BetterFog.lockPresetValueModification && !supressApplyingFogSettings && RectTransformUtility.RectangleContainsScreenPoint(rectTransform, mousePosition, Camera.main))
+            {
+                if (Mouse.current.leftButton.IsPressed()) // 0 is for left-click
+                {
+                    supressApplyingFogSettings = true;
+                    isMouseDown = true;
+                    Debug.Log("Mouse is down on TMP_Slider. Starting coroutine to apply fog settings.");
+                    StartCoroutine(ApplySliderSettingsWhilePressed());
+                }
+            }
         }
 
         private void OnInputValueChanged(TMP_InputField input, string inputValue)
@@ -388,6 +447,12 @@ namespace BetterFog.Assets
                     OnValueChanged("Green", value);
                 else if (input == blueValInput)
                     OnValueChanged("Blue", value);
+            }
+
+            // Check if the player is typing in an input field
+            if (isTyping)
+            {
+                BetterFog.ApplyFogSettings(false);
             }
         }
 
@@ -434,7 +499,12 @@ namespace BetterFog.Assets
             if (BetterFog.verboseLoggingEnabled)
                 BetterFog.mls.LogInfo($"Density Scale Checkbox value changed: {isChecked}");
             BetterFog.densityScaleEnabled = isChecked;
-            BetterFog.ApplyFogSettings(false);
+            if (!supressApplyingFogSettings)
+            {
+                supressApplyingFogSettings = true;
+                BetterFog.ApplyFogSettings(false);
+                supressApplyingFogSettings = false;
+            }
             UpdateText();
         }
 
@@ -443,7 +513,13 @@ namespace BetterFog.Assets
             if (BetterFog.verboseLoggingEnabled)
                 BetterFog.mls.LogInfo($"Exclude Ship Checkbox value changed: {isChecked}");
             BetterFog.excludeShipFogEnabled = isChecked;
-            BetterFog.ApplyFogSettings(false);
+            if (!supressApplyingFogSettings)
+            {
+                supressApplyingFogSettings = true;
+                BetterFog.ApplyFogSettings(false);
+                supressApplyingFogSettings = false;
+            }
+                
         }
 
         private void OnExcludeEnemiesCheckboxValueChanged(bool isChecked)
@@ -451,7 +527,12 @@ namespace BetterFog.Assets
             if (BetterFog.verboseLoggingEnabled)
                 BetterFog.mls.LogInfo($"Exclude Enemies Checkbox value changed: {isChecked}");
             BetterFog.excludeEnemyFogEnabled = isChecked;
-            BetterFog.ApplyFogSettings(false);
+            if (!supressApplyingFogSettings)
+            {
+                supressApplyingFogSettings = true;
+                BetterFog.ApplyFogSettings(false);
+                supressApplyingFogSettings = false;
+            }
         }
 
         private void OnAutoPresetModeCheckboxValueChanged(bool isChecked)
@@ -459,9 +540,11 @@ namespace BetterFog.Assets
             if (BetterFog.verboseLoggingEnabled)
                 BetterFog.mls.LogInfo($"Auto Preset Mode Checkbox value changed: {isChecked}");
             BetterFog.autoPresetModeEnabled = isChecked;
-            if (isChecked)
+            if (isChecked && !supressApplyingFogSettings)
             {
+                supressApplyingFogSettings = true;
                 BetterFog.ApplyFogSettings(true);
+                supressApplyingFogSettings = false;
             }
             else
             {
@@ -484,7 +567,12 @@ namespace BetterFog.Assets
         {
             BetterFog.mls.LogInfo($"Verbose Logs Checkbox value changed: {isChecked}");
             BetterFog.verboseLoggingEnabled = isChecked;
-            BetterFog.ApplyFogSettings(false);
+            if (!supressApplyingFogSettings)
+            {
+                supressApplyingFogSettings = true;
+                BetterFog.ApplyFogSettings(false);
+                supressApplyingFogSettings = false;
+            }
         }
 
         private void UpdateCheckboxValues()
@@ -620,19 +708,21 @@ namespace BetterFog.Assets
 
         public void UpdateSettings()
         {
+            supressApplyingFogSettings = true;
             UpdateText();
             UpdateDropdownWithCurrentOption(presetDropdown);
             UpdateDropdownWithCurrentOption(modeDropdown);
             UpdateSlidersWithCurrentPreset();
             UpdateCheckboxValues();
+            supressApplyingFogSettings = false;
         }
 
         private void UpdateText()
         {
             currentWeatherVal.text = BetterFog.currentWeatherType;
             currentMoonVal.text = BetterFog.currentLevel;
-            currentDensityVal.text = BetterFog.currentPreset.MeanFreePath.ToString("00000.000");
-            densityScaleVal.text = ("x" + BetterFog.combinedDensityScale.ToString("00.000"));
+            currentDensityVal.text = BetterFog.currentPreset.MeanFreePath.ToString("00000.0000");
+            densityScaleVal.text = ("x" + BetterFog.combinedDensityScale.ToString("00.0000"));
             // calcDensityVal.text = (BetterFog.maxDensitySliderValue - ((BetterFog.maxDensitySliderValue - BetterFog.currentPreset.MeanFreePath) * BetterFog.combinedDensityScale)).ToString("00000.000");
             calcDensityVal.text = (BetterFog.currentPreset.MeanFreePath * BetterFog.combinedDensityScale).ToString("00000.000");
             BetterFog.mls.LogInfo($"{BetterFog.maxDensitySliderValue} - {BetterFog.maxDensitySliderValue - BetterFog.currentPreset.MeanFreePath} * {BetterFog.combinedDensityScale}");
@@ -691,6 +781,12 @@ namespace BetterFog.Assets
             BetterFog.currentPresetIndex = index;
             BetterFog.currentPreset = BetterFog.fogConfigPresets[index];
             UpdateSlidersWithCurrentPreset();
+            if (!supressApplyingFogSettings)
+            {
+                supressApplyingFogSettings = true;
+                BetterFog.ApplyFogSettings(false);
+                supressApplyingFogSettings = false;
+            }
         }
 
         private void OnModeChanged(int currentIndex, int previousIndex)
@@ -702,7 +798,16 @@ namespace BetterFog.Assets
 
             BetterFog.Instance.UpdateMode();
 
-            BetterFog.ApplyFogSettings(false);
+            BetterFog.mls.LogInfo($"SupressApplyingFogSettings before mode change: {supressApplyingFogSettings}");
+
+            if (!supressApplyingFogSettings)
+            {
+                supressApplyingFogSettings = true;
+                BetterFog.ApplyFogSettings(false);
+                supressApplyingFogSettings = false;
+            }
+
+            BetterFog.mls.LogInfo($"SupressApplyingFogSettings after mode change: {supressApplyingFogSettings}");
             BetterFog.UpdateLockInteractionSettings();
         }
 
@@ -711,11 +816,6 @@ namespace BetterFog.Assets
 
         public void ToggleSettings()
         {
-            /*if (BetterFog.guiEnabled.Value == false)
-            {
-                BetterFog.mls.LogWarning("FogSettingsManager GUI is disabled by config file.");
-                return;
-            }*/
             if (!(NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsClient))
             {
                 BetterFog.mls.LogError("FogSettingsManager cannot be manipulated when not in a lobby.");

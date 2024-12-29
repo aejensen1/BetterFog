@@ -18,8 +18,13 @@ namespace BetterFog.Patches
         [HarmonyPostfix]
         public static void SubmitChat_performedPatch()
         {
-            IngameKeybinds.EnableHotkeys();
-            //BetterFog.mls.LogInfo("Chat submitted. Enabling hotkeys.");
+            if (!BetterFog.inTerminal)
+            {
+                IngameKeybinds.EnableHotkeys();
+                BetterFog.mls.LogInfo("Chat submitted. Enabling hotkeys.");
+            }
+            else if (BetterFog.verboseLoggingEnabled)
+                BetterFog.mls.LogInfo("Chat submitted. Hotkeys remain disabled due to terminal being open.");
         }
 
         [HarmonyPatch("OpenMenu_performed")]

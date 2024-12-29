@@ -12,6 +12,7 @@ namespace BetterFog.Patches
         [HarmonyPostfix]
         public static void BeginUsingTerminalPatch()
         {
+            BetterFog.inTerminal = true;
             IngameKeybinds.DisableHotkeys();
             //BetterFog.mls.LogInfo("Terminal opened. Disabling hotkeys.");
         }
@@ -20,8 +21,9 @@ namespace BetterFog.Patches
         [HarmonyPostfix]
         public static void QuitTerminalPatch()
         {
+            BetterFog.inTerminal = false;
             IngameKeybinds.EnableHotkeys();
-            //BetterFog.mls.LogInfo("Terminal closed. Enabling hotkeys.");
+            BetterFog.mls.LogInfo("Terminal closed. Enabling hotkeys.");
         }
 
         [HarmonyPatch("Start")]
@@ -29,7 +31,7 @@ namespace BetterFog.Patches
         public static void StartPatch(Terminal __instance)
         {
             // Your logic after the original Start() runs
-            //Debug.Log("Terminal Start() has finished!");
+            BetterFog.mls.LogInfo("Terminal Start() has finished!");
             SelectableLevel currentLevel = BetterFog.currentLevelType;
             string weather = ((currentLevel.currentWeather == LevelWeatherType.None) ? "none" : ("" + currentLevel.currentWeather).ToLower());
             BetterFog.currentWeatherType = weather;

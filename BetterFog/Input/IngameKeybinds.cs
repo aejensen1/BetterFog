@@ -2,6 +2,7 @@
 using LethalCompanyInputUtils.Api;
 using Unity.Netcode;
 using UnityEngine.InputSystem;
+using UnityEngine;
 
 namespace BetterFog.Input
 {
@@ -16,6 +17,10 @@ namespace BetterFog.Input
         public InputAction weatherScalePresetHotkey { get; set; }
         public InputAction settingsHotkey { get; set; }
         public InputAction autoPresetModeHotkey { get; set; }
+
+        // To prevent multiple keypresses in quick succession
+        private static float lastKeyPressTime = 0f;
+        private static readonly float debounceDuration = 0.2f; // 200 ms
 
         private static IngameKeybinds _instance;
         public static IngameKeybinds Instance
@@ -47,11 +52,14 @@ namespace BetterFog.Input
                 nextPresetHotkey.Enable();
                 nextPresetHotkey.performed += ctx =>
                 {
-                    if (InLobby())
+                    if (InLobby() && Time.time - lastKeyPressTime > debounceDuration)
                     {
+                        lastKeyPressTime = Time.time;
                         BetterFog.mls.LogInfo("Next preset hotkey pressed.");
                         BetterFog.NextPreset();
                     }
+                    else
+                        BetterFog.mls.LogInfo("Next preset hotkey pressed too soon after the last keypress.");
                 };
             }
             else
@@ -72,11 +80,14 @@ namespace BetterFog.Input
                 // Subscribe to the performed event
                 nextModeHotkey.performed += ctx =>
                 {
-                    if (InLobby())
+                    if (InLobby() && Time.time - lastKeyPressTime > debounceDuration)
                     {
+                        lastKeyPressTime = Time.time;
                         BetterFog.mls.LogInfo("Next mode hotkey pressed.");
                         BetterFog.NextMode();
                     }
+                    else
+                        BetterFog.mls.LogInfo("Next mode hotkey pressed too soon after the last keypress.");
                 };
             }
             else
@@ -97,11 +108,14 @@ namespace BetterFog.Input
                 // Subscribe to the performed event
                 autoPresetModeHotkey.performed += ctx =>
                 {
-                    if (InLobby())
+                    if (InLobby() && Time.time - lastKeyPressTime > debounceDuration)
                     {
+                        lastKeyPressTime = Time.time;
                         BetterFog.mls.LogInfo("Auto preset mode hotkey pressed.");
                         BetterFog.ToggleAutoPresetMode();
                     }
+                    else
+                        BetterFog.mls.LogInfo("Auto preset mode hotkey pressed too soon after the last keypress.");
                 };
             }
             else
@@ -122,11 +136,14 @@ namespace BetterFog.Input
                 // Subscribe to the performed event
                 refreshPresetHotkey.performed += ctx =>
                 {
-                    if (InLobby())
+                    if (InLobby() && Time.time - lastKeyPressTime > debounceDuration)
                     {
+                        lastKeyPressTime = Time.time;
                         BetterFog.mls.LogInfo("Refresh preset hotkey pressed.");
                         BetterFog.ApplyFogSettings(false);
                     }
+                    else
+                        BetterFog.mls.LogInfo("Refresh preset hotkey pressed too soon after the last keypress.");
                 };
             }
             else
@@ -148,11 +165,14 @@ namespace BetterFog.Input
                 // Subscribe to the performed event
                 weatherScalePresetHotkey.performed += ctx =>
                 {
-                    if (InLobby())
+                    if (InLobby() && Time.time - lastKeyPressTime > debounceDuration)
                     {
+                        lastKeyPressTime = Time.time;
                         BetterFog.mls.LogInfo("Weather scaling hotkey pressed.");
                         BetterFog.ToggleWeatherScaling();
                     }
+                    else
+                        BetterFog.mls.LogInfo("Weather scaling hotkey pressed too soon after the last keypress.");
                 };
             }
             else
@@ -174,11 +194,14 @@ namespace BetterFog.Input
                 // Subscribe to the performed event
                 settingsHotkey.performed += ctx =>
                 {
-                    if (InLobby())
+                    if (InLobby() && Time.time - lastKeyPressTime > debounceDuration)
                     {
+                        lastKeyPressTime = Time.time;
                         BetterFog.mls.LogInfo("Settings hotkey pressed.");
                         FogSettingsManager.Instance.ToggleSettings();
                     }
+                    else
+                        BetterFog.mls.LogInfo("Settings hotkey pressed too soon after the last keypress.");
                 };
             }
             else
