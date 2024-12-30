@@ -891,26 +891,31 @@ namespace BetterFog
             {
                 if (patchInfo == null)
                 {
-                    mls.LogInfo("Fog disable patch is not active. Patching.");
+                    if (verboseLoggingEnabled)
+                        mls.LogInfo("Fog disable patch is not active. Patching.");
                 }
                 else
                 {
-                    mls.LogInfo($"A fog disable patch list is active. Checking for BetterFog patches.");
+                    if (verboseLoggingEnabled)
+                        amls.LogInfo($"A fog disable patch list is active. Checking for BetterFog patches.");
 
                     // Check for existing BetterFog patches
                     bool hasBetterFogPatch = patchInfo.Prefixes.Any(prefix => prefix.owner == modGUID);
                     if (hasBetterFogPatch)
                     {
-                        mls.LogInfo("BetterFog patches are already active. Skipping patching.");
+                        if (verboseLoggingEnabled)
+                            mls.LogInfo("BetterFog patches are already active. Skipping patching.");
                         return;
                     }
 
-                    mls.LogInfo("No BetterFog patches detected. Proceeding with patching.");
+                    if(verboseLoggingEnabled)
+                        mls.LogInfo("No BetterFog patches detected. Proceeding with patching.");
                 }
             }
             catch (Exception ex)
             {
-                mls.LogError($"There was an issue in detecting disable fog patch. Skipping patching. {ex}");
+                if (verboseLoggingEnabled)
+                    mls.LogError($"There was an issue in detecting disable fog patch. Skipping patching. {ex}");
                 return;
             }
 
@@ -929,27 +934,34 @@ namespace BetterFog
             {
                 if (patchInfo == null)
                 {
-                    mls.LogInfo("Fog disable patch is not active. Skipping unpatching.");
+                    if (verboseLoggingEnabled)
+                        mls.LogInfo("Fog disable patch is not active. Skipping unpatching.");
                     return;
                 }
                 else
                 {
-                    mls.LogInfo($"A fog disable patch list is active. Checking for BetterFog patches.");
+                    if (verboseLoggingEnabled)
+                        mls.LogInfo($"A fog disable patch list is active. Checking for BetterFog patches.");
 
                     // Check for existing BetterFog patches
                     bool hasBetterFogPatch = patchInfo.Prefixes.Any(prefix => prefix.owner == modGUID);
                     if (!hasBetterFogPatch)
                     {
-                        mls.LogInfo("No BetterFog patches detected. Skipping unpatching.");
+                        if (verboseLoggingEnabled)
+                            mls.LogInfo("No BetterFog patches detected. Skipping unpatching.");
                         return;
                     }
 
-                    mls.LogInfo("BetterFog patches detected. Proceeding with unpatching.");
+                    if (verboseLoggingEnabled)
+                    {
+                        mls.LogInfo("BetterFog patches detected. Proceeding with unpatching.");
+                    }
                 }
             }
             catch (Exception ex)
             {
-                mls.LogError($"There was an issue in detecting disable fog patch. Skipping patching. {ex}");
+                if (verboseLoggingEnabled)
+                    mls.LogError($"There was an issue in detecting disable fog patch. Skipping patching. {ex}");
                 return;
             }
 
@@ -971,26 +983,31 @@ namespace BetterFog
             {
                 if (patchInfo == null)
                 {
-                    mls.LogInfo("Non-vanilla patch is not active. Patching.");
+                    if (verboseLoggingEnabled)
+                        mls.LogInfo("Non-vanilla patch is not active. Patching.");
                 }
                 else
                 {
-                    mls.LogInfo($"A non-vanilla patch list is active. Checking for BetterFog patches.");
+                    if (verboseLoggingEnabled)
+                        mls.LogInfo($"A non-vanilla patch list is active. Checking for BetterFog patches.");
 
                     // Check for existing BetterFog patches
                     bool hasBetterFogPatch = patchInfo.Prefixes.Any(prefix => prefix.owner == modGUID);
                     if (hasBetterFogPatch)
                     {
-                        mls.LogInfo("BetterFog patches are already active. Skipping patching.");
+                        if (verboseLoggingEnabled)
+                            mls.LogInfo("BetterFog patches are already active. Skipping patching.");
                         return;
                     }
 
-                    mls.LogInfo("No BetterFog patches detected. Proceeding with patching.");
+                    if (verboseLoggingEnabled)
+                        mls.LogInfo("No BetterFog patches detected. Proceeding with patching.");
                 }
             }
             catch (Exception ex)
             {
-                mls.LogError($"There was an issue in detecting non-vanilla patch. Skipping patching. {ex}");
+                if (verboseLoggingEnabled)
+                    mls.LogError($"There was an issue in detecting non-vanilla patch. Skipping patching. {ex}");
                 return;
             }
 
@@ -1028,27 +1045,32 @@ namespace BetterFog
             {
                 if (patchInfo == null)
                 {
-                    mls.LogInfo("Non-vanilla patch is not active. Skipping unpatching.");
+                    if (verboseLoggingEnabled)
+                        mls.LogInfo("Non-vanilla patch is not active. Skipping unpatching.");
                     return;
                 }
                 else
                 {
-                    mls.LogInfo($"A non-vanilla patch list is active. Checking for BetterFog patches.");
+                    if (verboseLoggingEnabled)
+                        mls.LogInfo($"A non-vanilla patch list is active. Checking for BetterFog patches.");
 
                     // Check for existing BetterFog patches
                     bool hasBetterFogPatch = patchInfo.Prefixes.Any(prefix => prefix.owner == modGUID);
                     if (!hasBetterFogPatch)
                     {
-                        mls.LogInfo("No BetterFog patches detected. Skipping unpatching.");
+                        if (verboseLoggingEnabled)
+                            mls.LogInfo("No BetterFog patches detected. Skipping unpatching.");
                         return;
                     }
 
-                    mls.LogInfo("BetterFog patches detected. Proceeding with unpatching.");
+                    if (verboseLoggingEnabled)
+                        mls.LogInfo("BetterFog patches detected. Proceeding with unpatching.");
                 }
             }
             catch (Exception ex)
             {
-                mls.LogError($"There was an issue in detecting non-vanilla patch. Skipping patching. {ex}");
+                if (verboseLoggingEnabled)
+                    mls.LogError($"There was an issue in detecting non-vanilla patch. Skipping patching. {ex}");
                 return;
             }
             
@@ -1080,7 +1102,8 @@ namespace BetterFog
             method = AccessTools.Method(typeof(NetworkSceneManager), "OnSceneLoaded");
             harmony.Unpatch(method, HarmonyPatchType.All, modGUID);
             //mls.LogInfo("NetworkSceneManager patches disabled successfully.");
-            mls.LogInfo("Non-Vanilla patches disabled successfully!");
+            if (verboseLoggingEnabled)
+                mls.LogInfo("Non-Vanilla patches disabled successfully!");
         }
 
         public static void CollectVanillaValues()
