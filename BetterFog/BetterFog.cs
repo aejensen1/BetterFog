@@ -793,7 +793,7 @@ namespace BetterFog
             if (currentMode.Name == "No Fog")
             {
                 mls.LogInfo("No Fog mode selected.");
-                EnableFogPatch();
+                EnableFogDisablePatch();
                 fogRefreshLock = true;
                 return;
             }
@@ -804,12 +804,12 @@ namespace BetterFog
                 if (currentMode.Name == "Vanilla")
                 {
                     mls.LogInfo("Vanilla mode selected.");
-                    DisableVanillaPatches();
+                    DisableNonVanillaPatches();
                     return;
                 }
                 else
                 {
-                    EnableVanillaPatches();
+                    EnableNonVanillaPatches();
                 }
             }
         }
@@ -881,26 +881,119 @@ namespace BetterFog
 
         //--------------------------------- Start No Fog Management ---------------------------------
 
-        public void EnableFogPatch()
+        public void EnableFogDisablePatch()
         {
+            var method = AccessTools.Method(typeof(Fog), "UpdateShaderVariablesGlobalCBFogParameters");
+            var patchInfo = Harmony.GetPatchInfo(method);
+            //mls.LogInfo($"PatchInfo: {patchInfo}");
+
+            try
+            {
+                if (patchInfo == null)
+                {
+                    mls.LogInfo("Fog disable patch is not active. Patching.");
+                }
+                else
+                {
+                    mls.LogInfo($"A fog disable patch list is active. Checking for BetterFog patches.");
+
+                    // Check for existing BetterFog patches
+                    bool hasBetterFogPatch = patchInfo.Prefixes.Any(prefix => prefix.owner == modGUID);
+                    if (hasBetterFogPatch)
+                    {
+                        mls.LogInfo("BetterFog patches are already active. Skipping patching.");
+                        return;
+                    }
+
+                    mls.LogInfo("No BetterFog patches detected. Proceeding with patching.");
+                }
+            }
+            catch (Exception ex)
+            {
+                mls.LogError($"There was an issue in detecting disable fog patch. Skipping patching. {ex}");
+                return;
+            }
+
             harmony.Patch(original: AccessTools.Method(typeof(Fog), "UpdateShaderVariablesGlobalCBFogParameters"), prefix: new HarmonyMethod(typeof(FogPatch), "Prefix"));
             if (verboseLoggingEnabled)
-                mls.LogInfo("No Fog enabled successfully.");
+                mls.LogInfo("Fog disable patch applied successfully.");
         }
 
         public void DisableFogPatch()
         {
             var method = AccessTools.Method(typeof(Fog), "UpdateShaderVariablesGlobalCBFogParameters");
+            var patchInfo = Harmony.GetPatchInfo(method);
+            //mls.LogInfo($"PatchInfo: {patchInfo}");
+
+            try
+            {
+                if (patchInfo == null)
+                {
+                    mls.LogInfo("Fog disable patch is not active. Skipping unpatching.");
+                    return;
+                }
+                else
+                {
+                    mls.LogInfo($"A fog disable patch list is active. Checking for BetterFog patches.");
+
+                    // Check for existing BetterFog patches
+                    bool hasBetterFogPatch = patchInfo.Prefixes.Any(prefix => prefix.owner == modGUID);
+                    if (!hasBetterFogPatch)
+                    {
+                        mls.LogInfo("No BetterFog patches detected. Skipping unpatching.");
+                        return;
+                    }
+
+                    mls.LogInfo("BetterFog patches detected. Proceeding with unpatching.");
+                }
+            }
+            catch (Exception ex)
+            {
+                mls.LogError($"There was an issue in detecting disable fog patch. Skipping patching. {ex}");
+                return;
+            }
+
             harmony.Unpatch(method, HarmonyPatchType.All, modGUID);
             if (verboseLoggingEnabled)
-                mls.LogInfo("No Fog patch disabled successfully.");
+                mls.LogInfo("Fog disable patch unpatched successfully.");
         }
         //--------------------------------- End No Fog Management ---------------------------------
 
         //--------------------------------- Start Vanilla Management ---------------------------------
 
-        public void EnableVanillaPatches()
+        public void EnableNonVanillaPatches()
         {
+            var method = AccessTools.Method(typeof(AudioReverbTrigger), "changeVolume");
+            var patchInfo = Harmony.GetPatchInfo(method);
+            //mls.LogInfo($"PatchInfo: {patchInfo}");
+
+            try
+            {
+                if (patchInfo == null)
+                {
+                    mls.LogInfo("Non-vanilla patch is not active. Patching.");
+                }
+                else
+                {
+                    mls.LogInfo($"A non-vanilla patch list is active. Checking for BetterFog patches.");
+
+                    // Check for existing BetterFog patches
+                    bool hasBetterFogPatch = patchInfo.Prefixes.Any(prefix => prefix.owner == modGUID);
+                    if (hasBetterFogPatch)
+                    {
+                        mls.LogInfo("BetterFog patches are already active. Skipping patching.");
+                        return;
+                    }
+
+                    mls.LogInfo("No BetterFog patches detected. Proceeding with patching.");
+                }
+            }
+            catch (Exception ex)
+            {
+                mls.LogError($"There was an issue in detecting non-vanilla patch. Skipping patching. {ex}");
+                return;
+            }
+
             harmony.Patch(original: AccessTools.Method(typeof(AudioReverbTrigger), "changeVolume"), prefix: new HarmonyMethod(typeof(AudioReverbTriggerPatch), "changeVolumePrefix"));
             //mls.LogInfo("AudioReverb patches applied successfully.");
 
@@ -922,12 +1015,43 @@ namespace BetterFog
             harmony.Patch(original: AccessTools.Method(typeof(NetworkSceneManager), "OnSceneLoaded"), postfix: new HarmonyMethod(typeof(NetworkSceneManagerPatch), "OnSceneLoadedPatch"));
             //mls.LogInfo("NetworkSceneManager patches applied successfully.");
             if (verboseLoggingEnabled)
-                mls.LogInfo("Vanilla patches enabled successfully!");
+                mls.LogInfo("Non-Vanilla patches enabled successfully!");
         }
 
-        public void DisableVanillaPatches()
+        public void DisableNonVanillaPatches()
         {
             var method = AccessTools.Method(typeof(AudioReverbTrigger), "changeVolume");
+            var patchInfo = Harmony.GetPatchInfo(method);
+            //mls.LogInfo($"PatchInfo: {patchInfo}");
+
+            try
+            {
+                if (patchInfo == null)
+                {
+                    mls.LogInfo("Non-vanilla patch is not active. Skipping unpatching.");
+                    return;
+                }
+                else
+                {
+                    mls.LogInfo($"A non-vanilla patch list is active. Checking for BetterFog patches.");
+
+                    // Check for existing BetterFog patches
+                    bool hasBetterFogPatch = patchInfo.Prefixes.Any(prefix => prefix.owner == modGUID);
+                    if (!hasBetterFogPatch)
+                    {
+                        mls.LogInfo("No BetterFog patches detected. Skipping unpatching.");
+                        return;
+                    }
+
+                    mls.LogInfo("BetterFog patches detected. Proceeding with unpatching.");
+                }
+            }
+            catch (Exception ex)
+            {
+                mls.LogError($"There was an issue in detecting non-vanilla patch. Skipping patching. {ex}");
+                return;
+            }
+            
             harmony.Unpatch(method, HarmonyPatchType.All, modGUID);
             //mls.LogInfo("AudioReverb patches disabled successfully.");
 
@@ -956,7 +1080,7 @@ namespace BetterFog
             method = AccessTools.Method(typeof(NetworkSceneManager), "OnSceneLoaded");
             harmony.Unpatch(method, HarmonyPatchType.All, modGUID);
             //mls.LogInfo("NetworkSceneManager patches disabled successfully.");
-            mls.LogInfo("Vanilla patches disabled successfully!");
+            mls.LogInfo("Non-Vanilla patches disabled successfully!");
         }
 
         public static void CollectVanillaValues()

@@ -60,7 +60,7 @@ namespace BetterFog.Assets
 
         private static FogSettingsManager instance;
         private static readonly object lockObject = new object();
-        private static bool isInitializing = false;
+        private static bool isInitializing = false; // Not currently used in 3.3.6, may be removed in future versions
         public static bool supressApplyingFogSettings = false; // Used to prevent fog settings from being applied. When one GUI element is changed, the others should not apply fog settings.
 
         private int previousModeIndex;
