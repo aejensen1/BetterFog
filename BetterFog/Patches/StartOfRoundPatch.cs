@@ -18,7 +18,8 @@ namespace BetterFog.Patches
 
             if (BetterFog.weatherSaveLoaded)
             {
-                if ((int)BetterFog.currentLevelType.currentWeather >= 0)
+                int currentWeatherIndex = (int)BetterFog.currentLevelType.currentWeather;
+                if (currentWeatherIndex >= 0 && currentWeatherIndex < TimeOfDay.Instance.effects.Length)
                 {
                     WeatherEffect weatherEffect = TimeOfDay.Instance.effects[(int)BetterFog.currentLevelType.currentWeather];
                     BetterFog.mls.LogInfo($"Weather changed from {BetterFog.currentWeatherType} to {weatherEffect.name.ToLower()}");

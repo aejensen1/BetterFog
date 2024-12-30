@@ -897,7 +897,7 @@ namespace BetterFog
                 else
                 {
                     if (verboseLoggingEnabled)
-                        amls.LogInfo($"A fog disable patch list is active. Checking for BetterFog patches.");
+                        mls.LogInfo($"A fog disable patch list is active. Checking for BetterFog patches.");
 
                     // Check for existing BetterFog patches
                     bool hasBetterFogPatch = patchInfo.Prefixes.Any(prefix => prefix.owner == modGUID);
