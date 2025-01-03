@@ -65,17 +65,21 @@ To-Dos
 
 Screenshots
 ==============
-| ![![settings](https://github.com/user-attachments/assets/a225bc44-f4f2-4252-ad91-d0e00aac4e32) | ![DefaultFog](https://github.com/user-attachments/assets/6ddc9d3e-c16e-4a0d-868e-4025786e49bf) | ![HeavyFog](https://github.com/user-attachments/assets/f9273464-d866-47d8-b3d2-2b1733d23994) |
+| ![Settings](https://github.com/user-attachments/assets/58c81b21-02c3-42c0-a63b-abe6595063e5) | ![Vanilla](https://github.com/user-attachments/assets/51b7473d-bbb0-4962-8e13-1488ce4ca843) | ![DefaultFog](https://github.com/user-attachments/assets/ab9a4773-0d91-4751-8eb9-a023a60b7dc8) |
 |:--:|:--:|:--:|
-| **Settings GUI** | **Default Fog** | **Heavy Fog** |
+| **Settings GUI** | **Vanilla Fog** | **Better Fog** |
 
-| ![NoFog](https://github.com/user-attachments/assets/e400170a-85a7-4b59-8107-a056b8e70bc5) | ![VanillaFog](https://github.com/user-attachments/assets/56d8d5cd-0f69-4f17-9a25-cdc672e052e1) | ![RedFog](https://github.com/user-attachments/assets/e392e535-06e7-47e7-9917-b638ed620271) |
+| ![NoFog](https://github.com/user-attachments/assets/c21bcba4-230a-4472-b84a-0bcb2f9ac622) | ![Red](https://github.com/user-attachments/assets/b7b4e8a2-bc73-42c7-ab85-c5fffe7ab5c8) | ![Orange](https://github.com/user-attachments/assets/00b685fc-45fd-460f-a2d4-7f817c85131f) |
 |:--:|:--:|:--:|
-| **No Fog** | **Vanilla Fog** | **Red Fog** |
+| **No Fog** | **Red Fog** | **Orange Fog** |
 
-| ![OrangeFog](https://github.com/user-attachments/assets/7f39a444-2267-453a-957b-89817b42110a) | ![PinkFog](https://github.com/user-attachments/assets/27c0e56a-5fd6-4986-aa7d-470331aa5225) | ![BlueFog](https://github.com/user-attachments/assets/5ddfd892-753e-4cce-959d-a847dface9e6) |
+| ![Green](https://github.com/user-attachments/assets/d2e3a6f7-188b-482f-a3db-9a18ff498ba3) | ![Blue](https://github.com/user-attachments/assets/4d7dc4fa-194b-42c6-8ab7-ca8ab6c2727a) | ![Pink](https://github.com/user-attachments/assets/7ac774cd-a64a-41a6-a60e-31fb12b60c7e) |
 |:--:|:--:|:--:|
-| **Orange Fog** | **Pink Fog** | **Blue Fog** |
+| **Green Fog** | **Blue Fog** | **Pink Fog** |
+
+| ![Mist](https://github.com/user-attachments/assets/f5eb863c-4c69-422f-8020-199867f18224) | ![White](https://github.com/user-attachments/assets/92b7db3c-49b4-4258-bc0c-dec229bb935f) | ![GreenShip](https://github.com/user-attachments/assets/a80ee226-eafc-4acd-84d1-5cad5dc2a7ad) |
+|:--:|:--:|:--:|
+| **Misty Fog** | **White Fog** | **Green Ship** |
 
 Questions?
 ==============
