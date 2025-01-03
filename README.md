@@ -57,7 +57,6 @@ Prerequisites
 Known Bugs
 ==============
 - "LC Simplified Chinese Localization" By NarkiriFox in combination with this mod causes text to lose their texture and become unreadable. This affects a very small group of players. To mitigate, set "Enable Settings Hotkey" to false and graphics will not be loaded in. This also disabled in-game settings, but text displays correctly.
-- Index out of bounds exception may occur when loading into a lobby. Fix is a work-in-progress. Please report issues if you run into them in the modding discord or github page.
 
 To-Dos
 ==============
