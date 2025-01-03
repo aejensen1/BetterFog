@@ -48,22 +48,6 @@ What is "Weather Scale"?
 Notes
 ==============
 - Starting at v3.3.0, you must disable the GUI keybind to disable the GUI. There is no longer a config option that states to disable the GUI.
-- For Exclude Enemy Fog, this works best if you enable it by default. If the Better Fog is applied
-
-Default Values Reference
-==============
-
-It's recommended to set the mode to Vanilla if you want a most accurate Vanilla simulation. For reference here are the default "Better Fog" mode values that *somewhat* simulate vanilla fog. You should be able to see these in the config file descriptions as well. 
-
-[Fog Presets]
-
-Preset 0 = PresetName=Default,Density=250,Red Hue=0.441,Green Hue=0.459,Blue Hue=0.5,No Fog=False
-
-[Weather and Moon Density Scales]
-
-MoonScales = 71 Gordion=1,41 Experimentation=0.95,220 Assurance=0.9,56 Vow=0.8,21 Offense=0.9,61 March=0.75,20 Adamance=0.75,85 Rend=0.285,7 Dine=0.325,8 Titan=0.285,68 Artifice=0.9,5 Embrion=0.85,44 Liquidation=0.85
-
-WeatherScales = none=1,rainy=0.75,stormy=0.5,foggy=0.45,eclipsed=0.77,dust clouds=0.8,flooded=0.765
 
 Prerequisites
 ==============
@@ -100,6 +84,7 @@ You may post questions in the Lethal Company Modding discord server: https://dis
 Credits
 ==============
 - [mrov](https://github.com/AndreyMrovol) for some code suggestions on finding fog objects.
-- mrov for WeatherRegistry
+- mrov for WeatherRegistry. I used this for testing only, but it was very useful!
 - Rune580 for LethalCompany InputUtils
 - DarthFigo for a code suggestion on finding enemy fog to exclude.
+- Everyone who helped bug test and suggest new features

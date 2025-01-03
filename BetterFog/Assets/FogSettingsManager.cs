@@ -53,6 +53,7 @@ namespace BetterFog.Assets
         public Toggle autoPresetModeCheckbox;
 
         private UnityEngine.UI.Button closeButton; // Button to close the settings
+        private UnityEngine.UI.Button refreshButton; // Button to refresh the preset settings to default on the current preset
 
         private RectTransform rectTransform;
         private bool isMouseDown = false;
@@ -241,6 +242,7 @@ namespace BetterFog.Assets
                     verboseLogsCheckbox.isOn = BetterFog.verboseLoggingEnabled;
 
                     closeButton = settingsInteractables.transform.Find("CloseButton").GetComponent<UnityEngine.UI.Button>();
+                    refreshButton = settingsInteractables.transform.Find("RefreshButton").GetComponent<UnityEngine.UI.Button>();
 
                     if (fogDensitySlider != null && densityValInput != null)
                     {
@@ -284,6 +286,26 @@ namespace BetterFog.Assets
                         closeButton.onClick.AddListener(delegate
                         {
                             DisableSettings();
+                        });
+
+                        refreshButton.onClick.AddListener(delegate
+                        {
+                            supressApplyingFogSettings = true;
+                            if (BetterFog.verboseLoggingEnabled)
+                            {
+                                BetterFog.mls.LogInfo($"Refreshing preset {BetterFog.currentPreset.PresetName} to default values.");
+                                BetterFog.mls.LogInfo($"Current preset: {BetterFog.currentPreset}");
+                                BetterFog.mls.LogInfo($"Default preset: {BetterFog.defaultFogConfigPresets[BetterFog.currentPresetIndex]}");
+                            }
+
+                            // Use a copy of the preset, not the reference
+                            BetterFog.fogConfigPresets[BetterFog.currentPresetIndex] =
+                                new FogConfigPreset(BetterFog.defaultFogConfigPresets[BetterFog.currentPresetIndex]);
+
+                            BetterFog.currentPreset = BetterFog.fogConfigPresets[BetterFog.currentPresetIndex];
+                            UpdateSettings();
+                            BetterFog.ApplyFogSettings(false);
+                            supressApplyingFogSettings = false;
                         });
                     }
                 }
@@ -350,13 +372,13 @@ namespace BetterFog.Assets
                         // Synchronize slider and input field
                         if (value < 0)
                             value = 0;
-                        else if (value > 15000)
-                            value = 15000;
+                        else if (value > BetterFog.maxDensitySliderValue)
+                            value = BetterFog.maxDensitySliderValue;
                         
                         fogDensitySlider.value = value;
-                        densityValInput.text = value.ToString("0");
-                        currentDensityVal.text = BetterFog.currentPreset.MeanFreePath.ToString("00000.000");
-                        calcDensityVal.text = (BetterFog.currentPreset.MeanFreePath * BetterFog.combinedDensityScale).ToString("00000.000");
+                        densityValInput.text = value.ToString("0.00");
+                        currentDensityVal.text = BetterFog.currentPreset.MeanFreePath.ToString("0000.000");
+                        calcDensityVal.text = (BetterFog.currentPreset.MeanFreePath * BetterFog.combinedDensityScale).ToString("0000.000");
                         BetterFog.currentPreset.MeanFreePath = value;
                     }
                     break;
@@ -492,6 +514,11 @@ namespace BetterFog.Assets
         }
 
         //--------------------------------- End Slider Adjustment ---------------------------------
+        //--------------------------------- Start Button Handling ---------------------------------
+
+        // Nothing here yet
+
+        //--------------------------------- End Button Handling ---------------------------------
         //--------------------------------- Start Checkbox Adjustment ---------------------------------
 
         private void OnDensityScaleCheckboxValueChanged(bool isChecked)
@@ -555,6 +582,7 @@ namespace BetterFog.Assets
                     BetterFog.lockPresetDropdownModification = false;
                     BetterFog.lockPresetValueModification = false;
                     LockPresetDropdownInteract(BetterFog.lockPresetDropdownModification);
+                    LockPresetButtonInteract(BetterFog.lockPresetValueModification);
                     LockPresetValueInteract(BetterFog.lockPresetValueModification);
                 }
                 IngameKeybinds.Instance.nextPresetHotkey.Enable();
@@ -721,10 +749,10 @@ namespace BetterFog.Assets
         {
             currentWeatherVal.text = BetterFog.currentWeatherType;
             currentMoonVal.text = BetterFog.currentLevel;
-            currentDensityVal.text = BetterFog.currentPreset.MeanFreePath.ToString("00000.0000");
-            densityScaleVal.text = ("x" + BetterFog.combinedDensityScale.ToString("00.0000"));
+            currentDensityVal.text = BetterFog.currentPreset.MeanFreePath.ToString("0000.000");
+            densityScaleVal.text = ("x" + BetterFog.combinedDensityScale.ToString("00.000"));
             // calcDensityVal.text = (BetterFog.maxDensitySliderValue - ((BetterFog.maxDensitySliderValue - BetterFog.currentPreset.MeanFreePath) * BetterFog.combinedDensityScale)).ToString("00000.000");
-            calcDensityVal.text = (BetterFog.currentPreset.MeanFreePath * BetterFog.combinedDensityScale).ToString("00000.000");
+            calcDensityVal.text = (BetterFog.currentPreset.MeanFreePath * BetterFog.combinedDensityScale).ToString("0000.000");
             BetterFog.mls.LogInfo($"{BetterFog.maxDensitySliderValue} - {BetterFog.maxDensitySliderValue - BetterFog.currentPreset.MeanFreePath} * {BetterFog.combinedDensityScale}");
             if (BetterFog.autoPresetModeEnabled)
             {
@@ -865,8 +893,8 @@ namespace BetterFog.Assets
 
             BetterFog.UpdateLockInteractionSettings();
             LockPresetDropdownInteract(BetterFog.lockPresetDropdownModification);
+            LockPresetButtonInteract(BetterFog.lockPresetValueModification);
             LockPresetValueInteract(BetterFog.lockPresetValueModification);
-            LockPresetDropdownInteract(BetterFog.lockPresetDropdownModification);
 
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
@@ -915,6 +943,11 @@ namespace BetterFog.Assets
             if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsClient)
                 Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
+        }
+
+        public void LockPresetButtonInteract(bool isLocked)
+        {
+            refreshButton.interactable = !isLocked;
         }
 
         public void LockPresetDropdownInteract(bool isLocked)

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using static UnityEngine.Rendering.DebugUI;
 
 namespace BetterFog.Assets
 {
@@ -22,6 +23,16 @@ namespace BetterFog.Assets
             AlbedoR = albedoR;
             AlbedoG = albedoG;
             AlbedoB = albedoB;
+        }
+
+        // Copy Constructor
+        public FogConfigPreset(FogConfigPreset other)
+        {
+            PresetName = other.PresetName;
+            MeanFreePath = other.MeanFreePath;
+            AlbedoR = other.AlbedoR;
+            AlbedoG = other.AlbedoG;
+            AlbedoB = other.AlbedoB;
         }
 
         public override string ToString()

@@ -15,6 +15,7 @@ using GameNetcodeStuff;
 using Unity.Netcode;
 using UnityEngine.SceneManagement;
 using System.Globalization;
+using System.Security.Cryptography;
 
 namespace BetterFog
 {
@@ -59,7 +60,8 @@ namespace BetterFog
         private static float moonDensityScale = 1f;
         private static float weatherDensityScale = 1f;
         public static float combinedDensityScale = 1f;
-        public const float maxDensitySliderValue = 15000; // Sets the max value possible for the density slider scale (inversed mean free path)
+        public const float maxDensitySliderValue = 1000; // Sets the max value possible for the density slider scale (inversed mean free path)
+        public const float maxColorValue = 3f; // Sets the max value possible for the color sliders
         public static List<WeatherScale> weatherScales;
         private static ConfigEntry<string> weatherScalesConfig;
         public static bool weatherSaveLoaded = false;
@@ -78,6 +80,7 @@ namespace BetterFog
 
         // Fog preset variables
         private static ConfigEntry<string> defaultPresetName;
+        public static List<FogConfigPreset> defaultFogConfigPresets;
         public static List<FogConfigPreset> fogConfigPresets;
         private ConfigEntry<string>[] presetEntries;
         public static int currentPresetIndex;
@@ -150,19 +153,32 @@ namespace BetterFog
             // Arguments: Preset Name, MeanFreePath, AlbedoR, AlbedoG, AlbedoB, AlbedoA
             fogConfigPresets = new List<FogConfigPreset>
             {
-                new FogConfigPreset("Default", 14915f, 0.441f, 0.459f, 0.500f),
-                new FogConfigPreset("Heavy Fog", 14923f, 0.25f, 0.25f, 0.25f),
-                new FogConfigPreset("Light Fog", 5150f, 5f, 5f, 5f),
+                new FogConfigPreset("Default", 735f, 0.19f, 0.28f, 0.37f),
+                new FogConfigPreset("Heavy Fog", 870f, 0.19f, 0.28f, 0.37f),
+                new FogConfigPreset("Light Fog", 620f, 0.19f, 0.28f, 0.37f),
                 new FogConfigPreset("Mist", 0f, 1f, 1f, 1f),
-                new FogConfigPreset("Red Fog", 14915f, 3f, 0f, 0f),
-                new FogConfigPreset("Orange Fog", 14910f, 20f, 9.33f, 4.5f),
-                new FogConfigPreset("Yellow Fog", 14915f, 3f, 3f, 0f),
-                new FogConfigPreset("Green Fog", 14915f, 0f, 3f, 0f),
-                new FogConfigPreset("Blue Fog", 14909f, 0f, 0f, 3f),
-                new FogConfigPreset("Purple Fog", 14915f, 11.5f, 7.2f, 20f),
-                new FogConfigPreset("Pink Fog", 14915f, 20f, 4.75f, 20f),
+                new FogConfigPreset("Red Fog", 550f, 0.5f, 0f, 0f),
+                new FogConfigPreset("Thick Red", 735f, 0.5f, 0f, 0f),
+                new FogConfigPreset("Orange Fog", 350f, 1f, 0.5f, 0f),
+                new FogConfigPreset("Thick Orange", 735f, 1f, 0.5f, 0f),
+                new FogConfigPreset("Yellow Fog", 250f, 1f, 0.75f, 0f),
+                new FogConfigPreset("Thick Yellow", 735f, 1f, 0.75f, 0f),
+                new FogConfigPreset("Green Fog", 450f, 0f, 0.5f, 0f),
+                new FogConfigPreset("Thick Green", 735f, 0f, 0.5f, 0f),
+                new FogConfigPreset("Blue Fog", 550f, 0f, 0f, 1f),
+                new FogConfigPreset("Blue Fog", 735f, 0f, 0f, 1f),
+                new FogConfigPreset("Purple Fog", 450f, 0.25f, 0f, 1f),
+                new FogConfigPreset("Thick Purple", 735f, 0.25f, 0f, 1f),
+                new FogConfigPreset("Pink Fog", 300f, 1, 0f, 0.5f),
+                new FogConfigPreset("Thick Pink", 735f, 1, 0f, 0.5f),
+                new FogConfigPreset("White Fog", 550, 1f, 1f, 1f),
+                new FogConfigPreset("Thick White", 735f, 1f, 1f, 1f),
             };
+
+            // Do a deep copy of the fogConfigPresets list to prevent reference issues
+            defaultFogConfigPresets = fogConfigPresets.Select(preset => new FogConfigPreset(preset)).ToList();
             mls.LogInfo("fogConfigPresets initialized.");
+
 
             fogModes = new List<BetterFogMode>
             {
@@ -232,22 +248,36 @@ namespace BetterFog
                             fogConfigPresets[i].PresetName = value;
                             break;
                         case "Density":
-                            float meanFreePath = float.Parse(value);
+                            float meanFreePath = float.Parse(value, CultureInfo.InvariantCulture);
                             if (meanFreePath < 0)
                                 meanFreePath = 0;
                             else if (meanFreePath > maxDensitySliderValue)
                                 meanFreePath = maxDensitySliderValue;
-                            else
-                                fogConfigPresets[i].MeanFreePath = float.Parse(value, CultureInfo.InvariantCulture);
+                            fogConfigPresets[i].MeanFreePath = meanFreePath;
                             break;
                         case "Red Hue":
-                            fogConfigPresets[i].AlbedoR = float.Parse(value, CultureInfo.InvariantCulture);
+                            float albedoR = float.Parse(value, CultureInfo.InvariantCulture);
+                            if (albedoR < 0)
+                                albedoR = 0;
+                            else if (albedoR > maxColorValue)
+                                albedoR = maxColorValue;
+                            fogConfigPresets[i].AlbedoR = albedoR;
                             break;
                         case "Green Hue":
-                            fogConfigPresets[i].AlbedoG = float.Parse(value, CultureInfo.InvariantCulture);
+                            float albedoG = float.Parse(value, CultureInfo.InvariantCulture);
+                            if (albedoG < 0)
+                                albedoG = 0;
+                            else if (albedoG > maxColorValue)
+                                albedoG = maxColorValue;
+                            fogConfigPresets[i].AlbedoG = albedoG;
                             break;
                         case "Blue Hue":
-                            fogConfigPresets[i].AlbedoB = float.Parse(value, CultureInfo.InvariantCulture);
+                            float albedoB = float.Parse(value, CultureInfo.InvariantCulture);
+                            if (albedoB < 0)
+                                albedoB = 0;
+                            else if (albedoB > maxColorValue)
+                                albedoB = maxColorValue;
+                            fogConfigPresets[i].AlbedoB = albedoB;
                             break;
                     }
                 }
@@ -262,15 +292,15 @@ namespace BetterFog
             }
 
             string section4 = "Weather and Moon Density Scales";
-            moonScalesConfig = Config.Bind(section4, "MoonScales", "71 Gordion=1,41 Experimentation=0.998,220 Assurance=1,56 Vow=1.003,21 Offense=1," +
-                "61 March=1.003,20 Adamance=1.003,85 Rend=1.002,7 Dine=1.001,8 Titan=1.002,68 Artifice=1.001,5 Embrion=1.002,44 Liquidation=1,Fallback=1",
+            moonScalesConfig = Config.Bind(section4, "MoonScales", "71 Gordion=1,41 Experimentation=0.95,220 Assurance=0.9,56 Vow=1.05,21 Offense=1," +
+                "61 March=1.05,20 Adamance=1.05,85 Rend=1.25,7 Dine=1.25,8 Titan=1.165,68 Artifice=1.04,5 Embrion=1.04,44 Liquidation=1,Fallback=1",
                 "Moon scales in the format {71 Gordion=1,41 Experimentation=0.998,220 Assurance=1,...}. When \"Fallback={number}\" is in the list, the density will default to \n" +
                 "this value if no moon is detected.");
 
             moonScales = ParseMoonScales(moonScalesConfig.Value);
 
-            weatherScalesConfig = Config.Bind(section4, "WeatherScales", "none=1,rainy=1.002,stormy=1.0022,foggy=1.0025,eclipsed=1.002,dust clouds=1.001,flooded=1.0018,Fallback=1",
-            "Weather scales in the format {none=1,rainy=1.002,stormy=1.0022,...}. When \"Fallback={number}\" is in the list, the density will default to this value if no moon is detected.");
+            weatherScalesConfig = Config.Bind(section4, "WeatherScales", "none=1,rainy=1.02,stormy=1.02,foggy=1.07,eclipsed=1.06,dust clouds=1.02,flooded=1.025,Fallback=1",
+            "Weather scales in the format {none=1,rainy=1.01,stormy=1.02,...}. When \"Fallback={number}\" is in the list, the density will default to this value if no moon is detected.");
 
             weatherScales = ParseWeatherScales(weatherScalesConfig.Value);
 
@@ -300,7 +330,7 @@ namespace BetterFog
             moonScaleBlacklist = ParseDensityScaleBlacklist(moonScaleBlacklistConfig.Value);
 
             string section5 = "Auto Sync Preset/Mode Settings";
-            autoPresetModeConfig = Config.Bind(section5, "Auto Sync Preset/Mode Settings", "", "Automatically apply presets and modes to moons and weathers. On the left of = enter \n" +
+            autoPresetModeConfig = Config.Bind(section5, "Auto Sync Preset/Mode Settings", "85 Rend&eclipsed=Thick Red,7 Dine&Eclipsed=Thick Red,8 Titan&eclipsed=Thick Red,eclipsed=Red Fog,All=Default", "Automatically apply presets and modes to moons and weathers. On the left of = enter \n" +
                 "a moon and/or weather name, and on the right enter a single preset or mode name. Entering a preset name on the right automatically sets the mode to \"Better Fog\". \n" +
                 "To have a condition that requires both a moon and weather, enter \"&\" in between entries. This will override single entries if both moon and weather are present. \n" +
                 "If a preset name is the same as a mode name, the mode will be set to \"Better Fog\" and that preset will be set. \n" +
@@ -563,13 +593,25 @@ namespace BetterFog
             }
             else
             {
-                parameters.meanFreePath = maxDensitySliderValue - (currentPreset.MeanFreePath * combinedDensityScale);
+                // The range 13000-15000 has the greatest effect on fog density so this is what is scaled
+                parameters.meanFreePath = 0.262f * ((maxDensitySliderValue) - (currentPreset.MeanFreePath * combinedDensityScale));
             }
-            //}
-            //else
-            //{
-            //    parameters.meanFreePath = (maxDensitySliderValue - currentPreset.MeanFreePath);
-            //}
+            
+            // Ensure that the color values are within the acceptable range
+            if (currentPreset.AlbedoR > maxColorValue)
+                currentPreset.AlbedoR = maxColorValue;
+            else if (currentPreset.AlbedoR < 0)
+                currentPreset.AlbedoR = 0;
+
+            if (currentPreset.AlbedoG > maxColorValue)
+                currentPreset.AlbedoG = maxColorValue;
+            else if (currentPreset.AlbedoG < 0)
+                currentPreset.AlbedoG = 0;
+
+            if (currentPreset.AlbedoB > maxColorValue)
+                currentPreset.AlbedoB = maxColorValue;
+            else if (currentPreset.AlbedoB < 0)
+                currentPreset.AlbedoB = 0;
 
             parameters.albedo = new Color(
                 currentPreset.AlbedoR,
@@ -652,7 +694,7 @@ namespace BetterFog
             {
                 mls.LogInfo($"Final density scale applied: {moonDensityScale} * {weatherDensityScale} = {combinedDensityScale}");
                 mls.LogInfo($"Preset original MeanFreePath: {currentPreset.MeanFreePath}"); // Log the original MeanFreePath (density) value
-                mls.LogInfo($"Scaled MeanFreePath: {maxDensitySliderValue} - {currentPreset.MeanFreePath * combinedDensityScale}  = {(maxDensitySliderValue - (currentPreset.MeanFreePath * combinedDensityScale)) }"); // Log the scaled MeanFreePath (density) value
+                mls.LogInfo($"Scaled MeanFreePath: 0.262 * ({maxDensitySliderValue} - {currentPreset.MeanFreePath * combinedDensityScale})  = {0.262f * (maxDensitySliderValue - (currentPreset.MeanFreePath * combinedDensityScale))}"); // Log the scaled MeanFreePath (density) value
                 if ((currentPreset.MeanFreePath * combinedDensityScale) > maxDensitySliderValue)
                     mls.LogWarning($"MeanFreePath value exceeded max Density SliderValue. Setting density to {maxDensitySliderValue}");
             }
@@ -782,6 +824,7 @@ namespace BetterFog
             {
                 FogSettingsManager.Instance.UpdateSettings();
                 FogSettingsManager.Instance.LockPresetDropdownInteract(lockPresetDropdownModification);
+                FogSettingsManager.Instance.LockPresetButtonInteract(lockPresetValueModification);
                 FogSettingsManager.Instance.LockPresetValueInteract(lockPresetValueModification);
             }
 
@@ -1260,6 +1303,7 @@ namespace BetterFog
             if (isFogSettingsActive) // Update settings GUI, if applicable
             {
                 FogSettingsManager.Instance.LockPresetDropdownInteract(lockPresetDropdownModification);
+                FogSettingsManager.Instance.LockPresetButtonInteract(lockPresetValueModification);
                 FogSettingsManager.Instance.LockPresetValueInteract(lockPresetValueModification);
                 FogSettingsManager.Instance.LockModeDropdownInteract(lockModeDropdownModification);
             }
