@@ -1,4 +1,5 @@
 ﻿using HarmonyLib;
+using System.Text.RegularExpressions;
 using UnityEngine;
 
 namespace BetterFog.Patches
@@ -13,7 +14,8 @@ namespace BetterFog.Patches
             //BetterFog.mls.LogInfo("ChangeLevelPatch Activated");
             // Access the current level
             BetterFog.currentLevelType = __instance.currentLevel;
-            BetterFog.currentLevel = BetterFog.currentLevelType.PlanetName.ToLower();
+            // Remove the starting numbers and spaces from the planet name
+            BetterFog.currentLevel = Regex.Replace(BetterFog.currentLevelType.PlanetName, @"^[\d\s]+", "").ToLower();
             BetterFog.CollectVanillaValues();
 
             if (BetterFog.weatherSaveLoaded)

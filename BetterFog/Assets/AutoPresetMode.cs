@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace BetterFog.Assets
@@ -11,7 +12,10 @@ namespace BetterFog.Assets
         public AutoPresetMode(string condition, string effect)
         {
             var conditions = condition.Split('&');
-            Conditions = conditions.ToList();
+            // Remove all leading numbers and spaces from the conditions
+            Conditions = conditions
+                .Select(c => Regex.Replace(c.TrimStart(), @"^[\d\s]+", "").ToLower())
+                .ToList();
             Effect = effect;
         }
 

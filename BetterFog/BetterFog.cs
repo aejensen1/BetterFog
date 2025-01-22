@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.RegularExpressions;
 using HarmonyLib;
 using BepInEx;
 using BepInEx.Logging;
@@ -16,6 +17,9 @@ using Unity.Netcode;
 using UnityEngine.SceneManagement;
 using System.Globalization;
 using System.Security.Cryptography;
+using Unity.Collections;
+
+
 
 namespace BetterFog
 {
@@ -24,7 +28,7 @@ namespace BetterFog
     {
         public const string modGUID = "ironthumb.BetterFog";
         public const string modName = "BetterFog";
-        public const string modVersion = "3.3.8";
+        public const string modVersion = "3.4.0";
 
         private readonly Harmony harmony = new Harmony(modGUID);
         public static ManualLogSource mls;
@@ -78,15 +82,27 @@ namespace BetterFog
         public static bool autoPresetModeMatchFound = false;
         public static AutoPresetMode matchedPreset = null;
 
+        // For special effects modes
+        public static ConfigEntry<string> discoSequenceConfig;
+        public static ConfigEntry<string> gradientSequenceConfig;
+        public static List<DropdownRowData> discoDropdownDataList;
+        public static List<DropdownRowData> gradientDropdownDataList;
+        public static int sequenceIndex = 0;
+        public const int maxSequencePresets = 12;
+        public const int minSequencePresets = 1;
+        public static bool restartLoop = false;
+        private static FogConfigPreset tempColorPreset;
+        private static bool isLoopRunning = false;
+
         // Fog preset variables
+        public static ConfigEntry<int> presetCountConfig; // Number of presets that can be created
+        public static int presetCountNum;
         private static ConfigEntry<string> defaultPresetName;
         public static List<FogConfigPreset> defaultFogConfigPresets;
         public static List<FogConfigPreset> fogConfigPresets;
         private ConfigEntry<string>[] presetEntries;
         public static int currentPresetIndex;
         public static FogConfigPreset currentPreset;
-        public static bool lockPresetDropdownModification = false;
-        public static bool lockPresetValueModification = false;
 
         public static Dictionary<GameObject, LocalVolumetricFogArtistParameters> fogParameterChanges = new Dictionary<GameObject, LocalVolumetricFogArtistParameters>(); // Dictionary to store vanilla fog settings
 
@@ -94,13 +110,19 @@ namespace BetterFog
         public static List<BetterFogMode> fogModes;
         public static int currentModeIndex;
         public static BetterFogMode currentMode;
-        public static bool lockModeDropdownModification = false;
 
         public static bool isFogSettingsActive = false;
         public static bool settingsHotkeyEnabled;
         public static bool applyingFogSettings = false;
         public static bool inTerminal = false;
-        
+
+        public static bool lockPresetDropdownModification = false;
+        public static bool lockPresetValueModification = false;
+        public static bool lockModeDropdownModification = false;
+        public static bool lockPresetComboModification = false;
+        public static bool lockDensityScaleModification = false;
+        public static bool lockAutoPresetModeModification = false;
+
 
         public static PlayerControllerB player;
 
@@ -166,7 +188,7 @@ namespace BetterFog
                 new FogConfigPreset("Green Fog", 450f, 0f, 0.5f, 0f),
                 new FogConfigPreset("Thick Green", 735f, 0f, 0.5f, 0f),
                 new FogConfigPreset("Blue Fog", 550f, 0f, 0f, 1f),
-                new FogConfigPreset("Blue Fog", 735f, 0f, 0f, 1f),
+                new FogConfigPreset("Thick Blue", 735f, 0f, 0f, 1f),
                 new FogConfigPreset("Purple Fog", 450f, 0.25f, 0f, 1f),
                 new FogConfigPreset("Thick Purple", 735f, 0.25f, 0f, 1f),
                 new FogConfigPreset("Pink Fog", 300f, 1, 0f, 0.5f),
@@ -184,13 +206,15 @@ namespace BetterFog
             {
                 new BetterFogMode("Better Fog"),
                 new BetterFogMode("No Fog"),
-                new BetterFogMode("Vanilla") // Vanilla has three tiers of recording values: 1. LoadScene 2. ChangeLevel 3. OnEnable
+                new BetterFogMode("Vanilla"), // Vanilla has three tiers of recording values: 1. LoadScene 2. ChangeLevel 3. OnEnable
+                new BetterFogMode("Gradient"),
+                new BetterFogMode("Disco")
             };
             mls.LogInfo("fogModes initialized");
 
-            // Config bindings below
-            // Bind each preset to the config
-            string section1 = "Default Fog Settings";
+        // Config bindings below
+        // Bind each preset to the config
+        string section1 = "Default Fog Settings";
             defaultPresetName =
                 Config.Bind(section1, "Default Preset Name", "Default", "Name of the default fog preset (No value sets default to first in list).\n" +
                 "Order of settings: Preset Name, Mean Free Path, Albedo Red, Albedo Green, Albedo Blue\n" +
@@ -220,12 +244,33 @@ namespace BetterFog
             // Initialize the key bindings with the hotkey value
             IngameKeybinds.Instance.InitializeKeybindings(nextPresetHotkeyConfig.Value, nextModeHotkeyConfig.Value, refreshPresetHotkeyConfig.Value, weatherScaleHotkeyConfig.Value, settingsHotkeyConfig.Value, autoPresetModeHotkeyConfig.Value);
             // Create config entries for each preset
+
+            string section6 = "Fog Presets";
+            presetCountConfig = Config.Bind(section6, "Number of Presets", 20, "Number of presets that can be created is equal to this value. Set this value, then start the game and close to refresh the config. Then enter your presets.");
+            presetCountNum = presetCountConfig.Value;
+            if (presetCountNum < 1) // Ensure that the number of presets is at least 1 for 1 preset
+                presetCountNum = 1;
+
+            // Trim the list of presets to the number of presets allowed
+            if (fogConfigPresets.Count > presetCountNum)
+            {
+                fogConfigPresets.RemoveRange(presetCountNum, fogConfigPresets.Count - presetCountNum);
+            }
+            else if (fogConfigPresets.Count < presetCountNum)
+            {
+                for (int i = fogConfigPresets.Count; i < presetCountNum; i++)
+                {
+                    int j = i + 1;
+                    fogConfigPresets.Add(new FogConfigPreset("Preset " + j, 735f, 0.19f, 0.28f, 0.37f));
+                }
+            }
+
             presetEntries = new ConfigEntry<string>[fogConfigPresets.Count];
 
-            for (int i = 0; i < fogConfigPresets.Count; i++)
+            for (int i = 0; (i < fogConfigPresets.Count) && (i < presetCountNum+1); i++)
             {
                 var preset = fogConfigPresets[i];
-                presetEntries[i] = Config.Bind("Fog Presets", "Preset " + i, preset.ToString(), $"Preset {preset.PresetName}");
+                presetEntries[i] = Config.Bind(section6, "Preset " + i, preset.ToString(), $"Preset {preset.PresetName}");
 
                 // Split the entry by commas to get each key-value pair
                 string[] presetData = presetEntries[i].Value.Split(',');
@@ -339,6 +384,12 @@ namespace BetterFog
                 "a fallback value in case no matches are found. Example: 61 March=Light Fog,7 Dine&eclipsed=Orange Fog,7 Dine=Heavy Fog,eclipsed=Red Fog,8 Titan=Heavy Fog,none=Mist,none&8 Titan=No Fog,All=Default");
             autoPresetModes = ParseAutoPresetMode(autoPresetModeConfig.Value);
 
+            string section7 = "Special Effects Modes";
+            discoSequenceConfig = Config.Bind(section7, "Disco Sequence", "Red Fog=500,Orange Fog=500,Yellow Fog=500,Green Fog=500,Blue Fog=500,Purple Fog=500,Pink Fog=500", "Sequence of colors to cycle through for the Disco mode. List is using structure {Preset Name}={Delay (ms)}");
+            gradientSequenceConfig = Config.Bind(section7, "Gradient Sequence", "Default=2000,Light Fog=750", "Sequence of colors to cycle through for the Gradient mode. List is using structure {Preset Name}={Delay (ms)}");
+            discoDropdownDataList = ParseSequenceConfig(discoSequenceConfig.Value);
+            gradientDropdownDataList = ParseSequenceConfig(gradientSequenceConfig.Value);
+            
             mls.LogInfo("Finished parsing config entries");
 
             //--------------------------------- End Config Parsing ---------------------------------
@@ -535,7 +586,6 @@ namespace BetterFog
             }
 
             UpdateLockInteractionSettings();
-            mls.LogInfo("Applying fog settings from ApplyFogSettings");
 
             SetWeatherScale();
 
@@ -545,7 +595,7 @@ namespace BetterFog
 
             foreach (var fogObject in fogObjects)
             {
-                ProcessFogObject(fogObject, activateAutoPresetMode);
+                ProcessFogObject(fogObject);
             }
 
             //if (currentMode.Name == "Better Fog")
@@ -553,7 +603,7 @@ namespace BetterFog
         }
 
         // New Function
-        private static void ProcessFogObject(LocalVolumetricFog fogObject, bool activateAutoPresetMode) // Argument only true when autoPresetMode is being enabled/checked
+        private static void ProcessFogObject(LocalVolumetricFog fogObject) // Argument only true when autoPresetMode is being enabled/checked
         {
             var enemyLayer = LayerMask.NameToLayer("Enemies");
 
@@ -562,7 +612,10 @@ namespace BetterFog
                 !(fogObject.gameObject.layer == enemyLayer && excludeEnemyFogEnabled) &&
                 !(currentMode.Name == "Vanilla"))
             {
-                ApplyFogParameters(fogObject);
+                if (currentMode.Name != "Gradient")
+                    ApplyFogParameters(fogObject, currentPreset);
+                else
+                    ApplyFogParameters(fogObject, tempColorPreset);
             }
             // If the mode is set to vanilla, or the fog object is in the enemies layer but needs to be set to vanilla, reset the fog to vanilla
             else if ((currentMode.Name == "Vanilla") ||
@@ -581,42 +634,47 @@ namespace BetterFog
             }
         }
 
-        private static void ApplyFogParameters(LocalVolumetricFog fogObject)
+        //private static void ApplyCustomColor(Color color)
+        //{
+
+        //}
+
+        private static void ApplyFogParameters(LocalVolumetricFog fogObject, FogConfigPreset targetPreset)
         {
             var parameters = fogObject.parameters;
 
             //if (densityScaleEnabled)
             //{
-            if ((currentPreset.MeanFreePath * combinedDensityScale) > maxDensitySliderValue) // Max density is as thick as the fog can get. Do not exceed this value.
+            if ((targetPreset.MeanFreePath * combinedDensityScale) > maxDensitySliderValue) // Max density is as thick as the fog can get. Do not exceed this value.
             {
                 parameters.meanFreePath = 0;
             }
             else
             {
                 // The range 13000-15000 has the greatest effect on fog density so this is what is scaled
-                parameters.meanFreePath = 0.262f * ((maxDensitySliderValue) - (currentPreset.MeanFreePath * combinedDensityScale));
+                parameters.meanFreePath = 0.262f * ((maxDensitySliderValue) - (targetPreset.MeanFreePath * combinedDensityScale));
             }
             
             // Ensure that the color values are within the acceptable range
-            if (currentPreset.AlbedoR > maxColorValue)
-                currentPreset.AlbedoR = maxColorValue;
-            else if (currentPreset.AlbedoR < 0)
-                currentPreset.AlbedoR = 0;
+            if (targetPreset.AlbedoR > maxColorValue)
+                targetPreset.AlbedoR = maxColorValue;
+            else if (targetPreset.AlbedoR < 0)
+                targetPreset.AlbedoR = 0;
 
-            if (currentPreset.AlbedoG > maxColorValue)
-                currentPreset.AlbedoG = maxColorValue;
-            else if (currentPreset.AlbedoG < 0)
-                currentPreset.AlbedoG = 0;
+            if (targetPreset.AlbedoG > maxColorValue)
+                targetPreset.AlbedoG = maxColorValue;
+            else if (targetPreset.AlbedoG < 0)
+                targetPreset.AlbedoG = 0;
 
-            if (currentPreset.AlbedoB > maxColorValue)
-                currentPreset.AlbedoB = maxColorValue;
-            else if (currentPreset.AlbedoB < 0)
-                currentPreset.AlbedoB = 0;
+            if (targetPreset.AlbedoB > maxColorValue)
+                targetPreset.AlbedoB = maxColorValue;
+            else if (targetPreset.AlbedoB < 0)
+                targetPreset.AlbedoB = 0;
 
             parameters.albedo = new Color(
-                currentPreset.AlbedoR,
-                currentPreset.AlbedoG,
-                currentPreset.AlbedoB,
+                targetPreset.AlbedoR,
+                targetPreset.AlbedoG,
+                targetPreset.AlbedoB,
                 1f
             );
 
@@ -700,11 +758,11 @@ namespace BetterFog
             }
         }
 
-        private static void ApplyAutoPresetMode(LocalVolumetricFog fogObject) // Apply auto preset/mode settings if they match current weather or moon
-        {
+        //private static void ApplyAutoPresetMode(LocalVolumetricFog fogObject) // Apply auto preset/mode settings if they match current weather or moon
+        //{
 
-            ApplyFogParameters(fogObject);
-        }
+        //    ApplyFogParameters(fogObject);
+        //}
 
 
         public static void ApplyFogSettingsOnGameStart() // Duration in seconds, interval in seconds
@@ -833,28 +891,78 @@ namespace BetterFog
 
         public void UpdateMode()
         {
+            StopAllCoroutines();
+            restartLoop = true; // Ensure all loops are stopped before starting a new one.
+            isLoopRunning = false;
+
             if (currentMode.Name == "No Fog")
             {
                 mls.LogInfo("No Fog mode selected.");
                 EnableFogDisablePatch();
+                //StopCoroutine(DiscoLoop());
+                //StopCoroutine(GradientLoop());
+                //restartLoop = true; // stop special effects loops if they are running.
                 fogRefreshLock = true;
                 return;
             }
-            else
+            
+            fogRefreshLock = false;
+            DisableFogPatch();
+            if (currentMode.Name == "Vanilla")
             {
-                fogRefreshLock = false;
-                DisableFogPatch();
-                if (currentMode.Name == "Vanilla")
+                mls.LogInfo("Vanilla mode selected.");
+                DisableNonVanillaPatches();
+                //StopCoroutine(DiscoLoop());
+                //StopCoroutine(GradientLoop());
+                //restartLoop = true; // stop special effects loops if they are running.
+                return;
+            }
+                
+            EnableNonVanillaPatches();
+
+            if (currentMode.Name == "Disco" && !isLoopRunning)
+            {
+                //restartLoop = true; // stop special effects loops if they are running.
+                //StopCoroutine(GradientLoop());
+                StartCoroutine(DiscoLoop());
+            }
+            else if (currentMode.Name == "Gradient" && !isLoopRunning)
+            {
+                //restartLoop = true; // stop special effects loops if they are running.
+                //StopCoroutine(DiscoLoop());
+                StartCoroutine(GradientLoop());
+            }
+        }
+
+        // --------------------------------- Start Parsing Functions ---------------------------------
+        // Function to parse sequence lists
+
+        private List<DropdownRowData> ParseSequenceConfig(string configString)
+        {
+            var sequenceList = new List<DropdownRowData>();
+            var pairs = configString.Split(',');
+
+            foreach (var pair in pairs)
+            {
+                var keyValue = pair.Split('=');
+                if (keyValue.Length == 2 && int.TryParse(keyValue[1], out int sequenceValue))
                 {
-                    mls.LogInfo("Vanilla mode selected.");
-                    DisableNonVanillaPatches();
-                    return;
-                }
-                else
-                {
-                    EnableNonVanillaPatches();
+                    sequenceList.Add(new DropdownRowData(keyValue[0], sequenceValue));
                 }
             }
+            if (sequenceList.Count < minSequencePresets)
+                while (sequenceList.Count < minSequencePresets)
+                {
+                    sequenceList.Add(new DropdownRowData(defaultPresetName.Value, 2000)); // Default value if no valid sequence is found
+                }
+            else
+            {
+                while (sequenceList.Count > maxSequencePresets)
+                {
+                    sequenceList.RemoveAt(sequenceList.Count - 1); // Limit the number of sequences to 12
+                }
+            }
+            return sequenceList;
         }
 
         // Function to parse the weather scales
@@ -868,7 +976,9 @@ namespace BetterFog
                 var keyValue = pair.Split('=');
                 if (keyValue.Length == 2 && float.TryParse(keyValue[1], out float scaleValue))
                 {
-                    weatherScales.Add(new WeatherScale(keyValue[0].ToLower(), scaleValue));
+                    // convert weather names to lowercase with no starting spaces or numbers before the first letter
+                    string weatherName = Regex.Replace(keyValue[0].TrimStart(), @"^[\d\s]+", "").ToLower();
+                    weatherScales.Add(new WeatherScale(weatherName, scaleValue));
                 }
             }
             return weatherScales;
@@ -886,7 +996,9 @@ namespace BetterFog
                 {
                     if (scaleValue < 0)
                         scaleValue = 0;
-                    moonScales.Add(new MoonScale(keyValue[0].ToLower(), scaleValue));
+                    // convert moon names to lowercase with no starting spaces or numbers before the first letter
+                    string moonName = Regex.Replace(keyValue[0].TrimStart(), @"^[\d\s]+", "").ToLower();
+                    moonScales.Add(new MoonScale(moonName, scaleValue));
                 }
             }
             return moonScales;
@@ -899,7 +1011,9 @@ namespace BetterFog
 
             foreach (var item in items)
             {
-                blacklist.Add(item.ToLower());
+                // Remove the leading numbers and spaces from the blacklist string
+                string trimmedString = Regex.Replace(item, @"^[\d\s]+", "").ToLower();
+                blacklist.Add(trimmedString);
             }
 
             return blacklist;
@@ -922,6 +1036,7 @@ namespace BetterFog
             return autoPresetMode;
         }
 
+        //--------------------------------- End Parsing Functions ---------------------------------
         //--------------------------------- Start No Fog Management ---------------------------------
 
         public void EnableFogDisablePatch()
@@ -1280,24 +1395,45 @@ namespace BetterFog
         {
             if (autoPresetModeMatchFound & autoPresetModeEnabled)
             {
-                mls.LogInfo($"AutoPresetMode Match Found: {matchedPreset.Effect}");
+                if (verboseLoggingEnabled)
+                    mls.LogInfo($"AutoPresetMode Match Found: {matchedPreset.Effect}");
                 lockModeDropdownModification = true;
                 lockPresetDropdownModification = true;
                 lockPresetValueModification = (currentMode.Name == "No Fog" || currentMode.Name == "Vanilla");
+                lockDensityScaleModification = lockPresetValueModification;
             }
             else if (currentMode.Name == "No Fog" || currentMode.Name == "Vanilla")
             {
-                mls.LogInfo($"AutoPresetMode Match Not Found. Mode: {currentMode.Name}");
+                if (verboseLoggingEnabled)
+                    mls.LogInfo($"AutoPresetMode Match Not Found. Mode: {currentMode.Name}");
                 lockModeDropdownModification = false;
                 lockPresetDropdownModification = true;
                 lockPresetValueModification = true;
+                lockDensityScaleModification = lockPresetValueModification;
             }
             else
             {
-                mls.LogInfo($"AutoPresetMode Match Not Found. Mode: {currentMode.Name}");
+                if (verboseLoggingEnabled)
+                    mls.LogInfo($"AutoPresetMode Match Not Found. Mode: {currentMode.Name}");
                 lockModeDropdownModification = false;
                 lockPresetDropdownModification = false;
                 lockPresetValueModification = false;
+                lockDensityScaleModification = lockPresetValueModification;
+            }
+
+            // Locking GUI interaction for special effects modes
+            if (currentMode.Name != "Disco" && currentMode.Name != "Gradient")
+            {
+                lockPresetComboModification = true;
+                lockAutoPresetModeModification = false;
+            }
+            else
+            {
+                lockPresetComboModification = false;
+                lockPresetDropdownModification = true;
+                lockPresetValueModification = true;
+                lockDensityScaleModification = false;
+                //lockAutoPresetModeModification = true;
             }
 
             if (isFogSettingsActive) // Update settings GUI, if applicable
@@ -1305,7 +1441,152 @@ namespace BetterFog
                 FogSettingsManager.Instance.LockPresetDropdownInteract(lockPresetDropdownModification);
                 FogSettingsManager.Instance.LockPresetButtonInteract(lockPresetValueModification);
                 FogSettingsManager.Instance.LockPresetValueInteract(lockPresetValueModification);
+                FogSettingsManager.Instance.LockDensityScaleInteract(lockDensityScaleModification);
                 FogSettingsManager.Instance.LockModeDropdownInteract(lockModeDropdownModification);
+                FogSettingsManager.Instance.LockPresetComboInteract(lockPresetComboModification);
+                FogSettingsManager.Instance.LockAutoPresetModeInteract(lockAutoPresetModeModification);
+            }
+        }
+
+        private IEnumerator DiscoLoop()
+        {
+            isLoopRunning = true;
+
+            //mls.LogInfo("Disco mode enabled.");
+            while (currentMode.Name == "Disco")
+            {
+                //mls.LogInfo("Disco mode: Starting sequence loop.");
+                sequenceIndex = 0;
+                while (sequenceIndex < discoDropdownDataList.Count)
+                {
+                    //mls.LogInfo($"Disco mode: Switching to preset {discoDropdownDataList[sequenceIndex].PresetName}");
+                    // Check if a restart has been triggered
+                    if (restartLoop)
+                    {
+                        restartLoop = false; // Reset the flag
+                        sequenceIndex = 0; // Restart from the beginning
+                        break; // Exit the inner loop
+                    }
+
+                    currentPreset = fogConfigPresets.FirstOrDefault(p => p.PresetName == discoDropdownDataList[sequenceIndex].PresetName);
+                    currentPresetIndex = fogConfigPresets.IndexOf(currentPreset);
+                    if (settingsHotkeyEnabled && isFogSettingsActive)
+                        FogSettingsManager.Instance.UpdateSettings();
+
+                    ApplyFogSettings(false);
+                    if (verboseLoggingEnabled)
+                        mls.LogInfo($"Disco mode: Switched to preset {currentPreset.PresetName}");
+
+                    // Wait for the specified duration
+                    yield return new WaitForSeconds(discoDropdownDataList[sequenceIndex].Delay / 1000f);
+
+                    sequenceIndex++;
+                }
+                sequenceIndex = 0;
+            }
+        }
+
+        private IEnumerator GradientLoop()
+        {
+            isLoopRunning = true;
+
+            tempColorPreset = new FogConfigPreset(currentPreset.PresetName, currentPreset.AlbedoR, currentPreset.AlbedoG, currentPreset.AlbedoB, currentPreset.MeanFreePath);
+
+            // Get the next preset in the sequence
+            DropdownRowData nextRow = (sequenceIndex == gradientDropdownDataList.Count - 1)
+                ? gradientDropdownDataList[0]
+                : gradientDropdownDataList[sequenceIndex + 1];
+
+            while (currentMode.Name == "Gradient")
+            {
+                sequenceIndex = 0;
+                while (sequenceIndex < gradientDropdownDataList.Count)
+                {
+                    // Check if a restart has been triggered
+                    if (restartLoop)
+                    {
+                        restartLoop = false; // Reset the flag
+                        sequenceIndex = 0; // Restart from the beginning
+                        tempColorPreset = new FogConfigPreset(currentPreset.PresetName, currentPreset.AlbedoR, currentPreset.AlbedoG, currentPreset.AlbedoB, currentPreset.MeanFreePath);
+                        break; // Exit the inner loop
+                    }
+
+                    currentPreset = fogConfigPresets.FirstOrDefault(p => p.PresetName == gradientDropdownDataList[sequenceIndex].PresetName);
+                    currentPresetIndex = fogConfigPresets.IndexOf(currentPreset);
+                    FogConfigPreset nextPreset = fogConfigPresets.FirstOrDefault(p => p.PresetName == nextRow.PresetName);
+
+                    if (currentPreset == null || nextPreset == null)
+                    {
+                        mls.LogError("One or more presets are null. Skipping gradient step.");
+                        break;
+                    }
+                    
+                    int updateDelay = 12; // Time (ms) between color application updates
+                    int numUpdates = Math.Max(1, gradientDropdownDataList[sequenceIndex].Delay / updateDelay); // Number of color updates to get to the next preset (must be at least 1)
+                    int nextPresetIndex = fogConfigPresets.IndexOf(nextPreset);
+                    float redIncrement = (nextPreset.AlbedoR - currentPreset.AlbedoR) / numUpdates;
+                    float greenIncrement = (nextPreset.AlbedoG - currentPreset.AlbedoG) / numUpdates;
+                    float blueIncrement = (nextPreset.AlbedoB - currentPreset.AlbedoB) / numUpdates;
+                    float densityIncrement = (nextPreset.MeanFreePath - currentPreset.MeanFreePath) / numUpdates;
+
+                    for (int i = 0; i < numUpdates; i++)
+                    {
+                        if (restartLoop)
+                        {
+                            restartLoop = false;
+                            tempColorPreset = new FogConfigPreset(currentPreset.PresetName, currentPreset.AlbedoR, currentPreset.AlbedoG, currentPreset.AlbedoB, currentPreset.MeanFreePath);
+                            break; // Exit the inner loop
+                        }
+
+                        if (i == numUpdates - 1)
+                        {
+                            tempColorPreset.AlbedoR = nextPreset.AlbedoR;
+                            tempColorPreset.AlbedoG = nextPreset.AlbedoG;
+                            tempColorPreset.AlbedoB = nextPreset.AlbedoB;
+                            tempColorPreset.MeanFreePath = nextPreset.MeanFreePath;
+                        }
+                        else
+                        {
+                            tempColorPreset.AlbedoR += redIncrement;
+                            tempColorPreset.AlbedoG += greenIncrement;
+                            tempColorPreset.AlbedoB += blueIncrement;
+                            tempColorPreset.MeanFreePath += densityIncrement;
+                        }
+                        ApplyFogSettings(false);
+                        yield return new WaitForSeconds(updateDelay / 1000f);
+
+                        // Re-check for restartLoop here
+                        if (restartLoop)
+                        {
+                            restartLoop = false;
+                            tempColorPreset = new FogConfigPreset(currentPreset.PresetName, currentPreset.AlbedoR, currentPreset.AlbedoG, currentPreset.AlbedoB, currentPreset.MeanFreePath);
+                            break;
+                        }
+                    }
+
+                    //mls.LogInfo($"Intended Preset: {nextPreset.PresetName}");
+                    //mls.LogInfo($"TempColor: R={tempColorPreset.AlbedoR}, G={tempColorPreset.AlbedoG}, B={tempColorPreset.AlbedoB}, Density={tempColorPreset.MeanFreePath}");
+                    //mls.LogInfo($"TargetColor: R={nextPreset.AlbedoR}, G={nextPreset.AlbedoG}, B={nextPreset.AlbedoB}, Density={nextPreset.MeanFreePath}");
+
+                    sequenceIndex = (sequenceIndex + 1) % gradientDropdownDataList.Count;
+
+                    // Get the next preset in the sequence
+                    nextRow = (sequenceIndex == gradientDropdownDataList.Count - 1)
+                        ? gradientDropdownDataList[0]
+                        : gradientDropdownDataList[sequenceIndex + 1];
+
+                    // Update the current preset to the next preset for the settings GUI
+                    currentPreset = fogConfigPresets.FirstOrDefault(p => p.PresetName == nextRow.PresetName);
+                    currentPresetIndex = fogConfigPresets.IndexOf(currentPreset);
+
+                    if (settingsHotkeyEnabled && isFogSettingsActive)
+                        FogSettingsManager.Instance.UpdateSettings();
+
+                    ApplyFogSettings(false);
+
+                    if (verboseLoggingEnabled)
+                        mls.LogInfo($"Gradient mode: Switched to preset {currentPreset.PresetName}");
+                }
             }
         }
     }

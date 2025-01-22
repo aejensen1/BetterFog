@@ -43,6 +43,7 @@
     <Reference Include="LethalCompanyInputUtils">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Lethal Company\BepInEx\plugins\LethalCompanyInputUtils\LethalCompanyInputUtils.dll</HintPath>
     </Reference>
+    <Reference Include="System" />
     <Reference Include="Unity.InputSystem">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Lethal Company\Lethal Company_Data\Managed\Unity.InputSystem.dll</HintPath>
     </Reference>
@@ -98,6 +99,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\AutoPresetMode.cs" />
+    <Compile Include="Assets\DropdownRowData.cs" />
     <Compile Include="Assets\FogConfigPreset.cs" />
     <Compile Include="Assets\BetterFogMode.cs" />
     <Compile Include="Assets\FogSettingsManager.cs" />
@@ -124,6 +126,7 @@
     <Folder Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Assets\FogAssetBundle\dropdownrow" />
     <None Include="Assets\FogAssetBundle\fogsettingsgui" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
@@ -132,6 +135,7 @@
 copy /Y "$(TargetDir)$(TargetName).dll" "C:\Program Files (x86)\Steam\steamapps\common\Lethal Company\BepInEx\plugins"
 mkdir "C:\Program Files (x86)\Steam\steamapps\common\Lethal Company\BepInEx\plugins\Assets\FogAssetBundle\"
 copy /Y "$(ProjectDir)Assets\FogAssetBundle\fogsettingsgui" "C:\Program Files (x86)\Steam\steamapps\common\Lethal Company\BepInEx\plugins\Assets\FogAssetBundle\"
+copy /Y "$(ProjectDir)Assets\FogAssetBundle\dropdownrow" "C:\Program Files (x86)\Steam\steamapps\common\Lethal Company\BepInEx\plugins\Assets\FogAssetBundle\"
 </PostBuildEvent>
   </PropertyGroup>
 </Project>

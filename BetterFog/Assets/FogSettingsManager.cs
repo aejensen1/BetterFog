@@ -15,14 +15,33 @@ namespace BetterFog.Assets
 {
     public class FogSettingsManager : MonoBehaviour
     {
-        private AssetBundle fogsettingsgui;
-        private GameObject settingsCanvas;
-        private GameObject settingsText;
-        private GameObject settingsInteractables;
+        //--------------------------------- Start Full Bundle Variables ---------------------------------
+        private AssetBundle uninstantiatedMainBundle;
+        private GameObject instantiatedMainBundle;
         private TMP_FontAsset customFont;  // Store the custom font asset
 
-        public TMP_Dropdown modeDropdown; // Dropown for fog mode
+        private AssetBundle uninstantiatedRowBundle;
+        private GameObject instantiatedRowBundle;
+
+        private GameObject settingsInteractables; // Empty object for categorization (reassigned for each canvas)
+
+        private static FogSettingsManager instance;
+        private static readonly object lockObject = new object();
+        private static bool isInitializing = false; // Not currently read from in 3.3.6, may be removed in future versions
+        public static bool supressApplyingFogSettings = false; // Used to prevent fog settings from being applied. When one GUI element is changed, the others should not apply fog settings.
+
+        //--------------------------------- End Full Bundle Variables ---------------------------------
+        //--------------------------------- Start Main Settings Variables ---------------------------------
+
+        private GameObject settingsCanvas;
+        private GameObject settingsText; // Empty object for categorization
+
+        public TMP_Dropdown primaryModeDropdown; // Dropown for primary fog mode
+        public TMP_Dropdown secondaryModeDropdown; // Dropdown for secondary fog mode
         public TMP_Dropdown presetDropdown; // Dropdown for fog 
+
+        private Image colorIndicator; // Image for color indicator
+        private Color indicatorColor; // Color for color indicator
 
         private Slider fogDensitySlider; // Slider for fog density
         private TMP_InputField densityValInput; // Input field for fog density value
@@ -52,19 +71,36 @@ namespace BetterFog.Assets
         public Toggle verboseLogsCheckbox;
         public Toggle autoPresetModeCheckbox;
 
-        private UnityEngine.UI.Button closeButton; // Button to close the settings
-        private UnityEngine.UI.Button refreshButton; // Button to refresh the preset settings to default on the current preset
+        private Button presetOrderButton; // Button to open the preset combo settings window
+        private Button refreshButton; // Button to refresh the preset settings to default on the current preset
+        private Button closeAllButton; // Button to close the settings completely
 
         private RectTransform rectTransform;
         private bool isMouseDown = false;
         private bool isTyping = false;
 
-        private static FogSettingsManager instance;
-        private static readonly object lockObject = new object();
-        private static bool isInitializing = false; // Not currently used in 3.3.6, may be removed in future versions
-        public static bool supressApplyingFogSettings = false; // Used to prevent fog settings from being applied. When one GUI element is changed, the others should not apply fog settings.
-
         private int previousModeIndex;
+
+        //-------------------------------- End Main Settings Variables ---------------------------------
+        //-------------------------------- Start Preset Combo Variables ---------------------------------
+
+        private GameObject presetComboCanvas;
+
+        private TextMeshProUGUI settingsTitle; // Title for the preset combo settings window
+
+        public GameObject dropdownPrefab;  // Prefab for dropdown rows
+        public Transform dropdownContainer;  // Parent container for dropdowns
+        private List<DropdownRowData> targetDropdownRowData = new List<DropdownRowData>(); // The row data specific to the current mode
+        private List<DropdownRowData> tempDataList = new List<DropdownRowData>(); // Temporary list to store dropdown data which is then copied to a storage location
+
+        private Button addDropdownButton; // The button to add a new dropdown
+        private Button removeDropdownButton; // The button to remove a dropdown
+        private Button saveSettingsButton; // The button to save the settings and close preset combo settings window
+        private Button closePresetComboButton; // Button to close the preset combo canvas without saving
+
+        private List<GameObject> dropdowns = new List<GameObject>();
+
+        //-------------------------------- End Preset Combo Variables ---------------------------------
 
         public static FogSettingsManager Instance
         {
@@ -116,21 +152,22 @@ namespace BetterFog.Assets
         {
             BetterFog.mls.LogInfo("Initializing FogSettingsManager.");
 
-            string[] assetPaths = Directory.GetFiles(Paths.PluginPath, "fogsettingsgui", SearchOption.AllDirectories);
+            string[] asset1Paths = Directory.GetFiles(Paths.PluginPath, "fogsettingsgui", SearchOption.AllDirectories); // Main settings
 
-            if (assetPaths.Length > 0)
+            if (asset1Paths.Length > 0)
             {
-                string bundlePath = assetPaths[0];
-                fogsettingsgui = AssetBundle.LoadFromFile(bundlePath);
+                string bundlePath = asset1Paths[0];
+                BetterFog.mls.LogInfo("AssetBundle path 1: " + bundlePath);
+                uninstantiatedMainBundle = AssetBundle.LoadFromFile(bundlePath);
 
-                if (fogsettingsgui != null)
+                if (uninstantiatedMainBundle != null)
                 {
-                    BetterFog.mls.LogInfo("AssetBundle loaded successfully.");
+                    BetterFog.mls.LogInfo("uninstantiated main AssetBundle loaded successfully.");
                     LoadAssetsFromBundle();
                 }
                 else
                 {
-                    BetterFog.mls.LogError("Failed to load AssetBundle.");
+                    BetterFog.mls.LogError("Failed to load main AssetBundle.");
                 }
             }
             else
@@ -138,20 +175,52 @@ namespace BetterFog.Assets
                 BetterFog.mls.LogError("fogsettingsgui file not found in any subdirectory of BepInEx/plugins.");
             }
 
+            string[] asset2Paths = Directory.GetFiles(Paths.PluginPath, "dropdownrow", SearchOption.AllDirectories); // Preset combo row UI bundle path
+
+            if (asset2Paths.Length > 0)
+            {
+                string bundlePath = asset2Paths[0];
+                BetterFog.mls.LogInfo("AssetBundle path 2: " + bundlePath);
+                uninstantiatedRowBundle = AssetBundle.LoadFromFile(bundlePath);
+
+                if (uninstantiatedRowBundle != null)
+                {
+                    BetterFog.mls.LogInfo("uninstantiated row AssetBundle loaded successfully.");
+                    dropdownPrefab = uninstantiatedRowBundle.LoadAsset<GameObject>("DropdownRow");
+                    if (dropdownPrefab == null)
+                    {
+                        BetterFog.mls.LogError("dropdownPrefab is null. Failed to load prefab from AssetBundle.");
+                    }
+                    else
+                    {
+                        BetterFog.mls.LogInfo($"dropdownPrefab loaded successfully: {dropdownPrefab.name}");
+                        uninstantiatedRowBundle.Unload(false);
+                    }
+                }
+                else
+                {
+                    BetterFog.mls.LogError("Failed to load row AssetBundle.");
+                }
+            }
+            else
+            {
+                BetterFog.mls.LogError("dropdownrow file not found in any subdirectory of BepInEx/plugins.");
+            }
+
             previousModeIndex = BetterFog.currentModeIndex;
         }
 
         private void LoadAssetsFromBundle()
         {
-            if (fogsettingsgui != null)
+            if (uninstantiatedMainBundle != null)
             {
                 BetterFog.mls.LogInfo("AssetBundle loaded successfully.");
-                customFont = fogsettingsgui.LoadAsset<TMP_FontAsset>("3270Condensed-Regular SDF");  // Load the custom font
+                customFont = uninstantiatedMainBundle.LoadAsset<TMP_FontAsset>("3270Condensed-Regular SDF");  // Load the custom font
                 BetterFog.mls.LogInfo("If you see an error indicating 'shader compiler platform 4 is not available', nothing is broken.");
 
                 if (customFont != null)
                 {
-                    //BetterFog.mls.LogInfo(customFont.ToString() + " custom font loaded successfully.");
+                    BetterFog.mls.LogInfo(customFont.ToString() + " custom font loaded successfully.");
                 }
                 else
                 {
@@ -163,24 +232,34 @@ namespace BetterFog.Assets
                 if (textShader != null)
                 {
                     customFont.material.shader = textShader;
-                    //BetterFog.mls.LogInfo(customFont.material.shader.ToString() + " shader applied to custom font successfully.");
+                    if (BetterFog.verboseLoggingEnabled)
+                        BetterFog.mls.LogInfo(customFont.material.shader.ToString() + " shader applied to custom font successfully.");
                 }
                 else
                 {
                     BetterFog.mls.LogError("TextMeshPro/Distance Field shader not found!");
                 }
 
-                GameObject canvasPrefab = fogsettingsgui.LoadAsset<GameObject>("FogSettingsCanvas");
+                GameObject fullAssetsBundle = uninstantiatedMainBundle.LoadAsset<GameObject>("FogSettings");
 
-                if (canvasPrefab != null)
+                if (fullAssetsBundle != null)
                 {
-                    settingsCanvas = Instantiate(canvasPrefab);
+                    instantiatedMainBundle = Instantiate(fullAssetsBundle);
+
+                    settingsCanvas = instantiatedMainBundle.transform.Find("FogSettingsCanvas").gameObject;
+                    presetComboCanvas = instantiatedMainBundle.transform.Find("OrderedPresetCanvas").gameObject;
+
                     settingsCanvas.SetActive(false);
+                    presetComboCanvas.SetActive(false);
                     BetterFog.mls.LogInfo("FogSettingsCanvas instantiated and hidden.");
 
                     // Apply the custom font to TextMeshPro components
                     ApplyCustomFont(settingsCanvas);
+                    ApplyCustomFont(presetComboCanvas);
                     BetterFog.mls.LogInfo("Custom font applied to TextMeshPro components.");
+
+                    // color indicator for current preset color
+                    colorIndicator = settingsCanvas.transform.Find("ColorIndicator").GetComponent<Image>();
 
                     // Find Settings Content
                     settingsInteractables = settingsCanvas.transform.Find("Interactables").gameObject;
@@ -193,12 +272,12 @@ namespace BetterFog.Assets
                         BetterFog.mls.LogInfo("Fog preset dropdown is now populated.");
                     SetCurrentOption(presetDropdown);
 
-                    modeDropdown = settingsInteractables.transform.Find("ModeDropdown").GetComponent<TMP_Dropdown>();
+                    primaryModeDropdown = settingsInteractables.transform.Find("ModeDropdown").GetComponent<TMP_Dropdown>();
                     //BetterFog.mls.LogInfo(modeDropdown.ToString() + "Found");
-                    PopulateDropdown(modeDropdown);
+                    PopulateDropdown(primaryModeDropdown);
                     if (BetterFog.verboseLoggingEnabled)
                         BetterFog.mls.LogInfo("Fog mode dropdown is now populated.");
-                    SetCurrentOption(modeDropdown);
+                    SetCurrentOption(primaryModeDropdown);
                     //BetterFog.mls.LogInfo("SetCurrentOption complete.");
 
                     // Find the slider and input objects. Text values can be extracted from the inputs.
@@ -241,8 +320,24 @@ namespace BetterFog.Assets
                     verboseLogsCheckbox = settingsInteractables.transform.Find("VerboseLogsToggle").GetComponent<Toggle>();
                     verboseLogsCheckbox.isOn = BetterFog.verboseLoggingEnabled;
 
-                    closeButton = settingsInteractables.transform.Find("CloseButton").GetComponent<UnityEngine.UI.Button>();
-                    refreshButton = settingsInteractables.transform.Find("RefreshButton").GetComponent<UnityEngine.UI.Button>();
+                    presetOrderButton = settingsInteractables.transform.Find("PresetOrderButton").GetComponent<Button>();
+                    closeAllButton = settingsInteractables.transform.Find("CloseButton").GetComponent<Button>();
+                    refreshButton = settingsInteractables.transform.Find("RefreshButton").GetComponent<Button>();
+
+                    // Start initializing interactables for the preset combo settings window
+                    settingsInteractables = presetComboCanvas.transform.Find("Interactables").gameObject;
+                    saveSettingsButton = settingsInteractables.transform.Find("SaveButton").GetComponent<Button>();
+
+                    //removeDropdownButton = transform.Find("OrderedPresetCanvas/DropdownRow/RemovePresetButton").GetComponent<Button>();
+                    settingsTitle = instantiatedMainBundle.transform.Find("OrderedPresetCanvas/Text/SettingsTitle").GetComponent<TextMeshProUGUI>();
+                    dropdownContainer = instantiatedMainBundle.transform.Find("OrderedPresetCanvas/VerticalPanel");
+                    addDropdownButton = instantiatedMainBundle.transform.Find("OrderedPresetCanvas/Interactables/AddItemButton").GetComponent<Button>();
+                    closePresetComboButton = instantiatedMainBundle.transform.Find("OrderedPresetCanvas/Interactables/CloseButton").GetComponent<Button>();
+
+                    //Destroy(dropdownPrefab); // Remove the prefab from the hierarchy, as it is not part of the rest of the instantiated rows.
+
+                    //addDropdownButton = settingsInteractables.transform.Find("AddItemButton").GetComponent<Button>();
+                    //removeDropdownButton = settingsInteractables.transform.Find("RemoveDropdownButton").GetComponent<Button>();
 
                     if (fogDensitySlider != null && densityValInput != null)
                     {
@@ -283,9 +378,19 @@ namespace BetterFog.Assets
                         autoPresetModeCheckbox.onValueChanged.AddListener(isChecked => OnAutoPresetModeCheckboxValueChanged(isChecked));
                         verboseLogsCheckbox.onValueChanged.AddListener(isChecked => OnVerboseLogsCheckboxValueChanged(isChecked));
 
-                        closeButton.onClick.AddListener(delegate
+                        presetOrderButton.onClick.AddListener(delegate
+                        {
+                            EnablePresetComboCanvas();
+                        });
+
+                        closeAllButton.onClick.AddListener(delegate
                         {
                             DisableSettings();
+                        });
+
+                        closePresetComboButton.onClick.AddListener(delegate
+                        {
+                            DisablePresetComboCanvas();
                         });
 
                         refreshButton.onClick.AddListener(delegate
@@ -307,6 +412,13 @@ namespace BetterFog.Assets
                             BetterFog.ApplyFogSettings(false);
                             supressApplyingFogSettings = false;
                         });
+
+                        // Start adding listeners to interactables for the preset combo settings window
+                        addDropdownButton.onClick.AddListener(delegate
+                            {
+                                AddDropdown();
+                            });
+                        saveSettingsButton.onClick.AddListener(() => SaveDropdownSettings());
                     }
                 }
                 else
@@ -410,6 +522,7 @@ namespace BetterFog.Assets
                     }
                     break;
             }
+            UpdateIndicators();
         }
 
         private IEnumerator ApplySliderSettingsWhilePressed()
@@ -664,8 +777,10 @@ namespace BetterFog.Assets
 
                 if (dropdown == presetDropdown)
                     dropdown.AddOptions(GetFogPresets());
-                else if (dropdown == modeDropdown)
+                else if (dropdown == primaryModeDropdown)
                     dropdown.AddOptions(GetFogModes());
+                else
+                    dropdown.AddOptions(GetFogPresets());
             }
             catch
             {
@@ -718,7 +833,7 @@ namespace BetterFog.Assets
                 // Add a listener to handle changes to the dropdown selection
                 if (dropdown == presetDropdown )
                     dropdown.onValueChanged.AddListener(OnPresetChanged);
-                else if (dropdown == modeDropdown )
+                else if (dropdown == primaryModeDropdown )
                     dropdown.onValueChanged.AddListener(delegate
                     {
                         // Call OnModeChanged with the current and previous index
@@ -734,15 +849,25 @@ namespace BetterFog.Assets
             }
         }
 
+        //--------------------------------- End Dropdown Adjustment ---------------------------------
+        //--------------------------------- Start Settings Update Methods ---------------------------------
+
         public void UpdateSettings()
         {
             supressApplyingFogSettings = true;
             UpdateText();
             UpdateDropdownWithCurrentOption(presetDropdown);
-            UpdateDropdownWithCurrentOption(modeDropdown);
+            UpdateDropdownWithCurrentOption(primaryModeDropdown);
             UpdateSlidersWithCurrentPreset();
             UpdateCheckboxValues();
+            UpdateIndicators();
             supressApplyingFogSettings = false;
+        }
+
+        private void UpdateIndicators()
+        {
+            indicatorColor = new Color(BetterFog.currentPreset.AlbedoR, BetterFog.currentPreset.AlbedoG, BetterFog.currentPreset.AlbedoB);
+            colorIndicator.color = indicatorColor;
         }
 
         private void UpdateText()
@@ -753,7 +878,7 @@ namespace BetterFog.Assets
             densityScaleVal.text = ("x" + BetterFog.combinedDensityScale.ToString("00.000"));
             // calcDensityVal.text = (BetterFog.maxDensitySliderValue - ((BetterFog.maxDensitySliderValue - BetterFog.currentPreset.MeanFreePath) * BetterFog.combinedDensityScale)).ToString("00000.000");
             calcDensityVal.text = (BetterFog.currentPreset.MeanFreePath * BetterFog.combinedDensityScale).ToString("0000.000");
-            BetterFog.mls.LogInfo($"{BetterFog.maxDensitySliderValue} - {BetterFog.maxDensitySliderValue - BetterFog.currentPreset.MeanFreePath} * {BetterFog.combinedDensityScale}");
+            // BetterFog.mls.LogInfo($"{BetterFog.maxDensitySliderValue} - {BetterFog.maxDensitySliderValue - BetterFog.currentPreset.MeanFreePath} * {BetterFog.combinedDensityScale}");
             if (BetterFog.autoPresetModeEnabled)
             {
                 if (!(BetterFog.matchedPreset == null))
@@ -788,7 +913,7 @@ namespace BetterFog.Assets
                     if (BetterFog.verboseLoggingEnabled)
                         BetterFog.mls.LogInfo($"Preset dropdown updated to: {BetterFog.fogConfigPresets[dropdown.value].PresetName}");
                 }
-                else if (dropdown == modeDropdown)
+                else if (dropdown == primaryModeDropdown)
                 {
                     dropdown.value = BetterFog.currentModeIndex;
                     //BetterFog.mls.LogInfo($"Mode dropdown updated to: {BetterFog.currentMode.Name}");
@@ -889,7 +1014,9 @@ namespace BetterFog.Assets
             // Assume the canvas is ready
             settingsCanvas.SetActive(true);
             SetCurrentOption(presetDropdown);
-            SetCurrentOption(modeDropdown);
+            SetCurrentOption(primaryModeDropdown);
+
+            settingsInteractables = settingsCanvas.transform.Find("Interactables").gameObject;
 
             BetterFog.UpdateLockInteractionSettings();
             LockPresetDropdownInteract(BetterFog.lockPresetDropdownModification);
@@ -905,16 +1032,6 @@ namespace BetterFog.Assets
                 BetterFog.mls.LogInfo($"disableInteract: {BetterFog.player.disableInteract}, disableLookInput { BetterFog.player.disableLookInput}, disableMoveInput: {BetterFog.player.disableMoveInput}");
         }
 
-        private void UnloadAssetBundle()
-        {
-            if (fogsettingsgui != null)
-            {
-                fogsettingsgui.Unload(true); // Unload all assets and the AssetBundle itself
-                fogsettingsgui = null; // Clear the reference
-                BetterFog.mls.LogInfo("AssetBundle unloaded.");
-            }
-        }
-
         public void DisableSettings()
         {
             BetterFog.player.disableInteract = false;
@@ -926,6 +1043,7 @@ namespace BetterFog.Assets
             if (settingsCanvas != null)
             {
                 settingsCanvas.SetActive(false);
+                presetComboCanvas.SetActive(false);
                 BetterFog.mls.LogInfo("Fog Settings closed.");
             }
             else
@@ -943,6 +1061,307 @@ namespace BetterFog.Assets
             if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsClient)
                 Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
+        }
+
+        //--------------------------------- End Settings Enable/Disable ---------------------------------
+        //------------------------------- Start FogComboCanvas Methods ---------------------------------
+
+        //public void AddDropdown()
+        //{
+        //    // Instantiate a new dropdown and parent it to the container
+        //    GameObject newDropdown = Instantiate(dropdownPrefab, dropdownContainer);
+        //    dropdowns.Add(newDropdown);
+
+        //    // Set up the "Remove" button in the prefab
+        //    Button removeDropdownButton = newDropdown.GetComponentInChildren<Button>();
+        //    if (removeDropdownButton != null)
+        //    {
+        //        removeDropdownButton.onClick.AddListener(() => RemoveDropdown(newDropdown));
+        //    }
+        //}
+
+        private void EnablePresetComboCanvas()
+        {
+            presetComboCanvas.SetActive(true);
+
+            // Load the current mode's list into tempDataList
+            tempDataList.Clear();
+            if (BetterFog.currentMode.Name == "Disco")
+            {
+                tempDataList.AddRange(BetterFog.discoDropdownDataList);
+            }
+            else if (BetterFog.currentMode.Name == "Gradient")
+            {
+                tempDataList.AddRange(BetterFog.gradientDropdownDataList);
+            }
+
+            // Refresh the UI based on tempDataList
+            RefreshDropdownUI();
+
+            settingsTitle.text = $"{BetterFog.currentMode.Name} Settings";
+
+
+            // Configure the close button
+            settingsInteractables = presetComboCanvas.transform.Find("Interactables").gameObject;
+
+            BetterFog.mls.LogInfo("Preset Combo Canvas opened.");
+        }
+
+        private void RefreshDropdownUI()
+        {
+            // Clear existing dropdowns from the container
+            foreach (GameObject dropdown in dropdowns)
+            {
+                Destroy(dropdown);
+            }
+            dropdowns.Clear();
+
+            // Recreate dropdown rows based on tempDataList
+            foreach (var data in tempDataList)
+            {
+                //BetterFog.mls.LogInfo(data.PresetName);
+                //BetterFog.mls.LogInfo(data.Delay.ToString());
+                if (dropdownPrefab == null)
+                {
+                    BetterFog.mls.LogError("Dropdown prefab is null. Cannot create dropdown row.");
+                    return;
+                }
+                else
+                    BetterFog.mls.LogInfo(dropdownPrefab);
+                if (dropdownContainer == null)
+                {
+                    BetterFog.mls.LogError("Dropdown container is null. Cannot create dropdown row.");
+                    return;
+                }
+                else
+                    BetterFog.mls.LogInfo(dropdownContainer);
+                GameObject newDropdown = Instantiate(dropdownPrefab, dropdownContainer);
+                ApplyCustomFont(newDropdown);
+                dropdowns.Add(newDropdown);
+
+                // Populate the dropdown with all presets
+                TMP_Dropdown presetComboDropdown = newDropdown.GetComponentInChildren<TMP_Dropdown>();
+                if (presetComboDropdown != null)
+                {
+                    PopulateDropdown(presetComboDropdown);
+                    // Set the selected value to match the data
+                    int presetIndex = presetComboDropdown.options.FindIndex(option => option.text == data.PresetName);
+                    presetComboDropdown.value = presetIndex >= 0 ? presetIndex : 0;
+                }
+
+                // Set the delay input field value
+                TMP_InputField delayInputField = newDropdown.GetComponentInChildren<TMP_InputField>();
+                if (delayInputField != null)
+                {
+                    delayInputField.text = data.Delay.ToString();
+                }
+
+                // Set up the remove button
+                Button removeButton = newDropdown.GetComponentInChildren<Button>();
+                if (removeButton != null)
+                {
+                    removeButton.onClick.AddListener(() => RemoveDropdown(newDropdown));
+                }
+            }
+        }
+
+        private void DisablePresetComboCanvas()
+        {
+            presetComboCanvas.SetActive(false);
+
+            settingsInteractables = settingsCanvas.transform.Find("Interactables").gameObject;
+ 
+            BetterFog.mls.LogInfo("Preset Combo Canvas closed.");
+        }
+
+        public void AddDropdown()
+        {
+            if (dropdowns.Count >= BetterFog.maxSequencePresets)
+            {
+                BetterFog.mls.LogWarning("Maximum number of dropdown rows reached. Not adding a new row.");
+                return;
+            }
+            // Instantiate a new dropdown row
+            GameObject newDropdown = Instantiate(dropdownPrefab, dropdownContainer);
+            ApplyCustomFont(newDropdown);
+            dropdowns.Add(newDropdown);
+
+            // Find and populate the dropdown with presets
+            TMP_Dropdown presetComboDropdown = newDropdown.GetComponentInChildren<TMP_Dropdown>();
+            if (presetComboDropdown != null)
+            {
+                PopulateDropdown(presetComboDropdown);
+
+                // Add a new default row to the temp data list
+                tempDataList.Add(new DropdownRowData("Default", 1000));
+            }
+
+            // Find the delay input field and set a default value
+            TMP_InputField delayInputField = newDropdown.GetComponentInChildren<TMP_InputField>();
+            if (delayInputField != null)
+            {
+                delayInputField.text = "1000"; // Default delay
+                delayInputField.onValueChanged.AddListener((value) =>
+                {
+                    // Update the tempDataList whenever the delay changes
+                    int index = dropdowns.IndexOf(newDropdown);
+                    if (index >= 0 && index < tempDataList.Count)
+                    {
+                        if (int.TryParse(value, out int delay))
+                        {
+                            tempDataList[index].Delay = delay;
+                        }
+                    }
+                });
+            }
+
+            // Set up the remove button
+            Button removeButton = newDropdown.GetComponentInChildren<Button>();
+            if (removeButton != null)
+            {
+                removeButton.onClick.AddListener(() => RemoveDropdown(newDropdown));
+            }
+
+            // Log the new dropdown
+            if (BetterFog.verboseLoggingEnabled)
+            {
+                BetterFog.mls.LogInfo($"Added new dropdown. Total dropdowns: {dropdowns.Count}");
+            }
+        }
+
+        public void RemoveDropdown(GameObject dropdownRow)
+        {
+            if (dropdowns.Count <= BetterFog.minSequencePresets)
+            {
+                BetterFog.mls.LogWarning("Minimum number of dropdown rows reached. Not removing a row.");
+                return;
+            }
+            int index = dropdowns.IndexOf(dropdownRow);
+
+            if (index >= 0)
+            {
+                // Remove the corresponding data entry
+                tempDataList.RemoveAt(index);
+
+                // Remove the row from the UI
+                dropdowns.RemoveAt(index);
+                Destroy(dropdownRow);
+            }
+
+            // Log the removed dropdown
+            if (BetterFog.verboseLoggingEnabled)
+            {
+                BetterFog.mls.LogInfo($"Removed dropdown at index: {index}. Total dropdowns: {dropdowns.Count}");
+            }
+        }
+
+        //public List<int> GetSelectedPresets()
+        //{
+        //    List<int> selectedPresets = new List<int>();
+        //    foreach (GameObject dropdown in dropdowns)
+        //    {
+        //        TMP_Dropdown presetDropdown = dropdown.GetComponentInChildren<TMP_Dropdown>();
+        //        if (presetDropdown != null)
+        //        {
+        //            selectedPresets.Add(presetDropdown.value); // Save the selected index
+        //        }
+        //    }
+        //    return selectedPresets;
+        //}
+
+        public void SaveDropdownSettings()
+        {
+            // Update tempDataList with the current UI state
+            tempDataList.Clear();
+
+            foreach (GameObject dropdown in dropdowns)
+            {
+                TMP_Dropdown presetDropdown = dropdown.GetComponentInChildren<TMP_Dropdown>();
+                TMP_InputField delayInputField = dropdown.GetComponentInChildren<TMP_InputField>();
+
+                if (presetDropdown != null && delayInputField != null)
+                {
+                    string selectedPresetName = presetDropdown.options[presetDropdown.value].text;
+                    int delayValue = int.TryParse(delayInputField.text, out int delay) ? delay : 0;
+
+                    // Update tempDataList with the current row data
+                    DropdownRowData data = new DropdownRowData(selectedPresetName, delayValue);
+                    tempDataList.Add(data);
+                }
+            }
+
+            // Copy data from tempDataList to target list based on mode
+            if (BetterFog.currentMode.Name == "Disco")
+            {
+                BetterFog.discoDropdownDataList.Clear();
+                BetterFog.discoDropdownDataList.AddRange(tempDataList);
+            }
+            else if (BetterFog.currentMode.Name == "Gradient")
+            {
+                BetterFog.gradientDropdownDataList.Clear();
+                BetterFog.gradientDropdownDataList.AddRange(tempDataList);
+            }
+
+            BetterFog.restartLoop = true; // Restart the disco loop to apply the new settings
+            DisablePresetComboCanvas();
+
+            // Log or process the saved data
+            if (BetterFog.verboseLoggingEnabled)
+            {
+                if (BetterFog.currentMode.Name == "Disco")
+                {
+                    BetterFog.mls.LogInfo("Disco Mode Dropdown Data:");
+                    foreach (var data in BetterFog.discoDropdownDataList)
+                    {
+                        Debug.Log($"Preset Name: {data.PresetName}, Delay: {data.Delay}");
+                    }
+                }
+                else if (BetterFog.currentMode.Name == "Gradient")
+                {
+                    BetterFog.mls.LogInfo("Gradient Mode Dropdown Data:");
+                    foreach (var data in BetterFog.gradientDropdownDataList)
+                    {
+                        Debug.Log($"Preset Name: {data.PresetName}, Delay: {data.Delay}");
+                    }
+                }
+            }
+        }
+
+
+
+        //public void EnableComboSettings()
+        //{
+        //    // Show the combo settings canvas and enable all dropdowns
+        //    presetComboCanvas.SetActive(true);
+        //    foreach (GameObject dropdown in dropdowns)
+        //    {
+        //        dropdown.SetActive(true);
+        //    }
+        //    addDropdownButton.gameObject.SetActive(true);
+        //}
+
+        //public void DisableComboSettings()
+        //{
+        //    // Hide the combo settings canvas and disable all dropdowns
+        //    presetComboCanvas.SetActive(false);
+        //    foreach (GameObject dropdown in dropdowns)
+        //    {
+        //        dropdown.SetActive(false);
+        //    }
+        //    addDropdownButton.gameObject.SetActive(false);
+        //}
+
+        //------------------------------- End FogComboCanvas Methods ---------------------------------
+        //--------------------------------- Start Asset Management ---------------------------------
+
+        private void UnloadAssetBundle()
+        {
+            if (uninstantiatedMainBundle != null)
+            {
+                uninstantiatedMainBundle.Unload(true); // Unload all assets and the AssetBundle itself
+                uninstantiatedMainBundle = null; // Clear the reference
+                BetterFog.mls.LogInfo("AssetBundle unloaded.");
+            }
         }
 
         public void LockPresetButtonInteract(bool isLocked)
@@ -967,20 +1386,40 @@ namespace BetterFog.Assets
             fogGreenSlider.interactable = !isLocked;
             fogBlueSlider.interactable = !isLocked;
             fogDensitySlider.interactable = !isLocked;
+        }
 
+        public void LockDensityScaleInteract(bool isLocked)
+        {
             densityScaleCheckbox.interactable = !isLocked;
         }
 
         public void LockModeDropdownInteract(bool isLocked)
         {
-            modeDropdown.interactable = !isLocked;
+            primaryModeDropdown.interactable = !isLocked;
         }
+
+        public void LockPresetComboInteract(bool isLocked)
+        {
+            presetOrderButton.interactable = !isLocked;
+        }
+
+        public void LockAutoPresetModeInteract(bool isLocked)
+        {
+            autoPresetModeCheckbox.interactable = !isLocked;
+        }
+
+        //private void ResetButton(string buttonName, GameObject canvasTarget) // To remove listeners from a button
+        //{
+        //    settingsInteractables = canvasTarget.transform.Find("Interactables").gameObject;
+        //    Button button = settingsInteractables.transform.Find(buttonName).GetComponent<Button>();
+        //    button.onClick.RemoveAllListeners();
+        //}
 
         private void OnDestroy()
         {
-            if (fogsettingsgui != null)
+            if (uninstantiatedMainBundle != null)
             {
-                fogsettingsgui.Unload(false);
+                uninstantiatedMainBundle.Unload(false);
             }
             instance = null; // Ensure instance is nullified when destroyed
         }
