@@ -64,7 +64,7 @@ To-Dos
 
 Screenshots
 ==============
-| ![Settings](https://github.com/user-attachments/assets/58c81b21-02c3-42c0-a63b-abe6595063e5) | ![Vanilla](https://github.com/user-attachments/assets/51b7473d-bbb0-4962-8e13-1488ce4ca843) | ![DefaultFog](https://github.com/user-attachments/assets/ab9a4773-0d91-4751-8eb9-a023a60b7dc8) |
+| ![Settings](https://github.com/user-attachments/assets/a660d670-aeb2-434d-81c3-0a2cdc580dc0) | ![Vanilla](https://github.com/user-attachments/assets/51b7473d-bbb0-4962-8e13-1488ce4ca843) | ![DefaultFog](https://github.com/user-attachments/assets/ab9a4773-0d91-4751-8eb9-a023a60b7dc8) |
 |:--:|:--:|:--:|
 | **Settings GUI** | **Vanilla Fog** | **Better Fog** |
 
