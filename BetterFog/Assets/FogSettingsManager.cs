@@ -35,6 +35,7 @@ namespace BetterFog.Assets
 
         private GameObject settingsCanvas;
         private GameObject settingsText; // Empty object for categorization
+        private QuickMenuManager quickMenu; // For enabling and disabling the isMenuOpen value to lock movement
 
         public TMP_Dropdown primaryModeDropdown; // Dropown for primary fog mode
         public TMP_Dropdown secondaryModeDropdown; // Dropdown for secondary fog mode
@@ -996,6 +997,9 @@ namespace BetterFog.Assets
             BetterFog.player.disableLookInput = true;
             BetterFog.player.disableMoveInput = true;
             BetterFog.player.inSpecialMenu = true;
+            quickMenu = GameObject.FindObjectOfType<QuickMenuManager>();
+            quickMenu.isMenuOpen = true;
+
 
             BetterFog.isFogSettingsActive = true;
 
@@ -1038,6 +1042,8 @@ namespace BetterFog.Assets
             BetterFog.player.disableLookInput = false;
             BetterFog.player.disableMoveInput = false;
             BetterFog.player.inSpecialMenu = false;
+            quickMenu = GameObject.FindObjectOfType<QuickMenuManager>();
+            quickMenu.isMenuOpen = false;
 
             BetterFog.isFogSettingsActive = false;
             if (settingsCanvas != null)

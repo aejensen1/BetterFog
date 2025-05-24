@@ -16,8 +16,6 @@ using GameNetcodeStuff;
 using Unity.Netcode;
 using UnityEngine.SceneManagement;
 using System.Globalization;
-using System.Security.Cryptography;
-using Unity.Collections;
 
 
 
@@ -446,6 +444,8 @@ namespace BetterFog
             try
             {
                 harmony.Patch(original: AccessTools.Method(typeof(StartOfRound), "ChangeLevel"), postfix: new HarmonyMethod(typeof(StartOfRoundPatch), "ChangeLevelPatch"));
+                harmony.Patch(original: AccessTools.Method(typeof(StartOfRound), "SetPlanetsWeather"), postfix: new HarmonyMethod(typeof(StartOfRoundPatch), "SetPlanetsWeatherPatch"));
+
                 //mls.LogInfo("StartOfRound patches applied successfully.");
 
                 harmony.Patch(original: AccessTools.Method(typeof(Terminal), "BeginUsingTerminal"), postfix: new HarmonyMethod(typeof(TerminalPatch), "BeginUsingTerminalPatch"));

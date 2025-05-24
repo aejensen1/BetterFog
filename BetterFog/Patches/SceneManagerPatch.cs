@@ -1,10 +1,6 @@
 ﻿using HarmonyLib;
-using UnityEngine.Rendering.HighDefinition;
-using UnityEngine;
-using System.Linq;
 using UnityEngine.SceneManagement;
 using System.Reflection; // Add this to access method info
-using Unity.Netcode;
 
 namespace BetterFog.Patches
 {
@@ -22,6 +18,7 @@ namespace BetterFog.Patches
         [HarmonyPostfix]
         public static void LoadScenePatch(string sceneName, LoadSceneParameters parameters)
         {
+            BetterFog.mls.LogInfo("LoadScenePatch activated");
             BetterFog.CollectVanillaValues();
             BetterFog.ApplyFogSettings(false);
         }
